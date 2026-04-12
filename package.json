@@ -1,0 +1,23 @@
+{
+  "name": "bemcs-engine",
+  "version": "1.0.0",
+  "description": "Bandari Electronic Monitoring and Control System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "port",
+    "shipment",
+    "tracking",
+    "registry",
+    "accounting"
+  ],
+  "author": "MarineTraffic Group Limited",
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2"
+  }
+}

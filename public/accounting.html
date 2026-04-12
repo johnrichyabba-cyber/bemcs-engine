@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accounting System</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="logo-box">
+        <img src="/logo.png" alt="Logo">
+      </div>
+      <div class="sidebar-intro">
+        Port intelligence, customs visibility, and operational control platform.
+      </div>
+      <div class="nav-title">Navigation</div>
+      <div class="nav-list">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/about-system">About System</a>
+        <a class="nav-link" href="/tracking">Tracking</a>
+        <a class="nav-link" href="/shipment-registry">Shipment Registry</a>
+        <a class="nav-link active" href="/accounting-system">Accounting System</a>
+        <a class="nav-link" href="/system-health">System Health</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">Operational Control Desk • Accounting System</div>
+        <div class="topbar-right">
+          <div class="chip">Role: admin</div>
+          <div class="chip chip-gold">Customs Live</div>
+          <button class="btn btn-gold" id="logout-btn">Logout</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="eyebrow">Accounting System</div>
+        <div class="company-line">MarineTraffic Group Limited</div>
+        <h1>Financial Monitoring, Charges Control and Collections Visibility</h1>
+        <p>
+          Track invoices, payments, receipts, charges, pending balances, and daily collections
+          inside the same operational engine.
+        </p>
+      </section>
+
+      <section class="kpi-grid" id="accounting-kpis"></section>
+
+      <div class="card panel">
+        <div class="section-title">Accounting Search + Filters</div>
+        <div class="section-subtitle">Search by invoice no, client, reference, service, and status</div>
+
+        <div class="form-grid">
+          <div>
+            <label>Search</label>
+            <input class="input" type="text" id="searchQ" placeholder="Invoice / client / reference / service" />
+          </div>
+          <div>
+            <label>Status</label>
+            <select class="select" id="filterStatus">
+              <option value="">All</option>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+              <option value="Partially Paid">Partially Paid</option>
+            </select>
+          </div>
+          <div>
+            <label>Service</label>
+            <input class="input" type="text" id="filterService" placeholder="Enter service name" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-gold" type="button" id="applyFiltersBtn">Apply Filters</button>
+          <button class="btn btn-dark" type="button" id="clearFiltersBtn">Clear Filters</button>
+        </div>
+      </div>
+
+      <div class="card panel" style="margin-top:14px;">
+        <div class="section-title">Linked Invoices</div>
+        <div class="section-subtitle">Accounting records linked to shipment files</div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Invoice No</th>
+                <th>Client Name</th>
+                <th>Reference</th>
+                <th>Service</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="invoice-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return null;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    function renderKpis(summary) {
+      document.getElementById("accounting-kpis").innerHTML = `
+        <div class="card kpi-card">
+          <div class="kpi-label">Total Invoices</div>
+          <div class="kpi-value">${summary.totalInvoices}</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Paid Amount</div>
+          <div class="kpi-value">${summary.paidAmount}</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Pending Amount</div>
+          <div class="kpi-value">${summary.pendingAmount}</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Today Collections</div>
+          <div class="kpi-value">${summary.todayCollections}</div>
+        </div>
+      `;
+    }
+
+    function renderInvoices(invoices) {
+      const body = document.getElementById("invoice-table-body");
+
+      if (!invoices.length) {
+        body.innerHTML = `<tr><td colspan="7">No accounting records found.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = invoices.map(item => `
+        <tr>
+          <td>${item.invoiceNo}</td>
+          <td>${item.clientName}</td>
+          <td>${item.referenceNumber}</td>
+          <td>${item.service}</td>
+          <td>${item.amount}</td>
+          <td><span class="status-pill ${item.status === "Paid" ? "status-synced" : item.status === "Partially Paid" ? "status-pending" : "status-unpaid"}">${item.status}</span></td>
+          <td>
+            <a class="badge-link" href="/registry-detail?id=${item.shipmentId}">Open Shipment File</a>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadAccounting() {
+      const summary = await fetchJson("/api/accounting");
+      if (!summary) return;
+      renderKpis(summary.summary);
+
+      const params = new URLSearchParams();
+      const q = document.getElementById("searchQ").value.trim();
+      const status = document.getElementById("filterStatus").value;
+      const service = document.getElementById("filterService").value.trim();
+
+      if (q) params.set("q", q);
+      if (status) params.set("status", status);
+      if (service) params.set("service", service);
+
+      const invoices = await fetchJson(`/api/accounting/invoices${params.toString() ? `?${params.toString()}` : ""}`);
+      if (!invoices) return;
+      renderInvoices(invoices);
+    }
+
+    document.getElementById("applyFiltersBtn").addEventListener("click", loadAccounting);
+
+    document.getElementById("clearFiltersBtn").addEventListener("click", async function () {
+      document.getElementById("searchQ").value = "";
+      document.getElementById("filterStatus").value = "";
+      document.getElementById("filterService").value = "";
+      await loadAccounting();
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login";
+    });
+
+    loadAccounting();
+  </script>
+</body>
+</html>

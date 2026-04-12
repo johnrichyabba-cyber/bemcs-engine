@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shipment Registry</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="logo-box">
+        <img src="/logo.png" alt="Logo">
+      </div>
+
+      <div class="sidebar-intro">
+        Port intelligence, customs visibility, and operational control platform.
+      </div>
+
+      <div class="nav-title">Navigation</div>
+      <div class="nav-list">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/about-system">About System</a>
+        <a class="nav-link" href="/tracking">Tracking</a>
+        <a class="nav-link active" href="/shipment-registry">Shipment Registry</a>
+        <a class="nav-link" href="/accounting-system">Accounting System</a>
+        <a class="nav-link" href="/system-health">System Health</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">Operational Control Desk • Shipment Registry</div>
+        <div class="topbar-right">
+          <div class="chip">Role: admin</div>
+          <div class="chip chip-gold">Customs Live</div>
+          <button class="btn btn-gold" id="logout-btn">Logout</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="eyebrow">Shipment Registry</div>
+        <div class="company-line">MarineTraffic Group Limited</div>
+        <h1>Approved Shipment Files and Registry Records</h1>
+        <p>
+          Only approved shipment records transferred from Tracking appear here.
+          Open each shipment file to manage registry details and accounting linkage.
+        </p>
+      </section>
+
+      <div class="card panel">
+        <div class="section-title">Registry Search + Filters</div>
+        <div class="section-subtitle">Search by client, reference, shipping line, status, and approval</div>
+
+        <div class="form-grid">
+          <div>
+            <label>Search</label>
+            <input class="input" type="text" id="searchQ" placeholder="Client / BL / AWB / RCN / shipping line" />
+          </div>
+          <div>
+            <label>Current Status</label>
+            <select class="select" id="filterStatus">
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Cleared">Cleared</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Released">Released</option>
+            </select>
+          </div>
+          <div>
+            <label>Approval Status</label>
+            <select class="select" id="filterApproval">
+              <option value="">All</option>
+              <option value="Approved">Approved</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-gold" type="button" id="applyFiltersBtn">Apply Filters</button>
+          <button class="btn btn-dark" type="button" id="clearFiltersBtn">Clear Filters</button>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="section-title">Registry Records</div>
+        <div class="section-subtitle">Transferred and approved shipment files</div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Client Name</th>
+                <th>BL/AWB/RCN</th>
+                <th>Shipping Line</th>
+                <th>No of Packages</th>
+                <th>Shipment Weight</th>
+                <th>Status</th>
+                <th>Accounting</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registry-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    async function fetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return null;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    function statusClass(value) {
+      const v = String(value || "").toLowerCase();
+      if (v.includes("registered") || v.includes("approved") || v.includes("cleared")) return "status-synced";
+      if (v.includes("pending")) return "status-pending";
+      return "status-hold";
+    }
+
+    async function loadRegistry() {
+      const params = new URLSearchParams();
+      const q = document.getElementById("searchQ").value.trim();
+      const status = document.getElementById("filterStatus").value;
+      const approvalStatus = document.getElementById("filterApproval").value;
+
+      if (q) params.set("q", q);
+      if (status) params.set("status", status);
+      if (approvalStatus) params.set("approvalStatus", approvalStatus);
+
+      const url = `/api/shipments${params.toString() ? `?${params.toString()}` : ""}`;
+      const data = await fetchJson(url);
+      if (!data) return;
+
+      const body = document.getElementById("registry-table-body");
+
+      if (!data.length) {
+        body.innerHTML = `<tr><td colspan="8">No registry records found.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = data.map(item => `
+        <tr>
+          <td>${item.clientName}</td>
+          <td>${item.referenceNumber}</td>
+          <td>${item.shippingLine}</td>
+          <td>${item.noOfPackages}</td>
+          <td>${item.shipmentWeight}</td>
+          <td><span class="status-pill ${statusClass(item.currentStatus)}">${item.currentStatus}</span></td>
+          <td>
+            ${
+              item.accountingLink
+                ? `<span class="status-pill ${item.accountingLink.status === "Paid" ? "status-synced" : "status-unpaid"}">${item.accountingLink.status}</span>`
+                : `<span class="status-pill status-pending">Not Linked</span>`
+            }
+          </td>
+          <td>
+            <div class="action-stack">
+              <a class="badge-link" href="/registry-detail?id=${item.id}">Open File</a>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    document.getElementById("applyFiltersBtn").addEventListener("click", loadRegistry);
+
+    document.getElementById("clearFiltersBtn").addEventListener("click", async function () {
+      document.getElementById("searchQ").value = "";
+      document.getElementById("filterStatus").value = "";
+      document.getElementById("filterApproval").value = "";
+      await loadRegistry();
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login";
+    });
+
+    loadRegistry();
+  </script>
+</body>
+</html>

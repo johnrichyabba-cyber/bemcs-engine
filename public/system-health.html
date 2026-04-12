@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Health</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="logo-box">
+        <img src="/logo.png" alt="Logo">
+      </div>
+      <div class="sidebar-intro">
+        Port intelligence, customs visibility, and operational control platform.
+      </div>
+      <div class="nav-title">Navigation</div>
+      <div class="nav-list">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/about-system">About System</a>
+        <a class="nav-link" href="/tracking">Tracking</a>
+        <a class="nav-link" href="/shipment-registry">Shipment Registry</a>
+        <a class="nav-link" href="/accounting-system">Accounting System</a>
+        <a class="nav-link active" href="/system-health">System Health</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">Operational Control Desk • System Health</div>
+        <div class="topbar-right">
+          <div class="chip">Role: admin</div>
+          <div class="chip chip-gold">Customs Live</div>
+          <button class="btn btn-gold" id="logout-btn">Logout</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="eyebrow">System Health</div>
+        <div class="company-line">MarineTraffic Group Limited</div>
+        <h1>Platform Readiness and Service Integrity Monitoring</h1>
+        <p>Monitor API availability, customs feed connection, database write state, tracking volume, and registry coverage.</p>
+      </section>
+
+      <div class="list" id="health-list"></div>
+    </main>
+  </div>
+
+  <script>
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return null;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    async function loadHealth() {
+      const data = await fetchJson("/api/system-health");
+      if (!data) return;
+
+      document.getElementById("health-list").innerHTML = `
+        <div class="list-item"><strong>API Status:</strong> ${data.apiStatus}</div>
+        <div class="list-item"><strong>Customs Feed:</strong> ${data.customsFeed}</div>
+        <div class="list-item"><strong>Database Write:</strong> ${data.databaseWrite}</div>
+        <div class="list-item"><strong>Tracking Record Count:</strong> ${data.trackingRecordCount}</div>
+        <div class="list-item"><strong>Shipment Registry Count:</strong> ${data.shipmentRegistryCount}</div>
+        <div class="list-item"><strong>Reference Registry Count:</strong> ${data.referenceRegistryCount}</div>
+        <div class="list-item"><strong>Accounting Status:</strong> ${data.accountingStatus}</div>
+        <div class="list-item"><strong>Last Refresh:</strong> ${data.lastRefresh}</div>
+      `;
+    }
+
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login";
+    });
+
+    loadHealth();
+  </script>
+</body>
+</html>

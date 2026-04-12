@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About System</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="logo-box">
+        <img src="/logo.png" alt="Logo">
+      </div>
+      <div class="sidebar-intro">
+        Port intelligence, customs visibility, and operational control platform.
+      </div>
+      <div class="nav-title">Navigation</div>
+      <div class="nav-list">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/about-system">About System</a>
+        <a class="nav-link" href="/tracking">Tracking</a>
+        <a class="nav-link" href="/shipment-registry">Shipment Registry</a>
+        <a class="nav-link" href="/accounting-system">Accounting System</a>
+        <a class="nav-link" href="/system-health">System Health</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">Operational Control Desk • About System</div>
+        <div class="topbar-right">
+          <div class="chip">Role: admin</div>
+          <div class="chip chip-gold">Customs Live</div>
+          <button class="btn btn-gold" id="logout-btn">Logout</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="eyebrow">Port Intelligence Platform</div>
+        <div class="company-line">MarineTraffic Group Limited</div>
+        <h1>Bandari Electronic Monitoring and Control System <span class="accent">(BE-MCs)</span></h1>
+        <p>Real-time port intelligence, customs monitoring and operational control.</p>
+      </section>
+
+      <div class="card content-card">
+        <div class="section-title">About the System</div>
+        <div class="section-subtitle">Core purpose and control environment</div>
+        <p>
+          Bandari Electronic Monitoring and Control System (BE-MCs) is designed to support
+          real-time port intelligence, customs visibility, shipment monitoring, and operational control.
+        </p>
+        <p>
+          The Tracking module is used to fetch cargo movement intelligence and approval state from trusted sources.
+          Once approved, shipments can be transferred into Shipment Registry to open operational shipment files.
+        </p>
+        <p>
+          The system also includes Accounting System and System Health modules to support financial visibility,
+          invoice control, collection monitoring, and service readiness.
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login";
+    });
+  </script>
+</body>
+</html>

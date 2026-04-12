@@ -1,0 +1,237 @@
+{
+  "shipments": [
+    {
+      "id": 2001,
+      "trackingId": 1501,
+      "clientName": "Salama Trade Co. Ltd",
+      "referenceNumber": "RCN-908771",
+      "shippingLine": "Maersk Line",
+      "cargoDescription": "Industrial spare parts",
+      "noOfPackages": "240 Packages",
+      "shipmentWeight": "18,500 KG",
+      "currentStatus": "Pending",
+      "approvalStatus": "Approved",
+      "trackingSource": "TRA / TPA / Shipping Lines",
+      "sourceConfidence": "High",
+      "registryStatus": "Registered",
+      "registryNotes": "Approved and opened as shipment file.",
+      "operationalNotes": "Awaiting final customs release and warehouse coordination.",
+      "transferredAt": "2026-04-09T10:00:00.000Z",
+      "accountingLink": {
+        "invoiceNo": "INV-24001",
+        "service": "Customs Clearance",
+        "amount": "TZS 4,500,000",
+        "status": "Paid",
+        "dueDate": "2026-04-15",
+        "notes": "Cleared and settled."
+      },
+      "attachments": [
+        {
+          "id": 3001,
+          "documentType": "BL Copy",
+          "documentName": "BL Copy - RCN-908771",
+          "documentStatus": "Active",
+          "documentRef": "DOC-BL-001",
+          "uploadedAt": "2026-04-09T10:20:00.000Z"
+        },
+        {
+          "id": 3002,
+          "documentType": "Invoice Copy",
+          "documentName": "Invoice Copy - INV-24001",
+          "documentStatus": "Active",
+          "documentRef": "DOC-INV-001",
+          "uploadedAt": "2026-04-09T10:40:00.000Z"
+        }
+      ],
+      "auditLog": [
+        {
+          "id": 4001,
+          "action": "ACCOUNTING_LINKED",
+          "detail": "Accounting linked with invoice INV-24001 (Paid).",
+          "actor": "admin",
+          "timestamp": "2026-04-09T10:45:00.000Z"
+        },
+        {
+          "id": 4002,
+          "action": "DOCUMENT_ADDED",
+          "detail": "Document added: Invoice Copy - Invoice Copy - INV-24001.",
+          "actor": "admin",
+          "timestamp": "2026-04-09T10:40:00.000Z"
+        },
+        {
+          "id": 4003,
+          "action": "DOCUMENT_ADDED",
+          "detail": "Document added: BL Copy - BL Copy - RCN-908771.",
+          "actor": "admin",
+          "timestamp": "2026-04-09T10:20:00.000Z"
+        },
+        {
+          "id": 4004,
+          "action": "TRANSFER_TO_REGISTRY",
+          "detail": "Shipment transferred from tracking using reference RCN-908771.",
+          "actor": "admin",
+          "timestamp": "2026-04-09T10:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 2002,
+      "trackingId": 1502,
+      "clientName": "Bandari Foods Importers",
+      "referenceNumber": "BL-774201",
+      "shippingLine": "CMA CGM",
+      "cargoDescription": "Food processing supplies",
+      "noOfPackages": "160 Packages",
+      "shipmentWeight": "12,300 KG",
+      "currentStatus": "On Hold",
+      "approvalStatus": "Approved",
+      "trackingSource": "TPA / Shipping Lines / MarineTraffic",
+      "sourceConfidence": "Medium",
+      "registryStatus": "Registered",
+      "registryNotes": "Transferred after approval check.",
+      "operationalNotes": "Pending invoice confirmation from accounts desk.",
+      "transferredAt": "2026-04-10T08:00:00.000Z",
+      "accountingLink": null,
+      "attachments": [],
+      "auditLog": [
+        {
+          "id": 4010,
+          "action": "TRANSFER_TO_REGISTRY",
+          "detail": "Shipment transferred from tracking using reference BL-774201.",
+          "actor": "admin",
+          "timestamp": "2026-04-10T08:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "trackingRecords": [
+    {
+      "id": 1501,
+      "referenceNumber": "RCN-908771",
+      "shippingLine": "Maersk Line",
+      "cargoDescription": "Industrial spare parts",
+      "noOfPackages": "240 Packages",
+      "shipmentWeight": "18,500 KG",
+      "currentStatus": "Pending",
+      "approvalStatus": "Approved",
+      "trackingSource": "TRA / TPA / Shipping Lines",
+      "sourceConfidence": "High",
+      "fetchedAt": "2026-04-09T09:45:00.000Z",
+      "transferredToRegistry": true,
+      "createdAt": "2026-04-09T09:45:00.000Z"
+    },
+    {
+      "id": 1502,
+      "referenceNumber": "BL-774201",
+      "shippingLine": "CMA CGM",
+      "cargoDescription": "Food processing supplies",
+      "noOfPackages": "160 Packages",
+      "shipmentWeight": "12,300 KG",
+      "currentStatus": "Cleared",
+      "approvalStatus": "Approved",
+      "trackingSource": "TPA / Shipping Lines / MarineTraffic",
+      "sourceConfidence": "Medium",
+      "fetchedAt": "2026-04-10T07:30:00.000Z",
+      "transferredToRegistry": true,
+      "createdAt": "2026-04-10T07:30:00.000Z"
+    }
+  ],
+  "marketBoard": [
+    {
+      "type": "DSE Bond",
+      "name": "50-13.5-T2-A1",
+      "rate": "13.50%",
+      "maturity": "2029-02-20",
+      "isin": "TZ1996101733"
+    },
+    {
+      "type": "DSE Bond",
+      "name": "372-13.50-T4-A1",
+      "rate": "13.50%",
+      "maturity": "2029-08-07",
+      "isin": "TZ1996101857"
+    },
+    {
+      "type": "DSE Bond",
+      "name": "378-13.50-T1-A1",
+      "rate": "13.50%",
+      "maturity": "2029-10-17",
+      "isin": "TZ1996101915"
+    },
+    {
+      "type": "DSE Bond",
+      "name": "388-13.50-T1-A1",
+      "rate": "13.50%",
+      "maturity": "2030-01-30",
+      "isin": "TZ1996102020"
+    }
+  ],
+  "accounting": {
+    "summary": {
+      "totalInvoices": "2",
+      "paidAmount": "TZS 4,500,000",
+      "pendingAmount": "TZS 3,200,000",
+      "todayCollections": "TZS 4,500,000"
+    },
+    "invoices": [
+      {
+        "shipmentId": 2001,
+        "invoiceNo": "INV-24001",
+        "clientName": "Salama Trade Co. Ltd",
+        "referenceNumber": "RCN-908771",
+        "service": "Customs Clearance",
+        "amount": "TZS 4,500,000",
+        "status": "Paid",
+        "dueDate": "2026-04-15",
+        "notes": "Cleared and settled."
+      },
+      {
+        "shipmentId": 2002,
+        "invoiceNo": "INV-24002",
+        "clientName": "Bandari Foods Importers",
+        "referenceNumber": "BL-774201",
+        "service": "Port Handling Charges",
+        "amount": "TZS 3,200,000",
+        "status": "Unpaid",
+        "dueDate": "2026-04-18",
+        "notes": "Awaiting collection."
+      }
+    ],
+    "payments": []
+  },
+  "referenceRegistry": [
+    {
+      "referenceNumber": "RCN-908771",
+      "shippingLine": "Maersk Line",
+      "cargoDescription": "Industrial spare parts",
+      "noOfPackages": "240 Packages",
+      "shipmentWeight": "18,500 KG",
+      "currentStatus": "Pending",
+      "approvalStatus": "Approved",
+      "trackingSource": "TRA / TPA / Shipping Lines",
+      "sourceConfidence": "High"
+    },
+    {
+      "referenceNumber": "BL-774201",
+      "shippingLine": "CMA CGM",
+      "cargoDescription": "Food processing supplies",
+      "noOfPackages": "160 Packages",
+      "shipmentWeight": "12,300 KG",
+      "currentStatus": "Cleared",
+      "approvalStatus": "Approved",
+      "trackingSource": "TPA / Shipping Lines / MarineTraffic",
+      "sourceConfidence": "Medium"
+    },
+    {
+      "referenceNumber": "AWB-552190",
+      "shippingLine": "Ethiopian Cargo",
+      "cargoDescription": "Air cargo electronics",
+      "noOfPackages": "48 Packages",
+      "shipmentWeight": "2,450 KG",
+      "currentStatus": "On Hold",
+      "approvalStatus": "Pending",
+      "trackingSource": "TRA / Track-Trace",
+      "sourceConfidence": "Medium"
+    }
+  ]
+}

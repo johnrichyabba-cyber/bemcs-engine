@@ -195,6 +195,11 @@ function looksHashed(password) {
   return typeof password === "string" && password.startsWith("$2");
 }
 
+function toMoney(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 // Initialize database
 async function initDb() {
   if (!process.env.DATABASE_URL) {
@@ -251,6 +256,33 @@ async function initDb() {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id SERIAL PRIMARY KEY,
+      shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      invoice_number TEXT UNIQUE NOT NULL,
+      charge_type TEXT NOT NULL,
+      amount NUMERIC(14,2) NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'TZS',
+      notes TEXT,
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+      amount NUMERIC(14,2) NOT NULL,
+      payment_method TEXT NOT NULL,
+      reference_text TEXT,
+      notes TEXT,
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   const seedUsers = [
     { username: "admin", password: "1234", role: "admin" },
     { username: "operations", password: "1234", role: "operations" },
@@ -292,7 +324,7 @@ async function initDb() {
   console.log("PostgreSQL initialized successfully.");
 }
 
-// Routes
+// Auth routes
 app.get("/", async (req, res) => {
   try {
     const session = await getSession(req);
@@ -752,7 +784,280 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
   }
 });
 
-// Protected routes/pages
+// Accounting APIs
+app.get("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        i.id,
+        i.shipment_id,
+        i.invoice_number,
+        i.charge_type,
+        i.amount,
+        i.currency,
+        i.notes,
+        i.created_by,
+        i.created_at,
+        s.reference_number,
+        s.client_name,
+        COALESCE(SUM(p.amount), 0) AS paid_amount
+      FROM invoices i
+      JOIN shipments s ON s.id = i.shipment_id
+      LEFT JOIN payments p ON p.invoice_id = i.id
+      GROUP BY
+        i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount,
+        i.currency, i.notes, i.created_by, i.created_at, s.reference_number, s.client_name
+      ORDER BY i.created_at DESC
+    `);
+
+    const invoices = result.rows.map((row) => {
+      const amount = toMoney(row.amount);
+      const paid = toMoney(row.paid_amount);
+      return {
+        ...row,
+        amount,
+        paid_amount: paid,
+        balance: amount - paid
+      };
+    });
+
+    return res.json({
+      success: true,
+      invoices
+    });
+  } catch (error) {
+    console.error("List invoices error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch invoices."
+    });
+  }
+});
+
+app.get("/api/invoices/:id", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
+  const invoiceId = Number(req.params.id);
+
+  try {
+    const invoiceResult = await pool.query(
+      `
+      SELECT
+        i.id,
+        i.shipment_id,
+        i.invoice_number,
+        i.charge_type,
+        i.amount,
+        i.currency,
+        i.notes,
+        i.created_by,
+        i.created_at,
+        s.reference_number,
+        s.client_name
+      FROM invoices i
+      JOIN shipments s ON s.id = i.shipment_id
+      WHERE i.id = $1
+      LIMIT 1
+      `,
+      [invoiceId]
+    );
+
+    if (!invoiceResult.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Invoice not found."
+      });
+    }
+
+    const paymentsResult = await pool.query(
+      `
+      SELECT
+        id,
+        invoice_id,
+        amount,
+        payment_method,
+        reference_text,
+        notes,
+        created_by,
+        created_at
+      FROM payments
+      WHERE invoice_id = $1
+      ORDER BY created_at DESC
+      `,
+      [invoiceId]
+    );
+
+    const invoice = invoiceResult.rows[0];
+    const payments = paymentsResult.rows.map((p) => ({
+      ...p,
+      amount: toMoney(p.amount)
+    }));
+
+    const paid = payments.reduce((sum, p) => sum + toMoney(p.amount), 0);
+    const amount = toMoney(invoice.amount);
+
+    return res.json({
+      success: true,
+      invoice: {
+        ...invoice,
+        amount,
+        paid_amount: paid,
+        balance: amount - paid
+      },
+      payments
+    });
+  } catch (error) {
+    console.error("Get invoice error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch invoice."
+    });
+  }
+});
+
+app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
+  const shipmentId = Number(req.body.shipment_id);
+  const invoiceNumber = String(req.body.invoice_number || "").trim();
+  const chargeType = String(req.body.charge_type || "").trim();
+  const amount = toMoney(req.body.amount);
+  const currency = String(req.body.currency || "TZS").trim();
+  const notes = String(req.body.notes || "").trim();
+
+  if (!shipmentId || !invoiceNumber || !chargeType || !amount) {
+    return res.status(400).json({
+      success: false,
+      error: "Shipment, invoice number, charge type, and amount are required."
+    });
+  }
+
+  try {
+    const shipmentCheck = await pool.query(
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
+      [shipmentId]
+    );
+
+    if (!shipmentCheck.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO invoices (
+        shipment_id,
+        invoice_number,
+        charge_type,
+        amount,
+        currency,
+        notes,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING
+        id,
+        shipment_id,
+        invoice_number,
+        charge_type,
+        amount,
+        currency,
+        notes,
+        created_by,
+        created_at
+      `,
+      [shipmentId, invoiceNumber, chargeType, amount, currency, notes, req.user.username]
+    );
+
+    return res.status(201).json({
+      success: true,
+      invoice: {
+        ...result.rows[0],
+        amount: toMoney(result.rows[0].amount)
+      }
+    });
+  } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({
+        success: false,
+        error: "Invoice number already exists."
+      });
+    }
+
+    console.error("Create invoice error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not create invoice."
+    });
+  }
+});
+
+app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) => {
+  const invoiceId = Number(req.body.invoice_id);
+  const amount = toMoney(req.body.amount);
+  const paymentMethod = String(req.body.payment_method || "").trim();
+  const referenceText = String(req.body.reference_text || "").trim();
+  const notes = String(req.body.notes || "").trim();
+
+  if (!invoiceId || !amount || !paymentMethod) {
+    return res.status(400).json({
+      success: false,
+      error: "Invoice, amount, and payment method are required."
+    });
+  }
+
+  try {
+    const invoiceCheck = await pool.query(
+      "SELECT id FROM invoices WHERE id = $1 LIMIT 1",
+      [invoiceId]
+    );
+
+    if (!invoiceCheck.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Invoice not found."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO payments (
+        invoice_id,
+        amount,
+        payment_method,
+        reference_text,
+        notes,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING
+        id,
+        invoice_id,
+        amount,
+        payment_method,
+        reference_text,
+        notes,
+        created_by,
+        created_at
+      `,
+      [invoiceId, amount, paymentMethod, referenceText, notes, req.user.username]
+    );
+
+    return res.status(201).json({
+      success: true,
+      payment: {
+        ...result.rows[0],
+        amount: toMoney(result.rows[0].amount)
+      }
+    });
+  } catch (error) {
+    console.error("Create payment error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not create payment."
+    });
+  }
+});
+
+// Protected pages
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
@@ -777,7 +1082,7 @@ app.get("/registry-detail", allowRoles("admin", "operations", "accounts", "custo
   return res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
 });
 
-app.get("/accounting", allowRoles("admin", "accounts"), (req, res) => {
+app.get("/accounting", allowRoles("admin", "accounts", "operations"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "accounting.html"));
 });
 

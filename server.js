@@ -200,6 +200,13 @@ function toMoney(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function formatMoney(value, currency = "TZS") {
+  return `${currency} ${toMoney(value).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+}
+
 // Initialize database
 async function initDb() {
   if (!process.env.DATABASE_URL) {
@@ -470,6 +477,116 @@ app.post("/api/users", requireAdmin, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Could not create user."
+    });
+  }
+});
+
+// Dashboard summary API
+app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
+  try {
+    const shipmentsResult = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total_shipments,
+        COUNT(*) FILTER (WHERE LOWER(status) NOT IN ('delivered', 'completed', 'closed'))::int AS active_shipments,
+        COUNT(*) FILTER (WHERE LOWER(status) IN ('delivered', 'completed', 'closed'))::int AS delivered_shipments
+      FROM shipments
+    `);
+
+    const invoicesResult = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total_invoices,
+        COALESCE(SUM(amount), 0) AS total_billed
+      FROM invoices
+    `);
+
+    const paidResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount), 0) AS total_paid
+      FROM payments
+    `);
+
+    const trackingResult = await pool.query(`
+      SELECT
+        te.id,
+        te.event_status,
+        te.location_name,
+        te.remarks,
+        te.event_time,
+        s.reference_number,
+        s.client_name
+      FROM tracking_events te
+      JOIN shipments s ON s.id = te.shipment_id
+      ORDER BY te.event_time DESC, te.created_at DESC
+      LIMIT 5
+    `);
+
+    const recentInvoicesResult = await pool.query(`
+      SELECT
+        i.id,
+        i.invoice_number,
+        i.charge_type,
+        i.amount,
+        i.currency,
+        s.reference_number,
+        s.client_name,
+        i.created_at
+      FROM invoices i
+      JOIN shipments s ON s.id = i.shipment_id
+      ORDER BY i.created_at DESC
+      LIMIT 5
+    `);
+
+    const recentPaymentsResult = await pool.query(`
+      SELECT
+        p.id,
+        p.amount,
+        p.payment_method,
+        p.reference_text,
+        p.created_at,
+        i.invoice_number,
+        s.reference_number,
+        s.client_name
+      FROM payments p
+      JOIN invoices i ON i.id = p.invoice_id
+      JOIN shipments s ON s.id = i.shipment_id
+      ORDER BY p.created_at DESC
+      LIMIT 5
+    `);
+
+    const shipments = shipmentsResult.rows[0] || {};
+    const invoices = invoicesResult.rows[0] || {};
+    const paid = paidResult.rows[0] || {};
+
+    const totalBilled = toMoney(invoices.total_billed);
+    const totalPaid = toMoney(paid.total_paid);
+    const outstanding = totalBilled - totalPaid;
+
+    return res.json({
+      success: true,
+      summary: {
+        total_shipments: Number(shipments.total_shipments || 0),
+        active_shipments: Number(shipments.active_shipments || 0),
+        delivered_shipments: Number(shipments.delivered_shipments || 0),
+        total_invoices: Number(invoices.total_invoices || 0),
+        total_billed: totalBilled,
+        total_paid: totalPaid,
+        outstanding
+      },
+      recent_tracking: trackingResult.rows,
+      recent_invoices: recentInvoicesResult.rows.map((row) => ({
+        ...row,
+        amount: toMoney(row.amount)
+      })),
+      recent_payments: recentPaymentsResult.rows.map((row) => ({
+        ...row,
+        amount: toMoney(row.amount)
+      }))
+    });
+  } catch (error) {
+    console.error("Dashboard summary error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not load dashboard summary."
     });
   }
 });
@@ -798,6 +915,7 @@ app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts",
       FROM tracking_events te
       JOIN shipments s ON s.id = te.shipment_id
       ORDER BY te.event_time DESC, te.created_at DESC
+      LIMIT 50
     `);
 
     return res.json({

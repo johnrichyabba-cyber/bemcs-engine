@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Serve static files
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
 // Home
@@ -21,6 +21,40 @@ app.get("/login", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
+// Dashboard routes
+app.get("/dashboard", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/index.html", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Optional extra routes for your other pages
+app.get("/about", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "about.html"));
+});
+
+app.get("/tracking", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "tracking.html"));
+});
+
+app.get("/shipment-registry", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "shipment-registry.html"));
+});
+
+app.get("/registry-detail", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
+});
+
+app.get("/accounting", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "accounting.html"));
+});
+
+app.get("/system-health", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "system-health.html"));
+});
+
 // Login API - returns JSON
 app.post("/login", (req, res) => {
   const username = String(req.body.username || "").trim();
@@ -29,7 +63,7 @@ app.post("/login", (req, res) => {
   if (username === "admin" && password === "1234") {
     return res.json({
       success: true,
-      redirect: "/index.html"
+      redirect: "/dashboard"
     });
   }
 

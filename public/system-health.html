@@ -3,84 +3,165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>System Health</title>
+  <title>Audit Log & Activity History</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="logo-box">
-        <img src="/logo.png" alt="Logo">
+<body style="font-family: sans-serif; padding: 40px;">
+  <div style="max-width: 1250px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+      <div>
+        <h1>🧾 Audit Log & Activity History</h1>
+        <p>Track who did what, when, and on which system entity.</p>
       </div>
-      <div class="sidebar-intro">
-        Port intelligence, customs visibility, and operational control platform.
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Dashboard</a>
+        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
       </div>
-      <div class="nav-title">Navigation</div>
-      <div class="nav-list">
-        <a class="nav-link" href="/dashboard">Dashboard</a>
-        <a class="nav-link" href="/about-system">About System</a>
-        <a class="nav-link" href="/tracking">Tracking</a>
-        <a class="nav-link" href="/shipment-registry">Shipment Registry</a>
-        <a class="nav-link" href="/accounting-system">Accounting System</a>
-        <a class="nav-link active" href="/system-health">System Health</a>
-      </div>
-    </aside>
+    </div>
 
-    <main class="main">
-      <div class="topbar">
-        <div class="topbar-left">Operational Control Desk • System Health</div>
-        <div class="topbar-right">
-          <div class="chip">Role: admin</div>
-          <div class="chip chip-gold">Customs Live</div>
-          <button class="btn btn-gold" id="logout-btn">Logout</button>
-        </div>
+    <hr style="margin: 24px 0;" />
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Current User</h2>
+      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Shipment-Specific History</h2>
+      <select id="shipment-select" style="padding: 10px; min-width: 320px;"></select>
+      <button id="load-shipment-history-btn" style="padding: 10px 16px; margin-left: 10px; cursor: pointer;">Load Shipment History</button>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Shipment Activity History</h2>
+      <div id="shipment-audit-log">
+        <p>No shipment history loaded yet.</p>
       </div>
+    </div>
 
-      <section class="hero">
-        <div class="eyebrow">System Health</div>
-        <div class="company-line">MarineTraffic Group Limited</div>
-        <h1>Platform Readiness and Service Integrity Monitoring</h1>
-        <p>Monitor API availability, customs feed connection, database write state, tracking volume, and registry coverage.</p>
-      </section>
-
-      <div class="list" id="health-list"></div>
-    </main>
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
+      <h2>Recent Global Audit Logs</h2>
+      <div id="global-audit-log">
+        <p>Loading audit logs...</p>
+      </div>
+    </div>
   </div>
 
   <script>
-    async function fetchJson(url) {
-      const res = await fetch(url);
-      if (res.status === 401) {
+    let shipments = [];
+
+    async function loadUser() {
+      const response = await fetch("/api/me");
+      if (!response.ok) {
         window.location.href = "/login";
-        return null;
+        return;
       }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      return data;
+
+      const data = await response.json();
+      if (!data.success || !data.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      document.getElementById("user-username").textContent = data.user.username || "-";
+      document.getElementById("user-role").textContent = data.user.role || "-";
     }
 
-    async function loadHealth() {
-      const data = await fetchJson("/api/system-health");
-      if (!data) return;
+    async function loadShipments() {
+      const response = await fetch("/api/shipments");
+      const select = document.getElementById("shipment-select");
 
-      document.getElementById("health-list").innerHTML = `
-        <div class="list-item"><strong>API Status:</strong> ${data.apiStatus}</div>
-        <div class="list-item"><strong>Customs Feed:</strong> ${data.customsFeed}</div>
-        <div class="list-item"><strong>Database Write:</strong> ${data.databaseWrite}</div>
-        <div class="list-item"><strong>Tracking Record Count:</strong> ${data.trackingRecordCount}</div>
-        <div class="list-item"><strong>Shipment Registry Count:</strong> ${data.shipmentRegistryCount}</div>
-        <div class="list-item"><strong>Reference Registry Count:</strong> ${data.referenceRegistryCount}</div>
-        <div class="list-item"><strong>Accounting Status:</strong> ${data.accountingStatus}</div>
-        <div class="list-item"><strong>Last Refresh:</strong> ${data.lastRefresh}</div>
-      `;
+      if (!response.ok) {
+        select.innerHTML = `<option value="">Could not load shipments</option>`;
+        return;
+      }
+
+      const data = await response.json();
+      shipments = data.shipments || [];
+
+      if (!shipments.length) {
+        select.innerHTML = `<option value="">No shipments available</option>`;
+        return;
+      }
+
+      select.innerHTML = shipments.map((item) => `
+        <option value="${item.id}">
+          ${item.reference_number} - ${item.client_name}
+        </option>
+      `).join("");
     }
+
+    function renderLogs(targetId, logs, emptyText) {
+      const target = document.getElementById(targetId);
+
+      if (!logs || !logs.length) {
+        target.innerHTML = `<p>${emptyText}</p>`;
+        return;
+      }
+
+      target.innerHTML = logs.map((log) => `
+        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
+          <p><strong>Action:</strong> ${log.action_type}</p>
+          <p><strong>Actor:</strong> ${log.actor_username}${log.actor_role ? ` (${log.actor_role})` : ""}</p>
+          <p><strong>Entity:</strong> ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""}</p>
+          <p><strong>Shipment ID:</strong> ${log.shipment_id || "-"}</p>
+          <p><strong>Details:</strong> ${log.details || "-"}</p>
+          <p><strong>Time:</strong> ${new Date(log.created_at).toLocaleString()}</p>
+        </div>
+      `).join("");
+    }
+
+    async function loadGlobalAuditLogs() {
+      const response = await fetch("/api/audit-logs");
+
+      if (!response.ok) {
+        document.getElementById("global-audit-log").innerHTML = "<p>Could not load audit logs.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderLogs("global-audit-log", data.logs || [], "No audit logs found.");
+    }
+
+    async function loadShipmentAuditLogs() {
+      const shipmentId = document.getElementById("shipment-select").value;
+
+      if (!shipmentId) {
+        document.getElementById("shipment-audit-log").innerHTML = "<p>No shipment selected.</p>";
+        return;
+      }
+
+      const response = await fetch(`/api/shipments/${shipmentId}/audit-logs`);
+
+      if (!response.ok) {
+        document.getElementById("shipment-audit-log").innerHTML = "<p>Could not load shipment history.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderLogs("shipment-audit-log", data.logs || [], "No shipment history found.");
+    }
+
+    document.getElementById("load-shipment-history-btn").addEventListener("click", loadShipmentAuditLogs);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/login";
+      try {
+        const response = await fetch("/logout", { method: "POST" });
+        const data = await response.json();
+        window.location.href = data.redirect || "/login";
+      } catch (error) {
+        window.location.href = "/login";
+      }
     });
 
-    loadHealth();
+    async function initPage() {
+      await loadUser();
+      await loadShipments();
+      await loadGlobalAuditLogs();
+    }
+
+    initPage();
   </script>
 </body>
 </html>

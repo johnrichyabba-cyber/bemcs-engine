@@ -37,6 +37,53 @@ function generateSessionToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+function looksHashed(password) {
+  return typeof password === "string" && password.startsWith("$2");
+}
+
+function toMoney(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function writeAuditLog({
+  actorUsername,
+  actorRole = null,
+  actionType,
+  entityType,
+  entityId = null,
+  shipmentId = null,
+  details = ""
+}) {
+  try {
+    await pool.query(
+      `
+      INSERT INTO audit_logs (
+        actor_username,
+        actor_role,
+        action_type,
+        entity_type,
+        entity_id,
+        shipment_id,
+        details
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        actorUsername || "system",
+        actorRole,
+        actionType,
+        entityType,
+        entityId,
+        shipmentId,
+        details
+      ]
+    );
+  } catch (error) {
+    console.error("Audit log write error:", error.message);
+  }
+}
+
 async function createPersistentSession(user) {
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
@@ -89,9 +136,11 @@ async function getSession(req) {
 async function destroySession(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   const token = cookies[SESSION_COOKIE];
-  if (!token) return;
+  if (!token) return null;
 
+  const session = await getSession(req);
   await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
+  return session;
 }
 
 async function requireAuth(req, res, next) {
@@ -191,22 +240,6 @@ function apiAllowRoles(...roles) {
   };
 }
 
-function looksHashed(password) {
-  return typeof password === "string" && password.startsWith("$2");
-}
-
-function toMoney(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatMoney(value, currency = "TZS") {
-  return `${currency} ${toMoney(value).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
-}
-
 // Initialize database
 async function initDb() {
   if (!process.env.DATABASE_URL) {
@@ -286,6 +319,20 @@ async function initDb() {
       reference_text TEXT,
       notes TEXT,
       created_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id SERIAL PRIMARY KEY,
+      actor_username TEXT NOT NULL,
+      actor_role TEXT,
+      action_type TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER,
+      shipment_id INTEGER,
+      details TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -394,6 +441,16 @@ app.post("/login", async (req, res) => {
       `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}`
     );
 
+    await writeAuditLog({
+      actorUsername: user.username,
+      actorRole: user.role,
+      actionType: "LOGIN",
+      entityType: "SESSION",
+      entityId: null,
+      shipmentId: null,
+      details: `User logged in successfully.`
+    });
+
     return res.json({
       success: true,
       redirect: "/dashboard",
@@ -414,7 +471,17 @@ app.post("/login", async (req, res) => {
 
 app.post("/logout", async (req, res) => {
   try {
-    await destroySession(req);
+    const session = await destroySession(req);
+
+    if (session) {
+      await writeAuditLog({
+        actorUsername: session.username,
+        actorRole: session.role,
+        actionType: "LOGOUT",
+        entityType: "SESSION",
+        details: `User logged out.`
+      });
+    }
 
     res.setHeader(
       "Set-Cookie",
@@ -460,6 +527,15 @@ app.post("/api/users", requireAdmin, async (req, res) => {
       "INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role",
       [username, hashedPassword, role]
     );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "CREATE_USER",
+      entityType: "USER",
+      entityId: result.rows[0].id,
+      details: `Created user ${result.rows[0].username} with role ${result.rows[0].role}.`
+    });
 
     return res.status(201).json({
       success: true,
@@ -587,6 +663,74 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Could not load dashboard summary."
+    });
+  }
+});
+
+// Audit log APIs
+app.get("/api/audit-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        actor_username,
+        actor_role,
+        action_type,
+        entity_type,
+        entity_id,
+        shipment_id,
+        details,
+        created_at
+      FROM audit_logs
+      ORDER BY created_at DESC
+      LIMIT 100
+    `);
+
+    return res.json({
+      success: true,
+      logs: result.rows
+    });
+  } catch (error) {
+    console.error("Audit logs error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch audit logs."
+    });
+  }
+});
+
+app.get("/api/shipments/:id/audit-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        actor_username,
+        actor_role,
+        action_type,
+        entity_type,
+        entity_id,
+        shipment_id,
+        details,
+        created_at
+      FROM audit_logs
+      WHERE shipment_id = $1
+      ORDER BY created_at DESC
+      `,
+      [shipmentId]
+    );
+
+    return res.json({
+      success: true,
+      logs: result.rows
+    });
+  } catch (error) {
+    console.error("Shipment audit logs error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch shipment audit logs."
     });
   }
 });
@@ -877,6 +1021,16 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
       ]
     );
 
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "CREATE_SHIPMENT",
+      entityType: "SHIPMENT",
+      entityId: result.rows[0].id,
+      shipmentId: result.rows[0].id,
+      details: `Created shipment ${result.rows[0].reference_number} for client ${result.rows[0].client_name}.`
+    });
+
     return res.status(201).json({
       success: true,
       shipment: result.rows[0]
@@ -982,7 +1136,7 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -1025,6 +1179,16 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
       `,
       [eventStatus, shipmentId]
     );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "ADD_TRACKING_EVENT",
+      entityType: "TRACKING_EVENT",
+      entityId: result.rows[0].id,
+      shipmentId,
+      details: `Added tracking event "${eventStatus}" at "${locationName}" for shipment ${shipmentCheck.rows[0].reference_number}.`
+    });
 
     return res.status(201).json({
       success: true,
@@ -1185,7 +1349,7 @@ app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), asyn
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -1221,6 +1385,16 @@ app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), asyn
       `,
       [shipmentId, invoiceNumber, chargeType, amount, currency, notes, req.user.username]
     );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "CREATE_INVOICE",
+      entityType: "INVOICE",
+      entityId: result.rows[0].id,
+      shipmentId,
+      details: `Created invoice ${invoiceNumber} for shipment ${shipmentCheck.rows[0].reference_number}.`
+    });
 
     return res.status(201).json({
       success: true,
@@ -1261,7 +1435,12 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
 
   try {
     const invoiceCheck = await pool.query(
-      "SELECT id FROM invoices WHERE id = $1 LIMIT 1",
+      `
+      SELECT i.id, i.invoice_number, i.shipment_id
+      FROM invoices i
+      WHERE i.id = $1
+      LIMIT 1
+      `,
       [invoiceId]
     );
 
@@ -1295,6 +1474,16 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
       `,
       [invoiceId, amount, paymentMethod, referenceText, notes, req.user.username]
     );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "ADD_PAYMENT",
+      entityType: "PAYMENT",
+      entityId: result.rows[0].id,
+      shipmentId: invoiceCheck.rows[0].shipment_id,
+      details: `Added payment to invoice ${invoiceCheck.rows[0].invoice_number} via ${paymentMethod}.`
+    });
 
     return res.status(201).json({
       success: true,
@@ -1341,7 +1530,7 @@ app.get("/accounting", allowRoles("admin", "accounts", "operations"), (req, res)
   return res.sendFile(path.join(__dirname, "public", "accounting.html"));
 });
 
-app.get("/system-health", allowRoles("admin", "customs"), (req, res) => {
+app.get("/system-health", allowRoles("admin", "customs", "operations", "accounts"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "system-health.html"));
 });
 

@@ -569,6 +569,143 @@ app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "
   }
 });
 
+app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const shipmentResult = await pool.query(
+      `
+      SELECT
+        id,
+        client_name,
+        reference_number,
+        shipping_line,
+        cargo_description,
+        status,
+        origin_port,
+        destination_port,
+        created_by,
+        created_at
+      FROM shipments
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [shipmentId]
+    );
+
+    if (!shipmentResult.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const trackingResult = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        event_status,
+        location_name,
+        remarks,
+        event_time,
+        created_by,
+        created_at
+      FROM tracking_events
+      WHERE shipment_id = $1
+      ORDER BY event_time DESC, created_at DESC
+      `,
+      [shipmentId]
+    );
+
+    const invoicesResult = await pool.query(
+      `
+      SELECT
+        i.id,
+        i.shipment_id,
+        i.invoice_number,
+        i.charge_type,
+        i.amount,
+        i.currency,
+        i.notes,
+        i.created_by,
+        i.created_at,
+        COALESCE(SUM(p.amount), 0) AS paid_amount
+      FROM invoices i
+      LEFT JOIN payments p ON p.invoice_id = i.id
+      WHERE i.shipment_id = $1
+      GROUP BY
+        i.id, i.shipment_id, i.invoice_number, i.charge_type,
+        i.amount, i.currency, i.notes, i.created_by, i.created_at
+      ORDER BY i.created_at DESC
+      `,
+      [shipmentId]
+    );
+
+    const invoiceIds = invoicesResult.rows.map((row) => row.id);
+    let payments = [];
+
+    if (invoiceIds.length) {
+      const paymentsResult = await pool.query(
+        `
+        SELECT
+          id,
+          invoice_id,
+          amount,
+          payment_method,
+          reference_text,
+          notes,
+          created_by,
+          created_at
+        FROM payments
+        WHERE invoice_id = ANY($1::int[])
+        ORDER BY created_at DESC
+        `,
+        [invoiceIds]
+      );
+
+      payments = paymentsResult.rows.map((p) => ({
+        ...p,
+        amount: toMoney(p.amount)
+      }));
+    }
+
+    const invoices = invoicesResult.rows.map((row) => {
+      const amount = toMoney(row.amount);
+      const paid = toMoney(row.paid_amount);
+      return {
+        ...row,
+        amount,
+        paid_amount: paid,
+        balance: amount - paid,
+        payments: payments.filter((p) => p.invoice_id === row.id)
+      };
+    });
+
+    const totalBilled = invoices.reduce((sum, item) => sum + toMoney(item.amount), 0);
+    const totalPaid = invoices.reduce((sum, item) => sum + toMoney(item.paid_amount), 0);
+    const outstanding = totalBilled - totalPaid;
+
+    return res.json({
+      success: true,
+      shipment: shipmentResult.rows[0],
+      tracking_events: trackingResult.rows,
+      invoices,
+      financial_summary: {
+        total_billed: totalBilled,
+        total_paid: totalPaid,
+        outstanding
+      }
+    });
+  } catch (error) {
+    console.error("Full shipment detail error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch integrated shipment detail."
+    });
+  }
+});
+
 app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res) => {
   const clientName = String(req.body.client_name || "").trim();
   const referenceNumber = String(req.body.reference_number || "").trim();

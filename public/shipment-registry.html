@@ -6,187 +6,218 @@
   <title>Shipment Registry</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="logo-box">
-        <img src="/logo.png" alt="Logo">
+<body style="font-family: sans-serif; padding: 40px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+      <div>
+        <h1>📦 Shipment Registry</h1>
+        <p>Create, view, and manage shipment records.</p>
       </div>
-
-      <div class="sidebar-intro">
-        Port intelligence, customs visibility, and operational control platform.
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Dashboard</a>
+        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
       </div>
+    </div>
 
-      <div class="nav-title">Navigation</div>
-      <div class="nav-list">
-        <a class="nav-link" href="/dashboard">Dashboard</a>
-        <a class="nav-link" href="/about-system">About System</a>
-        <a class="nav-link" href="/tracking">Tracking</a>
-        <a class="nav-link active" href="/shipment-registry">Shipment Registry</a>
-        <a class="nav-link" href="/accounting-system">Accounting System</a>
-        <a class="nav-link" href="/system-health">System Health</a>
+    <hr style="margin: 24px 0;" />
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Current User</h2>
+      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    </div>
+
+    <div id="create-shipment-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px; display: none;">
+      <h2>Create Shipment</h2>
+      <form id="shipment-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+        <input id="client_name" type="text" placeholder="Client Name" required />
+        <input id="reference_number" type="text" placeholder="Reference Number" required />
+        <input id="shipping_line" type="text" placeholder="Shipping Line" required />
+        <input id="status" type="text" placeholder="Status (e.g. Pending)" />
+        <input id="origin_port" type="text" placeholder="Origin Port" />
+        <input id="destination_port" type="text" placeholder="Destination Port" />
+        <textarea id="cargo_description" placeholder="Cargo Description" style="grid-column: 1 / -1; min-height: 100px;" required></textarea>
+        <button type="submit" style="padding: 10px 16px; cursor: pointer; grid-column: 1 / -1;">Create Shipment</button>
+      </form>
+      <p id="shipment-message" style="margin-top: 12px;"></p>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
+      <h2>Shipment Records</h2>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+          <thead>
+            <tr>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">ID</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Client</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Reference</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Shipping Line</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Status</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Created By</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Created At</th>
+              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="shipments-body">
+            <tr>
+              <td colspan="8" style="padding: 12px;">Loading shipments...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </aside>
+    </div>
 
-    <main class="main">
-      <div class="topbar">
-        <div class="topbar-left">Operational Control Desk • Shipment Registry</div>
-        <div class="topbar-right">
-          <div class="chip">Role: admin</div>
-          <div class="chip chip-gold">Customs Live</div>
-          <button class="btn btn-gold" id="logout-btn">Logout</button>
-        </div>
-      </div>
-
-      <section class="hero">
-        <div class="eyebrow">Shipment Registry</div>
-        <div class="company-line">MarineTraffic Group Limited</div>
-        <h1>Approved Shipment Files and Registry Records</h1>
-        <p>
-          Only approved shipment records transferred from Tracking appear here.
-          Open each shipment file to manage registry details and accounting linkage.
-        </p>
-      </section>
-
-      <div class="card panel">
-        <div class="section-title">Registry Search + Filters</div>
-        <div class="section-subtitle">Search by client, reference, shipping line, status, and approval</div>
-
-        <div class="form-grid">
-          <div>
-            <label>Search</label>
-            <input class="input" type="text" id="searchQ" placeholder="Client / BL / AWB / RCN / shipping line" />
-          </div>
-          <div>
-            <label>Current Status</label>
-            <select class="select" id="filterStatus">
-              <option value="">All</option>
-              <option value="Pending">Pending</option>
-              <option value="Cleared">Cleared</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Released">Released</option>
-            </select>
-          </div>
-          <div>
-            <label>Approval Status</label>
-            <select class="select" id="filterApproval">
-              <option value="">All</option>
-              <option value="Approved">Approved</option>
-              <option value="Pending">Pending</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button class="btn btn-gold" type="button" id="applyFiltersBtn">Apply Filters</button>
-          <button class="btn btn-dark" type="button" id="clearFiltersBtn">Clear Filters</button>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="section-title">Registry Records</div>
-        <div class="section-subtitle">Transferred and approved shipment files</div>
-
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Client Name</th>
-                <th>BL/AWB/RCN</th>
-                <th>Shipping Line</th>
-                <th>No of Packages</th>
-                <th>Shipment Weight</th>
-                <th>Status</th>
-                <th>Accounting</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="registry-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+    <div id="shipment-detail-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-top: 20px; display: none;">
+      <h2>Shipment Detail</h2>
+      <div id="shipment-detail-content"></div>
+    </div>
   </div>
 
   <script>
-    async function fetchJson(url, options = {}) {
-      const res = await fetch(url, options);
-      if (res.status === 401) {
+    let currentUser = null;
+
+    async function loadUser() {
+      const response = await fetch("/api/me");
+      if (!response.ok) {
         window.location.href = "/login";
-        return null;
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      return data;
-    }
-
-    function statusClass(value) {
-      const v = String(value || "").toLowerCase();
-      if (v.includes("registered") || v.includes("approved") || v.includes("cleared")) return "status-synced";
-      if (v.includes("pending")) return "status-pending";
-      return "status-hold";
-    }
-
-    async function loadRegistry() {
-      const params = new URLSearchParams();
-      const q = document.getElementById("searchQ").value.trim();
-      const status = document.getElementById("filterStatus").value;
-      const approvalStatus = document.getElementById("filterApproval").value;
-
-      if (q) params.set("q", q);
-      if (status) params.set("status", status);
-      if (approvalStatus) params.set("approvalStatus", approvalStatus);
-
-      const url = `/api/shipments${params.toString() ? `?${params.toString()}` : ""}`;
-      const data = await fetchJson(url);
-      if (!data) return;
-
-      const body = document.getElementById("registry-table-body");
-
-      if (!data.length) {
-        body.innerHTML = `<tr><td colspan="8">No registry records found.</td></tr>`;
         return;
       }
 
-      body.innerHTML = data.map(item => `
+      const data = await response.json();
+      if (!data.success || !data.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      currentUser = data.user;
+      document.getElementById("user-username").textContent = currentUser.username || "-";
+      document.getElementById("user-role").textContent = currentUser.role || "-";
+
+      if (currentUser.role === "admin" || currentUser.role === "operations") {
+        document.getElementById("create-shipment-panel").style.display = "block";
+      }
+    }
+
+    async function loadShipments() {
+      const response = await fetch("/api/shipments");
+      const body = document.getElementById("shipments-body");
+
+      if (!response.ok) {
+        body.innerHTML = `<tr><td colspan="8" style="padding:12px;">Could not load shipments.</td></tr>`;
+        return;
+      }
+
+      const data = await response.json();
+      if (!data.success || !Array.isArray(data.shipments) || !data.shipments.length) {
+        body.innerHTML = `<tr><td colspan="8" style="padding:12px;">No shipments found.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = data.shipments.map((item) => `
         <tr>
-          <td>${item.clientName}</td>
-          <td>${item.referenceNumber}</td>
-          <td>${item.shippingLine}</td>
-          <td>${item.noOfPackages}</td>
-          <td>${item.shipmentWeight}</td>
-          <td><span class="status-pill ${statusClass(item.currentStatus)}">${item.currentStatus}</span></td>
-          <td>
-            ${
-              item.accountingLink
-                ? `<span class="status-pill ${item.accountingLink.status === "Paid" ? "status-synced" : "status-unpaid"}">${item.accountingLink.status}</span>`
-                : `<span class="status-pill status-pending">Not Linked</span>`
-            }
-          </td>
-          <td>
-            <div class="action-stack">
-              <a class="badge-link" href="/registry-detail?id=${item.id}">Open File</a>
-            </div>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.id}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.client_name}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.reference_number}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.shipping_line}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.status}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${item.created_by}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${new Date(item.created_at).toLocaleString()}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">
+            <button onclick="viewShipment(${item.id})" style="padding:6px 10px; cursor:pointer;">View</button>
           </td>
         </tr>
       `).join("");
     }
 
-    document.getElementById("applyFiltersBtn").addEventListener("click", loadRegistry);
+    async function viewShipment(id) {
+      const response = await fetch(`/api/shipments/${id}`);
+      const panel = document.getElementById("shipment-detail-panel");
+      const content = document.getElementById("shipment-detail-content");
 
-    document.getElementById("clearFiltersBtn").addEventListener("click", async function () {
-      document.getElementById("searchQ").value = "";
-      document.getElementById("filterStatus").value = "";
-      document.getElementById("filterApproval").value = "";
-      await loadRegistry();
+      if (!response.ok) {
+        panel.style.display = "block";
+        content.innerHTML = "<p>Could not load shipment detail.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.shipment) {
+        panel.style.display = "block";
+        content.innerHTML = "<p>Shipment not found.</p>";
+        return;
+      }
+
+      const s = data.shipment;
+      panel.style.display = "block";
+      content.innerHTML = `
+        <p><strong>ID:</strong> ${s.id}</p>
+        <p><strong>Client Name:</strong> ${s.client_name}</p>
+        <p><strong>Reference Number:</strong> ${s.reference_number}</p>
+        <p><strong>Shipping Line:</strong> ${s.shipping_line}</p>
+        <p><strong>Cargo Description:</strong> ${s.cargo_description}</p>
+        <p><strong>Status:</strong> ${s.status}</p>
+        <p><strong>Origin Port:</strong> ${s.origin_port || "-"}</p>
+        <p><strong>Destination Port:</strong> ${s.destination_port || "-"}</p>
+        <p><strong>Created By:</strong> ${s.created_by}</p>
+        <p><strong>Created At:</strong> ${new Date(s.created_at).toLocaleString()}</p>
+      `;
+    }
+
+    document.getElementById("shipment-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const message = document.getElementById("shipment-message");
+      const payload = {
+        client_name: document.getElementById("client_name").value.trim(),
+        reference_number: document.getElementById("reference_number").value.trim(),
+        shipping_line: document.getElementById("shipping_line").value.trim(),
+        cargo_description: document.getElementById("cargo_description").value.trim(),
+        status: document.getElementById("status").value.trim() || "Pending",
+        origin_port: document.getElementById("origin_port").value.trim(),
+        destination_port: document.getElementById("destination_port").value.trim()
+      };
+
+      message.textContent = "Creating shipment...";
+
+      try {
+        const response = await fetch("/api/shipments", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to create shipment.");
+        }
+
+        message.textContent = `Shipment created: ${data.shipment.reference_number}`;
+        document.getElementById("shipment-form").reset();
+        loadShipments();
+      } catch (error) {
+        message.textContent = error.message;
+      }
     });
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/login";
+      try {
+        const response = await fetch("/logout", { method: "POST" });
+        const data = await response.json();
+        window.location.href = data.redirect || "/login";
+      } catch (error) {
+        window.location.href = "/login";
+      }
     });
 
-    loadRegistry();
+    async function initPage() {
+      await loadUser();
+      await loadShipments();
+    }
+
+    initPage();
   </script>
 </body>
 </html>

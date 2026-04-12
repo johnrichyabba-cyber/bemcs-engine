@@ -160,6 +160,37 @@ function allowRoles(...roles) {
   };
 }
 
+function apiAllowRoles(...roles) {
+  return async (req, res, next) => {
+    try {
+      const session = await getSession(req);
+
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized"
+        });
+      }
+
+      if (!roles.includes(session.role)) {
+        return res.status(403).json({
+          success: false,
+          error: "Forbidden"
+        });
+      }
+
+      req.user = session;
+      next();
+    } catch (error) {
+      console.error("API role middleware error:", error.message);
+      return res.status(500).json({
+        success: false,
+        error: "Authorization failed"
+      });
+    }
+  };
+}
+
 function looksHashed(password) {
   return typeof password === "string" && password.startsWith("$2");
 }
@@ -188,6 +219,21 @@ async function initDb() {
       username TEXT NOT NULL,
       role TEXT NOT NULL,
       expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shipments (
+      id SERIAL PRIMARY KEY,
+      client_name TEXT NOT NULL,
+      reference_number TEXT UNIQUE NOT NULL,
+      shipping_line TEXT NOT NULL,
+      cargo_description TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      origin_port TEXT,
+      destination_port TEXT,
+      created_by TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -388,7 +434,157 @@ app.post("/api/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Protected routes
+// Shipment APIs
+app.get("/api/shipments", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        client_name,
+        reference_number,
+        shipping_line,
+        cargo_description,
+        status,
+        origin_port,
+        destination_port,
+        created_by,
+        created_at
+      FROM shipments
+      ORDER BY created_at DESC
+    `);
+
+    return res.json({
+      success: true,
+      shipments: result.rows
+    });
+  } catch (error) {
+    console.error("List shipments error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch shipments."
+    });
+  }
+});
+
+app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const id = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        client_name,
+        reference_number,
+        shipping_line,
+        cargo_description,
+        status,
+        origin_port,
+        destination_port,
+        created_by,
+        created_at
+      FROM shipments
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    return res.json({
+      success: true,
+      shipment: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Get shipment error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch shipment."
+    });
+  }
+});
+
+app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res) => {
+  const clientName = String(req.body.client_name || "").trim();
+  const referenceNumber = String(req.body.reference_number || "").trim();
+  const shippingLine = String(req.body.shipping_line || "").trim();
+  const cargoDescription = String(req.body.cargo_description || "").trim();
+  const status = String(req.body.status || "Pending").trim();
+  const originPort = String(req.body.origin_port || "").trim();
+  const destinationPort = String(req.body.destination_port || "").trim();
+
+  if (!clientName || !referenceNumber || !shippingLine || !cargoDescription) {
+    return res.status(400).json({
+      success: false,
+      error: "Client name, reference number, shipping line, and cargo description are required."
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO shipments (
+        client_name,
+        reference_number,
+        shipping_line,
+        cargo_description,
+        status,
+        origin_port,
+        destination_port,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING
+        id,
+        client_name,
+        reference_number,
+        shipping_line,
+        cargo_description,
+        status,
+        origin_port,
+        destination_port,
+        created_by,
+        created_at
+      `,
+      [
+        clientName,
+        referenceNumber,
+        shippingLine,
+        cargoDescription,
+        status,
+        originPort,
+        destinationPort,
+        req.user.username
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      shipment: result.rows[0]
+    });
+  } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({
+        success: false,
+        error: "Reference number already exists."
+      });
+    }
+
+    console.error("Create shipment error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not create shipment."
+    });
+  }
+});
+
+// Protected routes/pages
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
@@ -405,11 +601,11 @@ app.get("/tracking", allowRoles("admin", "operations", "customs"), (req, res) =>
   return res.sendFile(path.join(__dirname, "public", "tracking.html"));
 });
 
-app.get("/shipment-registry", allowRoles("admin", "operations"), (req, res) => {
+app.get("/shipment-registry", allowRoles("admin", "operations", "accounts", "customs"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "shipment-registry.html"));
 });
 
-app.get("/registry-detail", allowRoles("admin", "operations"), (req, res) => {
+app.get("/registry-detail", allowRoles("admin", "operations", "accounts", "customs"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
 });
 

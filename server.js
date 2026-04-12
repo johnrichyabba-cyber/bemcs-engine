@@ -20,9 +20,8 @@ const pool = new Pool({
   }
 });
 
-// Simple in-memory sessions
-const sessions = new Map();
 const SESSION_COOKIE = "bemcs_session";
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24; // 24 hours
 
 function parseCookies(cookieHeader = "") {
   const cookies = {};
@@ -34,67 +33,130 @@ function parseCookies(cookieHeader = "") {
   return cookies;
 }
 
-function createSession(user) {
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    createdAt: Date.now()
-  });
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+async function createPersistentSession(user) {
+  const token = generateSessionToken();
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+
+  await pool.query(
+    `
+    INSERT INTO sessions (token, user_id, username, role, expires_at)
+    VALUES ($1, $2, $3, $4, $5)
+    `,
+    [token, user.id, user.username, user.role, expiresAt]
+  );
+
   return token;
 }
 
-function getSession(req) {
+async function getSession(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   const token = cookies[SESSION_COOKIE];
   if (!token) return null;
-  return sessions.get(token) || null;
-}
 
-function requireAuth(req, res, next) {
-  const session = getSession(req);
-  if (!session) {
-    return res.redirect("/login");
-  }
-  req.user = session;
-  next();
-}
+  const result = await pool.query(
+    `
+    SELECT token, user_id, username, role, expires_at
+    FROM sessions
+    WHERE token = $1
+    LIMIT 1
+    `,
+    [token]
+  );
 
-function requireAdmin(req, res, next) {
-  const session = getSession(req);
-  if (!session) {
-    return res.status(401).json({
-      success: false,
-      error: "Unauthorized"
-    });
-  }
+  if (!result.rows.length) return null;
 
-  if (session.role !== "admin") {
-    return res.status(403).json({
-      success: false,
-      error: "Forbidden"
-    });
+  const session = result.rows[0];
+  const now = new Date();
+
+  if (new Date(session.expires_at) < now) {
+    await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
+    return null;
   }
 
-  req.user = session;
-  next();
+  return {
+    token: session.token,
+    id: session.user_id,
+    username: session.username,
+    role: session.role,
+    expiresAt: session.expires_at
+  };
 }
 
-function allowRoles(...roles) {
-  return (req, res, next) => {
-    const session = getSession(req);
+async function destroySession(req) {
+  const cookies = parseCookies(req.headers.cookie || "");
+  const token = cookies[SESSION_COOKIE];
+  if (!token) return;
 
+  await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
+}
+
+async function requireAuth(req, res, next) {
+  try {
+    const session = await getSession(req);
     if (!session) {
       return res.redirect("/login");
     }
 
-    if (!roles.includes(session.role)) {
-      return res.redirect("/403");
+    req.user = session;
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error.message);
+    return res.redirect("/login");
+  }
+}
+
+async function requireAdmin(req, res, next) {
+  try {
+    const session = await getSession(req);
+
+    if (!session) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      });
+    }
+
+    if (session.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden"
+      });
     }
 
     req.user = session;
     next();
+  } catch (error) {
+    console.error("Admin middleware error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Authorization failed"
+    });
+  }
+}
+
+function allowRoles(...roles) {
+  return async (req, res, next) => {
+    try {
+      const session = await getSession(req);
+
+      if (!session) {
+        return res.redirect("/login");
+      }
+
+      if (!roles.includes(session.role)) {
+        return res.redirect("/403");
+      }
+
+      req.user = session;
+      next();
+    } catch (error) {
+      console.error("Role middleware error:", error.message);
+      return res.redirect("/login");
+    }
   };
 }
 
@@ -114,6 +176,18 @@ async function initDb() {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id SERIAL PRIMARY KEY,
+      token TEXT UNIQUE NOT NULL,
+      user_id INTEGER NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -151,24 +225,37 @@ async function initDb() {
     }
   }
 
+  await pool.query(`
+    DELETE FROM sessions
+    WHERE expires_at < NOW()
+  `);
+
   console.log("PostgreSQL initialized successfully.");
 }
 
 // Routes
-app.get("/", (req, res) => {
-  const session = getSession(req);
-  if (session) {
-    return res.redirect("/dashboard");
+app.get("/", async (req, res) => {
+  try {
+    const session = await getSession(req);
+    if (session) {
+      return res.redirect("/dashboard");
+    }
+    return res.redirect("/login");
+  } catch (error) {
+    return res.redirect("/login");
   }
-  return res.redirect("/login");
 });
 
-app.get("/login", (req, res) => {
-  const session = getSession(req);
-  if (session) {
-    return res.redirect("/dashboard");
+app.get("/login", async (req, res) => {
+  try {
+    const session = await getSession(req);
+    if (session) {
+      return res.redirect("/dashboard");
+    }
+    return res.sendFile(path.join(__dirname, "public", "login.html"));
+  } catch (error) {
+    return res.sendFile(path.join(__dirname, "public", "login.html"));
   }
-  return res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 app.get("/403", requireAuth, (req, res) => {
@@ -202,7 +289,7 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    const token = createSession({
+    const token = await createPersistentSession({
       id: user.id,
       username: user.username,
       role: user.role
@@ -210,7 +297,7 @@ app.post("/login", async (req, res) => {
 
     res.setHeader(
       "Set-Cookie",
-      `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+      `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}`
     );
 
     return res.json({
@@ -231,23 +318,26 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.post("/logout", (req, res) => {
-  const cookies = parseCookies(req.headers.cookie || "");
-  const token = cookies[SESSION_COOKIE];
+app.post("/logout", async (req, res) => {
+  try {
+    await destroySession(req);
 
-  if (token) {
-    sessions.delete(token);
+    res.setHeader(
+      "Set-Cookie",
+      `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+    );
+
+    return res.json({
+      success: true,
+      redirect: "/login"
+    });
+  } catch (error) {
+    console.error("Logout error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Logout failed"
+    });
   }
-
-  res.setHeader(
-    "Set-Cookie",
-    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
-  );
-
-  return res.json({
-    success: true,
-    redirect: "/login"
-  });
 });
 
 app.get("/api/me", requireAuth, (req, res) => {
@@ -298,7 +388,7 @@ app.post("/api/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Protected dashboards/pages by role
+// Protected routes
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });

@@ -80,6 +80,7 @@
           throw new Error(data.error || "Login failed");
         }
 
+        localStorage.setItem("bemcs_user", JSON.stringify(data.user || {}));
         window.location.href = data.redirect || "/dashboard";
       } catch (error) {
         message.classList.add("error");

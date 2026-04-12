@@ -8,10 +8,10 @@ const PORT = process.env.PORT || 10000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Static files
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// Home
+// Home route
 app.get("/", (req, res) => {
   return res.redirect("/login");
 });
@@ -21,16 +21,12 @@ app.get("/login", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// Dashboard routes
+// Dashboard route
 app.get("/dashboard", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.get("/index.html", (req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Optional extra routes for your other pages
+// Extra routes for existing pages
 app.get("/about", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "about.html"));
 });
@@ -55,7 +51,7 @@ app.get("/system-health", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "system-health.html"));
 });
 
-// Login API - returns JSON
+// Stable test login API
 app.post("/login", (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "").trim();
@@ -75,7 +71,10 @@ app.post("/login", (req, res) => {
 
 // Health check
 app.get("/health", (req, res) => {
-  return res.status(200).send("OK");
+  return res.status(200).json({
+    success: true,
+    message: "Server is healthy"
+  });
 });
 
 // Start server

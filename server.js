@@ -1,6 +1,5 @@
 const express = require("express");
 const path = require("path");
-const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -9,44 +8,37 @@ const PORT = process.env.PORT || 10000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Serve static files
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// PostgreSQL connection (Render)
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+// Home
+app.get("/", (req, res) => {
+  return res.redirect("/login");
 });
 
-// Test DB connection
-pool.connect()
-  .then(() => console.log("✅ PostgreSQL connected"))
-  .catch(err => console.error("❌ DB connection error:", err));
+// Login page
+app.get("/login", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
-// LOGIN ROUTE
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+// Test login (stable hardcoded login)
+app.post("/login", (req, res) => {
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "").trim();
 
-  try {
-    const result = await pool.query(
-      "SELECT * FROM users WHERE username = $1 AND password = $2",
-      [username, password]
-    );
-
-    if (result.rows.length > 0) {
-      res.redirect("/index.html");
-    } else {
-      res.send("Invalid username or password.");
-    }
-  } catch (err) {
-    console.error(err);
-    res.send("Server error");
+  if (username === "admin" && password === "1234") {
+    return res.redirect("/index.html");
   }
+
+  return res.status(401).send("Invalid username or password.");
 });
 
-// START SERVER
+// Health check
+app.get("/health", (req, res) => {
+  return res.status(200).send("OK");
+});
+
+// Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

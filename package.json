@@ -4,11 +4,9 @@
   "description": "Bandari Electronic Monitoring and Control System",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "pg": "^8.20.0"
+    "express": "^4.21.2"
   }
 }

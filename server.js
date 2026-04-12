@@ -17,10 +17,10 @@ const dbPath = path.join(__dirname, "data", "db.json");
 const sessions = new Map();
 
 const USERS = [
-  { username: "admin", password: "1234", role: "admin" },
-  { username: "operations", password: "1234", role: "operations" },
-  { username: "accounts", password: "1234", role: "accounts" },
-  { username: "customs", password: "1234", role: "customs" }
+  { username: "Johnrich Yabba", password: "Yabba005*", role: "admin" },
+  { username: "Operations", password: "1234", role: "operations" },
+  { username: "Accounts", password: "1234", role: "accounts" },
+  { username: "Shippingline", password: "1234", role: "customs" }
 ];
 
 function readDb() {

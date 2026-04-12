@@ -1,6 +1,5 @@
 const express = require("express");
 const path = require("path");
-const bodyParser = require("body-parser");
 const { Pool } = require("pg");
 
 const app = express();
@@ -14,8 +13,9 @@ const pool = new Pool({
   }
 });
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// Built-in Express middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Initialize database
@@ -71,7 +71,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Health check
 app.get("/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");

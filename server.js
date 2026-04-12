@@ -81,6 +81,23 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function allowRoles(...roles) {
+  return (req, res, next) => {
+    const session = getSession(req);
+
+    if (!session) {
+      return res.redirect("/login");
+    }
+
+    if (!roles.includes(session.role)) {
+      return res.redirect("/403");
+    }
+
+    req.user = session;
+    next();
+  };
+}
+
 function looksHashed(password) {
   return typeof password === "string" && password.startsWith("$2");
 }
@@ -152,6 +169,10 @@ app.get("/login", (req, res) => {
     return res.redirect("/dashboard");
   }
   return res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/403", requireAuth, (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "403.html"));
 });
 
 app.post("/login", async (req, res) => {
@@ -240,7 +261,7 @@ app.get("/api/me", requireAuth, (req, res) => {
 app.post("/api/users", requireAdmin, async (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "").trim();
-  const role = String(req.body.role || "user").trim();
+  const role = String(req.body.role || "operations").trim();
 
   if (!username || !password) {
     return res.status(400).json({
@@ -277,36 +298,36 @@ app.post("/api/users", requireAdmin, async (req, res) => {
   }
 });
 
+// Protected dashboards/pages by role
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// Protected pages
 app.get("/index.html", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-app.get("/about", requireAuth, (req, res) => {
+app.get("/about", allowRoles("admin"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "about.html"));
 });
 
-app.get("/tracking", requireAuth, (req, res) => {
+app.get("/tracking", allowRoles("admin", "operations", "customs"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "tracking.html"));
 });
 
-app.get("/shipment-registry", requireAuth, (req, res) => {
+app.get("/shipment-registry", allowRoles("admin", "operations"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "shipment-registry.html"));
 });
 
-app.get("/registry-detail", requireAuth, (req, res) => {
+app.get("/registry-detail", allowRoles("admin", "operations"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
 });
 
-app.get("/accounting", requireAuth, (req, res) => {
+app.get("/accounting", allowRoles("admin", "accounts"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "accounting.html"));
 });
 
-app.get("/system-health", requireAuth, (req, res) => {
+app.get("/system-health", allowRoles("admin", "customs"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "system-health.html"));
 });
 

@@ -21,7 +21,7 @@ const pool = new Pool({
 });
 
 const SESSION_COOKIE = "bemcs_session";
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24; // 24 hours
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 function parseCookies(cookieHeader = "") {
   const cookies = {};
@@ -238,6 +238,19 @@ async function initDb() {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tracking_events (
+      id SERIAL PRIMARY KEY,
+      shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      event_status TEXT NOT NULL,
+      location_name TEXT NOT NULL,
+      remarks TEXT,
+      event_time TIMESTAMP NOT NULL,
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   const seedUsers = [
     { username: "admin", password: "1234", role: "admin" },
     { username: "operations", password: "1234", role: "operations" },
@@ -283,9 +296,7 @@ async function initDb() {
 app.get("/", async (req, res) => {
   try {
     const session = await getSession(req);
-    if (session) {
-      return res.redirect("/dashboard");
-    }
+    if (session) return res.redirect("/dashboard");
     return res.redirect("/login");
   } catch (error) {
     return res.redirect("/login");
@@ -295,9 +306,7 @@ app.get("/", async (req, res) => {
 app.get("/login", async (req, res) => {
   try {
     const session = await getSession(req);
-    if (session) {
-      return res.redirect("/dashboard");
-    }
+    if (session) return res.redirect("/dashboard");
     return res.sendFile(path.join(__dirname, "public", "login.html"));
   } catch (error) {
     return res.sendFile(path.join(__dirname, "public", "login.html"));
@@ -393,7 +402,6 @@ app.get("/api/me", requireAuth, (req, res) => {
   });
 });
 
-// Admin-only user creation
 app.post("/api/users", requireAdmin, async (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "").trim();
@@ -470,7 +478,7 @@ app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "
   const id = Number(req.params.id);
 
   try {
-    const result = await pool.query(
+    const shipmentResult = await pool.query(
       `
       SELECT
         id,
@@ -490,16 +498,35 @@ app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "
       [id]
     );
 
-    if (!result.rows.length) {
+    if (!shipmentResult.rows.length) {
       return res.status(404).json({
         success: false,
         error: "Shipment not found."
       });
     }
 
+    const trackingResult = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        event_status,
+        location_name,
+        remarks,
+        event_time,
+        created_by,
+        created_at
+      FROM tracking_events
+      WHERE shipment_id = $1
+      ORDER BY event_time DESC, created_at DESC
+      `,
+      [id]
+    );
+
     return res.json({
       success: true,
-      shipment: result.rows[0]
+      shipment: shipmentResult.rows[0],
+      tracking_events: trackingResult.rows
     });
   } catch (error) {
     console.error("Get shipment error:", error.message);
@@ -584,6 +611,147 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
   }
 });
 
+// Tracking APIs
+app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        te.id,
+        te.shipment_id,
+        te.event_status,
+        te.location_name,
+        te.remarks,
+        te.event_time,
+        te.created_by,
+        te.created_at,
+        s.reference_number,
+        s.client_name
+      FROM tracking_events te
+      JOIN shipments s ON s.id = te.shipment_id
+      ORDER BY te.event_time DESC, te.created_at DESC
+    `);
+
+    return res.json({
+      success: true,
+      tracking_events: result.rows
+    });
+  } catch (error) {
+    console.error("List tracking events error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch tracking events."
+    });
+  }
+});
+
+app.get("/api/shipments/:id/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        event_status,
+        location_name,
+        remarks,
+        event_time,
+        created_by,
+        created_at
+      FROM tracking_events
+      WHERE shipment_id = $1
+      ORDER BY event_time DESC, created_at DESC
+      `,
+      [shipmentId]
+    );
+
+    return res.json({
+      success: true,
+      tracking_events: result.rows
+    });
+  } catch (error) {
+    console.error("Shipment tracking events error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch shipment tracking events."
+    });
+  }
+});
+
+app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs"), async (req, res) => {
+  const shipmentId = Number(req.body.shipment_id);
+  const eventStatus = String(req.body.event_status || "").trim();
+  const locationName = String(req.body.location_name || "").trim();
+  const remarks = String(req.body.remarks || "").trim();
+  const eventTime = String(req.body.event_time || "").trim();
+
+  if (!shipmentId || !eventStatus || !locationName || !eventTime) {
+    return res.status(400).json({
+      success: false,
+      error: "Shipment, event status, location name, and event time are required."
+    });
+  }
+
+  try {
+    const shipmentCheck = await pool.query(
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
+      [shipmentId]
+    );
+
+    if (!shipmentCheck.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO tracking_events (
+        shipment_id,
+        event_status,
+        location_name,
+        remarks,
+        event_time,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING
+        id,
+        shipment_id,
+        event_status,
+        location_name,
+        remarks,
+        event_time,
+        created_by,
+        created_at
+      `,
+      [shipmentId, eventStatus, locationName, remarks, eventTime, req.user.username]
+    );
+
+    await pool.query(
+      `
+      UPDATE shipments
+      SET status = $1
+      WHERE id = $2
+      `,
+      [eventStatus, shipmentId]
+    );
+
+    return res.status(201).json({
+      success: true,
+      tracking_event: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Create tracking event error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not create tracking event."
+    });
+  }
+});
+
 // Protected routes/pages
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
@@ -597,7 +765,7 @@ app.get("/about", allowRoles("admin"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "about.html"));
 });
 
-app.get("/tracking", allowRoles("admin", "operations", "customs"), (req, res) => {
+app.get("/tracking", allowRoles("admin", "operations", "customs", "accounts"), (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "tracking.html"));
 });
 

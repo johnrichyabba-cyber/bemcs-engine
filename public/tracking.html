@@ -3,348 +3,220 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tracking</title>
+  <title>Tracking Module</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="logo-box">
-        <img src="/logo.png" alt="Logo">
+<body style="font-family: sans-serif; padding: 40px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+      <div>
+        <h1>🚚 Tracking Module</h1>
+        <p>Track shipment movement, status changes, and operational milestones.</p>
       </div>
-
-      <div class="sidebar-intro">
-        Port intelligence, customs visibility, and operational control platform.
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Dashboard</a>
+        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
       </div>
+    </div>
 
-      <div class="nav-title">Navigation</div>
-      <div class="nav-list">
-        <a class="nav-link" href="/dashboard">Dashboard</a>
-        <a class="nav-link" href="/about-system">About System</a>
-        <a class="nav-link active" href="/tracking">Tracking</a>
-        <a class="nav-link" href="/shipment-registry">Shipment Registry</a>
-        <a class="nav-link" href="/accounting-system">Accounting System</a>
-        <a class="nav-link" href="/system-health">System Health</a>
+    <hr style="margin: 24px 0;" />
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Current User</h2>
+      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Available Shipments</h2>
+      <select id="shipment-select" style="padding: 10px; min-width: 320px;"></select>
+      <button id="refresh-tracking-btn" style="padding: 10px 16px; margin-left: 10px; cursor: pointer;">Refresh Timeline</button>
+    </div>
+
+    <div id="tracking-form-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px; display: none;">
+      <h2>Add Tracking Event</h2>
+      <form id="tracking-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+        <input id="event_status" type="text" placeholder="Event Status e.g. Arrived at Port" required />
+        <input id="location_name" type="text" placeholder="Location" required />
+        <input id="event_time" type="datetime-local" required />
+        <input id="remarks" type="text" placeholder="Remarks (optional)" />
+        <button type="submit" style="padding: 10px 16px; cursor: pointer; grid-column: 1 / -1;">Add Tracking Event</button>
+      </form>
+      <p id="tracking-message" style="margin-top: 12px;"></p>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Shipment Summary</h2>
+      <div id="shipment-summary">Select a shipment to view summary.</div>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
+      <h2>Tracking Timeline</h2>
+      <div id="tracking-timeline">
+        <p>No shipment selected.</p>
       </div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
-        <div class="topbar-left">Operational Control Desk • Tracking</div>
-        <div class="topbar-right">
-          <div class="chip">Role: admin</div>
-          <div class="chip chip-gold">Customs Live</div>
-          <button class="btn btn-gold" id="logout-btn">Logout</button>
-        </div>
-      </div>
-
-      <section class="hero">
-        <div class="eyebrow">Tracking Module</div>
-        <div class="company-line">MarineTraffic Group Limited</div>
-        <h1>Shipment Intelligence Tracking and Approval Monitoring</h1>
-        <p>
-          Fetch shipment movement and cargo status using BL Number, AWB, or RCN from connected tracking sources.
-          Client details will be completed later at registry stage after approval.
-        </p>
-      </section>
-
-      <div class="card panel">
-        <div class="section-title">Tracking Search + Filters</div>
-        <div class="section-subtitle">Search by reference, shipping line, cargo, source, status, and approval</div>
-
-        <div class="form-grid">
-          <div>
-            <label>Search</label>
-            <input class="input" type="text" id="searchQ" placeholder="BL / AWB / RCN / shipping line / cargo" />
-          </div>
-          <div>
-            <label>Current Status</label>
-            <select class="select" id="filterStatus">
-              <option value="">All</option>
-              <option value="Pending">Pending</option>
-              <option value="Cleared">Cleared</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Released">Released</option>
-            </select>
-          </div>
-          <div>
-            <label>Approval Status</label>
-            <select class="select" id="filterApproval">
-              <option value="">All</option>
-              <option value="Approved">Approved</option>
-              <option value="Pending">Pending</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button class="btn btn-gold" type="button" id="applyFiltersBtn">Apply Filters</button>
-          <button class="btn btn-dark" type="button" id="clearFiltersBtn">Clear Filters</button>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="section-title">Tracking Sources</div>
-        <div class="section-subtitle">Configured operational and public tracking channels</div>
-
-        <div class="source-list">
-          <div class="source-item">TRA — Customs linked source</div>
-          <div class="source-item">TPA — Port linked source</div>
-          <div class="source-item">Shipping Lines — Carrier linked source</div>
-          <div class="source-item">
-            MarineTraffic —
-            <a href="https://www.marinetraffic.com/en/ais/home" target="_blank" rel="noopener noreferrer">
-              https://www.marinetraffic.com/en/ais/home
-            </a>
-          </div>
-          <div class="source-item">
-            Track-Trace —
-            <a href="https://www.track-trace.com/" target="_blank" rel="noopener noreferrer">
-              https://www.track-trace.com/
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="section-title">Fetch Shipment</div>
-        <div class="section-subtitle">Track shipment status before transfer to registry</div>
-
-        <form id="tracking-form">
-          <div class="form-grid">
-            <div>
-              <label>BL Number / AWB / RCN</label>
-              <input class="input" type="text" id="referenceNumber" placeholder="Enter BL/AWB/RCN" required />
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button class="btn btn-gold" type="submit">Fetch Shipment</button>
-          </div>
-
-          <div id="tracking-message" class="message"></div>
-        </form>
-      </div>
-
-      <div class="card panel">
-        <div class="section-title">Fetched Shipment Details</div>
-        <div class="section-subtitle">Operational details returned from tracking sources</div>
-
-        <div id="tracking-details" class="info-grid">
-          <div class="info-box">
-            <div class="info-label">Reference Number</div>
-            <div class="info-value">No data loaded</div>
-          </div>
-        </div>
-
-        <div class="form-actions" style="margin-top:18px;">
-          <button class="btn btn-gold" id="transfer-btn" type="button">Transfer to Registry</button>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="section-title">Tracking History</div>
-        <div class="section-subtitle">Fetched and monitored shipment records</div>
-
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Shipping Line</th>
-                <th>No of Packages</th>
-                <th>Shipment Weight</th>
-                <th>Status</th>
-                <th>Approval</th>
-                <th>Registry</th>
-              </tr>
-            </thead>
-            <tbody id="tracking-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+    </div>
   </div>
 
   <script>
-    let trackingRecords = [];
-    let selectedRecord = null;
+    let currentUser = null;
+    let shipments = [];
 
-    async function fetchJson(url, options = {}) {
-      const res = await fetch(url, options);
-      if (res.status === 401) {
+    async function loadUser() {
+      const response = await fetch("/api/me");
+      if (!response.ok) {
         window.location.href = "/login";
-        return null;
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      return data;
-    }
-
-    function setMessage(text, isError = false) {
-      const el = document.getElementById("tracking-message");
-      el.textContent = text;
-      el.classList.toggle("error", isError);
-    }
-
-    function statusClass(value) {
-      const v = String(value || "").toLowerCase();
-      if (v.includes("approved") || v.includes("cleared") || v.includes("registered")) return "status-synced";
-      if (v.includes("pending")) return "status-pending";
-      return "status-hold";
-    }
-
-    function renderDetails(record) {
-      if (!record) {
-        document.getElementById("tracking-details").innerHTML = `
-          <div class="info-box">
-            <div class="info-label">Reference Number</div>
-            <div class="info-value">No data loaded</div>
-          </div>
-        `;
         return;
       }
 
-      document.getElementById("tracking-details").innerHTML = `
-        <div class="info-box">
-          <div class="info-label">BL / AWB / RCN</div>
-          <div class="info-value">${record.referenceNumber}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Shipping Line</div>
-          <div class="info-value">${record.shippingLine}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Cargo Description</div>
-          <div class="info-value">${record.cargoDescription}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">No of Packages</div>
-          <div class="info-value">${record.noOfPackages}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Shipment Weight</div>
-          <div class="info-value">${record.shipmentWeight}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Current Status</div>
-          <div class="info-value">${record.currentStatus}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Approval Status</div>
-          <div class="info-value">${record.approvalStatus}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Tracking Source</div>
-          <div class="info-value">${record.trackingSource}</div>
-        </div>
+      const data = await response.json();
+      if (!data.success || !data.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      currentUser = data.user;
+      document.getElementById("user-username").textContent = currentUser.username || "-";
+      document.getElementById("user-role").textContent = currentUser.role || "-";
+
+      if (currentUser.role === "admin" || currentUser.role === "operations" || currentUser.role === "customs") {
+        document.getElementById("tracking-form-panel").style.display = "block";
+      }
+    }
+
+    async function loadShipments() {
+      const response = await fetch("/api/shipments");
+      const select = document.getElementById("shipment-select");
+
+      if (!response.ok) {
+        select.innerHTML = `<option value="">Could not load shipments</option>`;
+        return;
+      }
+
+      const data = await response.json();
+      shipments = data.shipments || [];
+
+      if (!shipments.length) {
+        select.innerHTML = `<option value="">No shipments available</option>`;
+        document.getElementById("shipment-summary").innerHTML = "<p>No shipment records yet.</p>";
+        return;
+      }
+
+      select.innerHTML = shipments.map((item) => `
+        <option value="${item.id}">
+          ${item.reference_number} - ${item.client_name} (${item.status})
+        </option>
+      `).join("");
+
+      await loadShipmentTimeline();
+    }
+
+    async function loadShipmentTimeline() {
+      const shipmentId = document.getElementById("shipment-select").value;
+      const summary = document.getElementById("shipment-summary");
+      const timeline = document.getElementById("tracking-timeline");
+
+      if (!shipmentId) {
+        summary.innerHTML = "<p>No shipment selected.</p>";
+        timeline.innerHTML = "<p>No tracking events found.</p>";
+        return;
+      }
+
+      const response = await fetch(`/api/shipments/${shipmentId}`);
+      if (!response.ok) {
+        summary.innerHTML = "<p>Could not load shipment summary.</p>";
+        timeline.innerHTML = "<p>Could not load timeline.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      const shipment = data.shipment;
+      const events = data.tracking_events || [];
+
+      summary.innerHTML = `
+        <p><strong>Client:</strong> ${shipment.client_name}</p>
+        <p><strong>Reference:</strong> ${shipment.reference_number}</p>
+        <p><strong>Shipping Line:</strong> ${shipment.shipping_line}</p>
+        <p><strong>Current Status:</strong> ${shipment.status}</p>
+        <p><strong>Origin:</strong> ${shipment.origin_port || "-"}</p>
+        <p><strong>Destination:</strong> ${shipment.destination_port || "-"}</p>
+        <p><strong>Cargo:</strong> ${shipment.cargo_description}</p>
       `;
-    }
 
-    function renderTable() {
-      const body = document.getElementById("tracking-table-body");
-
-      if (!trackingRecords.length) {
-        body.innerHTML = `<tr><td colspan="7">No tracking records found.</td></tr>`;
+      if (!events.length) {
+        timeline.innerHTML = "<p>No tracking events recorded yet.</p>";
         return;
       }
 
-      body.innerHTML = trackingRecords.map(item => `
-        <tr>
-          <td>${item.referenceNumber}</td>
-          <td>${item.shippingLine}</td>
-          <td>${item.noOfPackages}</td>
-          <td>${item.shipmentWeight}</td>
-          <td><span class="status-pill ${statusClass(item.currentStatus)}">${item.currentStatus}</span></td>
-          <td><span class="status-pill ${statusClass(item.approvalStatus)}">${item.approvalStatus}</span></td>
-          <td><span class="status-pill ${item.transferredToRegistry ? "status-synced" : "status-pending"}">${item.transferredToRegistry ? "Transferred" : "Not Yet"}</span></td>
-        </tr>
+      timeline.innerHTML = events.map((event) => `
+        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
+          <p><strong>Status:</strong> ${event.event_status}</p>
+          <p><strong>Location:</strong> ${event.location_name}</p>
+          <p><strong>Event Time:</strong> ${new Date(event.event_time).toLocaleString()}</p>
+          <p><strong>Remarks:</strong> ${event.remarks || "-"}</p>
+          <p><strong>Created By:</strong> ${event.created_by}</p>
+        </div>
       `).join("");
     }
 
-    async function loadTrackingRecords() {
-      const params = new URLSearchParams();
-      const q = document.getElementById("searchQ").value.trim();
-      const status = document.getElementById("filterStatus").value;
-      const approvalStatus = document.getElementById("filterApproval").value;
-
-      if (q) params.set("q", q);
-      if (status) params.set("status", status);
-      if (approvalStatus) params.set("approvalStatus", approvalStatus);
-
-      const url = `/api/tracking-records${params.toString() ? `?${params.toString()}` : ""}`;
-      const data = await fetchJson(url);
-      if (!data) return;
-      trackingRecords = data;
-      renderTable();
-    }
+    document.getElementById("shipment-select").addEventListener("change", loadShipmentTimeline);
+    document.getElementById("refresh-tracking-btn").addEventListener("click", loadShipmentTimeline);
 
     document.getElementById("tracking-form").addEventListener("submit", async function (e) {
       e.preventDefault();
-      const referenceNumber = document.getElementById("referenceNumber").value.trim();
+
+      const shipmentId = document.getElementById("shipment-select").value;
+      const message = document.getElementById("tracking-message");
+
+      const payload = {
+        shipment_id: shipmentId,
+        event_status: document.getElementById("event_status").value.trim(),
+        location_name: document.getElementById("location_name").value.trim(),
+        event_time: document.getElementById("event_time").value,
+        remarks: document.getElementById("remarks").value.trim()
+      };
+
+      message.textContent = "Saving tracking event...";
 
       try {
-        setMessage("Fetching shipment...");
-        const record = await fetchJson("/api/tracking-records/fetch", {
+        const response = await fetch("/api/tracking-events", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referenceNumber })
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
         });
 
-        if (!record) return;
-        selectedRecord = record;
-        renderDetails(record);
-        await loadTrackingRecords();
-        setMessage("Shipment fetched successfully.");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to add tracking event.");
+        }
+
+        message.textContent = `Tracking event added: ${data.tracking_event.event_status}`;
+        document.getElementById("tracking-form").reset();
+        await loadShipments();
       } catch (error) {
-        setMessage(error.message, true);
+        message.textContent = error.message;
       }
-    });
-
-    document.getElementById("transfer-btn").addEventListener("click", async function () {
-      if (!selectedRecord) {
-        setMessage("Fetch a shipment first before transfer.", true);
-        return;
-      }
-
-      const clientName = window.prompt("Enter Client Name before transfer to registry:");
-      if (!clientName) {
-        setMessage("Transfer cancelled. Client Name is required.", true);
-        return;
-      }
-
-      const registryNotes = window.prompt("Enter registry notes (optional):") || "";
-
-      try {
-        setMessage("Transferring to registry...");
-        await fetchJson(`/api/tracking-records/${selectedRecord.id}/transfer`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clientName, registryNotes })
-        });
-
-        setMessage("Shipment transferred to registry successfully.");
-        await loadTrackingRecords();
-      } catch (error) {
-        setMessage(error.message, true);
-      }
-    });
-
-    document.getElementById("applyFiltersBtn").addEventListener("click", loadTrackingRecords);
-
-    document.getElementById("clearFiltersBtn").addEventListener("click", async function () {
-      document.getElementById("searchQ").value = "";
-      document.getElementById("filterStatus").value = "";
-      document.getElementById("filterApproval").value = "";
-      await loadTrackingRecords();
     });
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
-      await fetch("/logout", { method: "POST" });
-      window.location.href = "/login";
+      try {
+        const response = await fetch("/logout", { method: "POST" });
+        const data = await response.json();
+        window.location.href = data.redirect || "/login";
+      } catch (error) {
+        window.location.href = "/login";
+      }
     });
 
-    loadTrackingRecords();
+    async function initPage() {
+      await loadUser();
+      await loadShipments();
+    }
+
+    initPage();
   </script>
 </body>
 </html>

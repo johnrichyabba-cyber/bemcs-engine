@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Static files
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
 // Home
@@ -21,16 +21,22 @@ app.get("/login", (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// Test login (stable hardcoded login)
+// Login API - returns JSON
 app.post("/login", (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "").trim();
 
   if (username === "admin" && password === "1234") {
-    return res.redirect("/index.html");
+    return res.json({
+      success: true,
+      redirect: "/index.html"
+    });
   }
 
-  return res.status(401).send("Invalid username or password.");
+  return res.status(401).json({
+    success: false,
+    error: "Invalid username or password."
+  });
 });
 
 // Health check

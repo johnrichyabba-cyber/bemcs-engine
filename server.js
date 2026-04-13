@@ -46,6 +46,15 @@ function toMoney(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeNullableText(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -249,7 +258,551 @@ function apiAllowRoles(...roles) {
   };
 }
 
-// Initialize database
+/* =========================
+   TRACKING AUTOMATION CORE
+   ========================= */
+
+function mapExternalMilestoneToInternal(status) {
+  const raw = String(status || "").trim().toLowerCase();
+
+  const map = {
+    registered: "Registered",
+    booking_confirmed: "Booking Confirmed",
+    booking: "Booking Confirmed",
+    container_received: "Container Received",
+    gate_in: "Container Received",
+    at_pol: "At Port of Loading",
+    loaded_on_vessel: "Loaded on Vessel",
+    departed_origin: "Vessel Departed",
+    vessel_departed: "Vessel Departed",
+    in_transit: "In Transit",
+    transshipment: "Transshipment",
+    arrived_pod: "Arrived at Port of Discharge",
+    discharged: "Arrived at Port of Discharge",
+    manifest_available: "Manifest Available",
+    customs_clearance: "Customs Clearance",
+    released_by_shipping_line: "Released by Shipping Line",
+    gate_out: "Out of Port",
+    out_of_port: "Out of Port",
+    arrived_icd: "Arrived at ICD",
+    released_icd: "Released from ICD",
+    delivered: "Delivered",
+    completed: "Completed",
+    closed: "Closed"
+  };
+
+  return map[raw] || status || "Tracking Update";
+}
+
+function rankMilestone(status) {
+  const normalized = mapExternalMilestoneToInternal(status);
+
+  const order = [
+    "Registered",
+    "Booking Confirmed",
+    "Container Received",
+    "At Port of Loading",
+    "Loaded on Vessel",
+    "Vessel Departed",
+    "In Transit",
+    "Transshipment",
+    "Arrived at Port of Discharge",
+    "Manifest Available",
+    "Customs Clearance",
+    "Released by Shipping Line",
+    "Out of Port",
+    "Arrived at ICD",
+    "Released from ICD",
+    "Delivered",
+    "Completed",
+    "Closed"
+  ];
+
+  const index = order.indexOf(normalized);
+  return index >= 0 ? index : 0;
+}
+
+async function getShipmentById(shipmentId) {
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM shipments
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getTrackingSourceByShipmentId(shipmentId) {
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM shipment_tracking_sources
+    WHERE shipment_id = $1
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function logTrackingSync({
+  shipmentId,
+  providerName,
+  requestPayload = null,
+  responsePayload = null,
+  syncStatus,
+  message = "",
+  syncedBy = "system"
+}) {
+  await pool.query(
+    `
+    INSERT INTO tracking_sync_logs (
+      shipment_id,
+      provider_name,
+      request_payload,
+      response_payload,
+      sync_status,
+      message,
+      synced_by
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `,
+    [
+      shipmentId,
+      providerName,
+      requestPayload ? JSON.stringify(requestPayload) : null,
+      responsePayload ? JSON.stringify(responsePayload) : null,
+      syncStatus,
+      message,
+      syncedBy
+    ]
+  );
+}
+
+async function upsertTrackingSource({
+  shipmentId,
+  providerName,
+  carrierCode,
+  billOfLading,
+  containerNumber,
+  bookingNumber,
+  trackingMode,
+  sourceLabel,
+  webhookSecret,
+  configJson,
+  createdBy
+}) {
+  const existing = await getTrackingSourceByShipmentId(shipmentId);
+
+  if (!existing) {
+    const insertResult = await pool.query(
+      `
+      INSERT INTO shipment_tracking_sources (
+        shipment_id,
+        provider_name,
+        carrier_code,
+        bill_of_lading,
+        container_number,
+        booking_number,
+        tracking_mode,
+        source_label,
+        webhook_secret,
+        config_json,
+        is_active,
+        created_by,
+        updated_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, $11, $11)
+      RETURNING *
+      `,
+      [
+        shipmentId,
+        providerName,
+        carrierCode,
+        billOfLading,
+        containerNumber,
+        bookingNumber,
+        trackingMode,
+        sourceLabel,
+        webhookSecret,
+        configJson ? JSON.stringify(configJson) : null,
+        createdBy
+      ]
+    );
+
+    return insertResult.rows[0];
+  }
+
+  const updateResult = await pool.query(
+    `
+    UPDATE shipment_tracking_sources
+    SET
+      provider_name = $2,
+      carrier_code = $3,
+      bill_of_lading = $4,
+      container_number = $5,
+      booking_number = $6,
+      tracking_mode = $7,
+      source_label = $8,
+      webhook_secret = $9,
+      config_json = $10,
+      is_active = TRUE,
+      updated_by = $11,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE shipment_id = $1
+    RETURNING *
+    `,
+    [
+      shipmentId,
+      providerName,
+      carrierCode,
+      billOfLading,
+      containerNumber,
+      bookingNumber,
+      trackingMode,
+      sourceLabel,
+      webhookSecret,
+      configJson ? JSON.stringify(configJson) : null,
+      createdBy
+    ]
+  );
+
+  return updateResult.rows[0];
+}
+
+async function insertTrackingEventIfNew({
+  shipmentId,
+  eventStatus,
+  locationName,
+  remarks,
+  eventTime,
+  createdBy,
+  externalEventId = null,
+  sourceName = null,
+  sourceStatus = null,
+  sourcePayload = null
+}) {
+  const duplicateCheck = await pool.query(
+    `
+    SELECT id
+    FROM tracking_events
+    WHERE shipment_id = $1
+      AND (
+        (external_event_id IS NOT NULL AND external_event_id = $2)
+        OR (
+          event_status = $3
+          AND location_name = $4
+          AND event_time = $5
+        )
+      )
+    LIMIT 1
+    `,
+    [shipmentId, externalEventId, eventStatus, locationName, eventTime]
+  );
+
+  if (duplicateCheck.rows.length) {
+    return {
+      inserted: false,
+      row: null
+    };
+  }
+
+  const result = await pool.query(
+    `
+    INSERT INTO tracking_events (
+      shipment_id,
+      event_status,
+      location_name,
+      remarks,
+      event_time,
+      created_by,
+      external_event_id,
+      source_name,
+      source_status,
+      source_payload
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING *
+    `,
+    [
+      shipmentId,
+      eventStatus,
+      locationName,
+      remarks,
+      eventTime,
+      createdBy,
+      externalEventId,
+      sourceName,
+      sourceStatus,
+      sourcePayload ? JSON.stringify(sourcePayload) : null
+    ]
+  );
+
+  return {
+    inserted: true,
+    row: result.rows[0]
+  };
+}
+
+async function refreshShipmentCurrentStatus(shipmentId) {
+  const result = await pool.query(
+    `
+    SELECT id, event_status, event_time
+    FROM tracking_events
+    WHERE shipment_id = $1
+    ORDER BY event_time DESC, created_at DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
+
+  if (!result.rows.length) {
+    return null;
+  }
+
+  const latest = result.rows[0];
+
+  await pool.query(
+    `
+    UPDATE shipments
+    SET
+      status = $2,
+      current_tracking_status = $2,
+      current_tracking_time = $3,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    `,
+    [shipmentId, latest.event_status, latest.event_time]
+  );
+
+  return latest;
+}
+
+async function buildLiveStatus(shipmentId) {
+  const shipment = await getShipmentById(shipmentId);
+  if (!shipment) return null;
+
+  const source = await getTrackingSourceByShipmentId(shipmentId);
+
+  const latestEventResult = await pool.query(
+    `
+    SELECT
+      id,
+      shipment_id,
+      event_status,
+      location_name,
+      remarks,
+      event_time,
+      created_by,
+      created_at,
+      external_event_id,
+      source_name,
+      source_status
+    FROM tracking_events
+    WHERE shipment_id = $1
+    ORDER BY event_time DESC, created_at DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
+
+  const latestSyncResult = await pool.query(
+    `
+    SELECT
+      id,
+      provider_name,
+      sync_status,
+      message,
+      synced_by,
+      created_at
+    FROM tracking_sync_logs
+    WHERE shipment_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
+
+  return {
+    shipment_id: shipment.id,
+    reference_number: shipment.reference_number,
+    current_status: shipment.current_tracking_status || shipment.status,
+    current_status_time: shipment.current_tracking_time,
+    tracking_enabled: Boolean(source && source.is_active),
+    tracking_source: source
+      ? {
+          provider_name: source.provider_name,
+          carrier_code: source.carrier_code,
+          bill_of_lading: source.bill_of_lading,
+          container_number: source.container_number,
+          booking_number: source.booking_number,
+          tracking_mode: source.tracking_mode,
+          source_label: source.source_label,
+          last_synced_at: source.last_synced_at
+        }
+      : null,
+    latest_event: latestEventResult.rows[0] || null,
+    latest_sync: latestSyncResult.rows[0] || null
+  };
+}
+
+/**
+ * DEMO provider adapter.
+ * Hii ni placeholder ya hatua ya kwanza.
+ * Baadaye utaibadilisha na provider halisi.
+ */
+async function fetchExternalTrackingEvents(shipment, source) {
+  const baseNow = new Date();
+
+  const fakeEvents = [
+    {
+      external_event_id: `${shipment.id}-registered`,
+      external_status: "registered",
+      location_name: shipment.origin_port || "Origin",
+      remarks: "Shipment registered in BE-MCs tracking engine.",
+      event_time: new Date(baseNow.getTime() - 1000 * 60 * 60 * 72).toISOString()
+    },
+    {
+      external_event_id: `${shipment.id}-booking-confirmed`,
+      external_status: "booking_confirmed",
+      location_name: shipment.origin_port || "Origin",
+      remarks: "Booking confirmed by shipping process.",
+      event_time: new Date(baseNow.getTime() - 1000 * 60 * 60 * 48).toISOString()
+    },
+    {
+      external_event_id: `${shipment.id}-at-pol`,
+      external_status: "at_pol",
+      location_name: shipment.origin_port || "Port of Loading",
+      remarks: "Container available at port of loading.",
+      event_time: new Date(baseNow.getTime() - 1000 * 60 * 60 * 24).toISOString()
+    }
+  ];
+
+  if (source.container_number || source.bill_of_lading || source.booking_number) {
+    fakeEvents.push({
+      external_event_id: `${shipment.id}-in-transit`,
+      external_status: "in_transit",
+      location_name: "Live Ocean Route",
+      remarks: "Automated milestone generated from configured tracking source.",
+      event_time: new Date(baseNow.getTime() - 1000 * 60 * 60 * 2).toISOString()
+    });
+  }
+
+  return {
+    provider_name: source.provider_name,
+    tracking_reference: source.container_number || source.bill_of_lading || source.booking_number || shipment.reference_number,
+    events: fakeEvents
+  };
+}
+
+async function syncShipmentTracking(shipmentId, actorUsername = "system", actorRole = null) {
+  const shipment = await getShipmentById(shipmentId);
+
+  if (!shipment) {
+    throw new Error("Shipment not found.");
+  }
+
+  const source = await getTrackingSourceByShipmentId(shipmentId);
+
+  if (!source || !source.is_active) {
+    throw new Error("Tracking source is not configured for this shipment.");
+  }
+
+  const requestPayload = {
+    provider_name: source.provider_name,
+    carrier_code: source.carrier_code,
+    bill_of_lading: source.bill_of_lading,
+    container_number: source.container_number,
+    booking_number: source.booking_number,
+    tracking_mode: source.tracking_mode
+  };
+
+  try {
+    const external = await fetchExternalTrackingEvents(shipment, source);
+    const insertedEvents = [];
+
+    for (const event of external.events) {
+      const internalStatus = mapExternalMilestoneToInternal(event.external_status);
+
+      const inserted = await insertTrackingEventIfNew({
+        shipmentId,
+        eventStatus: internalStatus,
+        locationName: event.location_name || "Unknown",
+        remarks: event.remarks || "",
+        eventTime: event.event_time,
+        createdBy: actorUsername || "system",
+        externalEventId: event.external_event_id || null,
+        sourceName: external.provider_name,
+        sourceStatus: event.external_status,
+        sourcePayload: event
+      });
+
+      if (inserted.inserted && inserted.row) {
+        insertedEvents.push(inserted.row);
+
+        await writeAuditLog({
+          actorUsername: actorUsername || "system",
+          actorRole,
+          actionType: "AUTO_TRACKING_EVENT",
+          entityType: "TRACKING_EVENT",
+          entityId: inserted.row.id,
+          shipmentId,
+          details: `Automated tracking event "${internalStatus}" received from ${external.provider_name}.`
+        });
+      }
+    }
+
+    const latest = await refreshShipmentCurrentStatus(shipmentId);
+
+    await pool.query(
+      `
+      UPDATE shipment_tracking_sources
+      SET last_synced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE shipment_id = $1
+      `,
+      [shipmentId]
+    );
+
+    await logTrackingSync({
+      shipmentId,
+      providerName: external.provider_name,
+      requestPayload,
+      responsePayload: external,
+      syncStatus: "SUCCESS",
+      message: `Sync completed. Inserted ${insertedEvents.length} new event(s).`,
+      syncedBy: actorUsername || "system"
+    });
+
+    return {
+      success: true,
+      provider_name: external.provider_name,
+      inserted_events: insertedEvents,
+      latest_status: latest ? latest.event_status : shipment.status
+    };
+  } catch (error) {
+    await logTrackingSync({
+      shipmentId,
+      providerName: source.provider_name,
+      requestPayload,
+      responsePayload: null,
+      syncStatus: "FAILED",
+      message: error.message,
+      syncedBy: actorUsername || "system"
+    });
+
+    throw error;
+  }
+}
+
+/* =========================
+   DATABASE INIT
+   ========================= */
+
 async function initDb() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is missing.");
@@ -288,8 +841,74 @@ async function initDb() {
       origin_port TEXT,
       destination_port TEXT,
       created_by TEXT NOT NULL,
+      tracking_provider TEXT,
+      carrier_code TEXT,
+      bill_of_lading TEXT,
+      container_number TEXT,
+      booking_number TEXT,
+      port_of_loading TEXT,
+      port_of_discharge TEXT,
+      final_destination TEXT,
+      current_tracking_status TEXT,
+      current_tracking_time TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS tracking_provider TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS carrier_code TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS bill_of_lading TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS container_number TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS booking_number TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS port_of_loading TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS port_of_discharge TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS final_destination TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS current_tracking_status TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS current_tracking_time TIMESTAMP;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipments
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
   `);
 
   await pool.query(`
@@ -301,6 +920,66 @@ async function initDb() {
       remarks TEXT,
       event_time TIMESTAMP NOT NULL,
       created_by TEXT NOT NULL,
+      external_event_id TEXT,
+      source_name TEXT,
+      source_status TEXT,
+      source_payload JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    ALTER TABLE tracking_events
+    ADD COLUMN IF NOT EXISTS external_event_id TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE tracking_events
+    ADD COLUMN IF NOT EXISTS source_name TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE tracking_events
+    ADD COLUMN IF NOT EXISTS source_status TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE tracking_events
+    ADD COLUMN IF NOT EXISTS source_payload JSONB;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shipment_tracking_sources (
+      id SERIAL PRIMARY KEY,
+      shipment_id INTEGER UNIQUE NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      provider_name TEXT NOT NULL,
+      carrier_code TEXT,
+      bill_of_lading TEXT,
+      container_number TEXT,
+      booking_number TEXT,
+      tracking_mode TEXT NOT NULL DEFAULT 'polling',
+      source_label TEXT,
+      webhook_secret TEXT,
+      config_json JSONB,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      last_synced_at TIMESTAMP,
+      created_by TEXT NOT NULL,
+      updated_by TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tracking_sync_logs (
+      id SERIAL PRIMARY KEY,
+      shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      provider_name TEXT NOT NULL,
+      request_payload JSONB,
+      response_payload JSONB,
+      sync_status TEXT NOT NULL,
+      message TEXT,
+      synced_by TEXT NOT NULL DEFAULT 'system',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -400,7 +1079,10 @@ async function initDb() {
   console.log("PostgreSQL initialized successfully.");
 }
 
-// Auth routes
+/* =========================
+   AUTH ROUTES
+   ========================= */
+
 app.get("/", async (req, res) => {
   try {
     const session = await getSession(req);
@@ -468,8 +1150,6 @@ app.post("/login", async (req, res) => {
       actorRole: user.role,
       actionType: "LOGIN",
       entityType: "SESSION",
-      entityId: null,
-      shipmentId: null,
       details: "User logged in successfully."
     });
 
@@ -579,7 +1259,10 @@ app.post("/api/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Dashboard summary API
+/* =========================
+   DASHBOARD
+   ========================= */
+
 app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
   try {
     const shipmentsResult = await pool.query(`
@@ -689,7 +1372,10 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
   }
 });
 
-// Audit log APIs
+/* =========================
+   AUDIT LOGS
+   ========================= */
+
 app.get("/api/audit-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
   try {
     const result = await pool.query(`
@@ -757,7 +1443,10 @@ app.get("/api/shipments/:id/audit-logs", apiAllowRoles("admin", "operations", "a
   }
 });
 
-// Shipment APIs
+/* =========================
+   SHIPMENTS
+   ========================= */
+
 app.get("/api/shipments", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
   try {
     const result = await pool.query(`
@@ -771,6 +1460,17 @@ app.get("/api/shipments", apiAllowRoles("admin", "operations", "accounts", "cust
         origin_port,
         destination_port,
         created_by,
+        tracking_provider,
+        carrier_code,
+        bill_of_lading,
+        container_number,
+        booking_number,
+        port_of_loading,
+        port_of_discharge,
+        final_destination,
+        current_tracking_status,
+        current_tracking_time,
+        updated_at,
         created_at
       FROM shipments
       ORDER BY created_at DESC
@@ -805,6 +1505,17 @@ app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "
         origin_port,
         destination_port,
         created_by,
+        tracking_provider,
+        carrier_code,
+        bill_of_lading,
+        container_number,
+        booking_number,
+        port_of_loading,
+        port_of_discharge,
+        final_destination,
+        current_tracking_status,
+        current_tracking_time,
+        updated_at,
         created_at
       FROM shipments
       WHERE id = $1
@@ -830,7 +1541,10 @@ app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "
         remarks,
         event_time,
         created_by,
-        created_at
+        created_at,
+        external_event_id,
+        source_name,
+        source_status
       FROM tracking_events
       WHERE shipment_id = $1
       ORDER BY event_time DESC, created_at DESC
@@ -868,6 +1582,17 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
         origin_port,
         destination_port,
         created_by,
+        tracking_provider,
+        carrier_code,
+        bill_of_lading,
+        container_number,
+        booking_number,
+        port_of_loading,
+        port_of_discharge,
+        final_destination,
+        current_tracking_status,
+        current_tracking_time,
+        updated_at,
         created_at
       FROM shipments
       WHERE id = $1
@@ -893,7 +1618,10 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
         remarks,
         event_time,
         created_by,
-        created_at
+        created_at,
+        external_event_id,
+        source_name,
+        source_status
       FROM tracking_events
       WHERE shipment_id = $1
       ORDER BY event_time DESC, created_at DESC
@@ -987,12 +1715,15 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
     const totalPaid = invoices.reduce((sum, item) => sum + toMoney(item.paid_amount), 0);
     const outstanding = totalBilled - totalPaid;
 
+    const liveStatus = await buildLiveStatus(shipmentId);
+
     return res.json({
       success: true,
       shipment: shipmentResult.rows[0],
       tracking_events: trackingResult.rows,
       invoices,
       documents: documentsResult.rows,
+      live_status: liveStatus,
       financial_summary: {
         total_billed: totalBilled,
         total_paid: totalPaid,
@@ -1009,13 +1740,22 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
 });
 
 app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res) => {
-  const clientName = String(req.body.client_name || "").trim();
-  const referenceNumber = String(req.body.reference_number || "").trim();
-  const shippingLine = String(req.body.shipping_line || "").trim();
-  const cargoDescription = String(req.body.cargo_description || "").trim();
-  const status = String(req.body.status || "Pending").trim();
-  const originPort = String(req.body.origin_port || "").trim();
-  const destinationPort = String(req.body.destination_port || "").trim();
+  const clientName = normalizeText(req.body.client_name);
+  const referenceNumber = normalizeText(req.body.reference_number);
+  const shippingLine = normalizeText(req.body.shipping_line);
+  const cargoDescription = normalizeText(req.body.cargo_description);
+  const status = normalizeText(req.body.status || "Pending");
+  const originPort = normalizeNullableText(req.body.origin_port);
+  const destinationPort = normalizeNullableText(req.body.destination_port);
+
+  const trackingProvider = normalizeNullableText(req.body.tracking_provider);
+  const carrierCode = normalizeNullableText(req.body.carrier_code);
+  const billOfLading = normalizeNullableText(req.body.bill_of_lading);
+  const containerNumber = normalizeNullableText(req.body.container_number);
+  const bookingNumber = normalizeNullableText(req.body.booking_number);
+  const portOfLoading = normalizeNullableText(req.body.port_of_loading) || originPort;
+  const portOfDischarge = normalizeNullableText(req.body.port_of_discharge) || destinationPort;
+  const finalDestination = normalizeNullableText(req.body.final_destination) || destinationPort;
 
   if (!clientName || !referenceNumber || !shippingLine || !cargoDescription) {
     return res.status(400).json({
@@ -1035,20 +1775,21 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
         status,
         origin_port,
         destination_port,
-        created_by
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING
-        id,
-        client_name,
-        reference_number,
-        shipping_line,
-        cargo_description,
-        status,
-        origin_port,
-        destination_port,
         created_by,
-        created_at
+        tracking_provider,
+        carrier_code,
+        bill_of_lading,
+        container_number,
+        booking_number,
+        port_of_loading,
+        port_of_discharge,
+        final_destination,
+        current_tracking_status,
+        current_tracking_time,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      RETURNING *
       `,
       [
         clientName,
@@ -1058,23 +1799,51 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
         status,
         originPort,
         destinationPort,
-        req.user.username
+        req.user.username,
+        trackingProvider,
+        carrierCode,
+        billOfLading,
+        containerNumber,
+        bookingNumber,
+        portOfLoading,
+        portOfDischarge,
+        finalDestination
       ]
     );
+
+    const shipment = result.rows[0];
+
+    if (trackingProvider || billOfLading || containerNumber || bookingNumber) {
+      await upsertTrackingSource({
+        shipmentId: shipment.id,
+        providerName: trackingProvider || "demo",
+        carrierCode,
+        billOfLading,
+        containerNumber,
+        bookingNumber,
+        trackingMode: "polling",
+        sourceLabel: "Primary Tracking Source",
+        webhookSecret: null,
+        configJson: {
+          auto_sync_enabled: true
+        },
+        createdBy: req.user.username
+      });
+    }
 
     await writeAuditLog({
       actorUsername: req.user.username,
       actorRole: req.user.role,
       actionType: "CREATE_SHIPMENT",
       entityType: "SHIPMENT",
-      entityId: result.rows[0].id,
-      shipmentId: result.rows[0].id,
-      details: `Created shipment ${result.rows[0].reference_number} for client ${result.rows[0].client_name}.`
+      entityId: shipment.id,
+      shipmentId: shipment.id,
+      details: `Created shipment ${shipment.reference_number} for client ${shipment.client_name}.`
     });
 
     return res.status(201).json({
       success: true,
-      shipment: result.rows[0]
+      shipment
     });
   } catch (error) {
     if (error.code === "23505") {
@@ -1092,9 +1861,236 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
   }
 });
 
-// Tracking APIs
-app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+/* =========================
+   TRACKING CONFIG + LIVE STATUS
+   ========================= */
+
+app.get("/api/tracking/providers", apiAllowRoles("admin", "operations", "accounts", "customs"), async (_req, res) => {
+  return res.json({
+    success: true,
+    providers: [
+      {
+        code: "demo",
+        name: "Demo Provider",
+        description: "Foundation provider for backend automation testing."
+      }
+    ]
+  });
+});
+
+app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operations"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  const providerName = normalizeText(req.body.provider_name || "demo");
+  const carrierCode = normalizeNullableText(req.body.carrier_code);
+  const billOfLading = normalizeNullableText(req.body.bill_of_lading);
+  const containerNumber = normalizeNullableText(req.body.container_number);
+  const bookingNumber = normalizeNullableText(req.body.booking_number);
+  const trackingMode = normalizeText(req.body.tracking_mode || "polling");
+  const sourceLabel = normalizeNullableText(req.body.source_label) || "Primary Tracking Source";
+
   try {
+    const shipment = await getShipmentById(shipmentId);
+
+    if (!shipment) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const source = await upsertTrackingSource({
+      shipmentId,
+      providerName,
+      carrierCode,
+      billOfLading,
+      containerNumber,
+      bookingNumber,
+      trackingMode,
+      sourceLabel,
+      webhookSecret: null,
+      configJson: {
+        auto_sync_enabled: true
+      },
+      createdBy: req.user.username
+    });
+
+    await pool.query(
+      `
+      UPDATE shipments
+      SET
+        tracking_provider = $2,
+        carrier_code = $3,
+        bill_of_lading = $4,
+        container_number = $5,
+        booking_number = $6,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      `,
+      [shipmentId, providerName, carrierCode, billOfLading, containerNumber, bookingNumber]
+    );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "CONFIGURE_TRACKING_SOURCE",
+      entityType: "SHIPMENT_TRACKING_SOURCE",
+      entityId: source.id,
+      shipmentId,
+      details: `Configured tracking source ${providerName} for shipment ${shipment.reference_number}.`
+    });
+
+    return res.status(201).json({
+      success: true,
+      tracking_source: source
+    });
+  } catch (error) {
+    console.error("Tracking config error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not configure tracking source."
+    });
+  }
+});
+
+app.post("/api/shipments/:id/sync-tracking", apiAllowRoles("admin", "operations", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const result = await syncShipmentTracking(shipmentId, req.user.username, req.user.role);
+
+    return res.json({
+      success: true,
+      sync: result
+    });
+  } catch (error) {
+    console.error("Sync tracking error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Could not sync shipment tracking."
+    });
+  }
+});
+
+app.get("/api/shipments/:id/live-status", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const liveStatus = await buildLiveStatus(shipmentId);
+
+    if (!liveStatus) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    return res.json({
+      success: true,
+      live_status: liveStatus
+    });
+  } catch (error) {
+    console.error("Live status error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not load live shipment status."
+    });
+  }
+});
+
+app.get("/api/shipments/:id/tracking-source", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const source = await getTrackingSourceByShipmentId(shipmentId);
+
+    return res.json({
+      success: true,
+      tracking_source: source
+    });
+  } catch (error) {
+    console.error("Tracking source fetch error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not load tracking source."
+    });
+  }
+});
+
+app.get("/api/shipments/:id/sync-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        provider_name,
+        sync_status,
+        message,
+        synced_by,
+        created_at
+      FROM tracking_sync_logs
+      WHERE shipment_id = $1
+      ORDER BY created_at DESC
+      LIMIT 20
+      `,
+      [shipmentId]
+    );
+
+    return res.json({
+      success: true,
+      sync_logs: result.rows
+    });
+  } catch (error) {
+    console.error("Tracking sync logs error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not load tracking sync logs."
+    });
+  }
+});
+
+/* =========================
+   TRACKING EVENTS
+   ========================= */
+
+app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.query.shipment_id || 0);
+
+  try {
+    if (shipmentId) {
+      const result = await pool.query(
+        `
+        SELECT
+          te.id,
+          te.shipment_id,
+          te.event_status,
+          te.location_name,
+          te.remarks,
+          te.event_time,
+          te.created_by,
+          te.created_at,
+          te.external_event_id,
+          te.source_name,
+          te.source_status,
+          s.reference_number,
+          s.client_name
+        FROM tracking_events te
+        JOIN shipments s ON s.id = te.shipment_id
+        WHERE te.shipment_id = $1
+        ORDER BY te.event_time DESC, te.created_at DESC
+        LIMIT 100
+        `,
+        [shipmentId]
+      );
+
+      return res.json({
+        success: true,
+        tracking_events: result.rows
+      });
+    }
+
     const result = await pool.query(`
       SELECT
         te.id,
@@ -1105,6 +2101,9 @@ app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts",
         te.event_time,
         te.created_by,
         te.created_at,
+        te.external_event_id,
+        te.source_name,
+        te.source_status,
         s.reference_number,
         s.client_name
       FROM tracking_events te
@@ -1140,7 +2139,10 @@ app.get("/api/shipments/:id/tracking-events", apiAllowRoles("admin", "operations
         remarks,
         event_time,
         created_by,
-        created_at
+        created_at,
+        external_event_id,
+        source_name,
+        source_status
       FROM tracking_events
       WHERE shipment_id = $1
       ORDER BY event_time DESC, created_at DESC
@@ -1188,52 +2190,43 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
       });
     }
 
-    const result = await pool.query(
-      `
-      INSERT INTO tracking_events (
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        created_by
-      )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING
-        id,
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        created_by,
-        created_at
-      `,
-      [shipmentId, eventStatus, locationName, remarks, eventTime, req.user.username]
-    );
+    const inserted = await insertTrackingEventIfNew({
+      shipmentId,
+      eventStatus,
+      locationName,
+      remarks,
+      eventTime,
+      createdBy: req.user.username,
+      externalEventId: null,
+      sourceName: "manual",
+      sourceStatus: eventStatus,
+      sourcePayload: {
+        mode: "manual"
+      }
+    });
 
-    await pool.query(
-      `
-      UPDATE shipments
-      SET status = $1
-      WHERE id = $2
-      `,
-      [eventStatus, shipmentId]
-    );
+    if (!inserted.inserted) {
+      return res.status(409).json({
+        success: false,
+        error: "Duplicate tracking event detected."
+      });
+    }
+
+    await refreshShipmentCurrentStatus(shipmentId);
 
     await writeAuditLog({
       actorUsername: req.user.username,
       actorRole: req.user.role,
       actionType: "ADD_TRACKING_EVENT",
       entityType: "TRACKING_EVENT",
-      entityId: result.rows[0].id,
+      entityId: inserted.row.id,
       shipmentId,
       details: `Added tracking event "${eventStatus}" at "${locationName}" for shipment ${shipmentCheck.rows[0].reference_number}.`
     });
 
     return res.status(201).json({
       success: true,
-      tracking_event: result.rows[0]
+      tracking_event: inserted.row
     });
   } catch (error) {
     console.error("Create tracking event error:", error.message);
@@ -1244,7 +2237,10 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
   }
 });
 
-// Accounting APIs
+/* =========================
+   ACCOUNTING
+   ========================= */
+
 app.get("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
   try {
     const result = await pool.query(`
@@ -1542,7 +2538,10 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
   }
 });
 
-// Document APIs
+/* =========================
+   DOCUMENTS
+   ========================= */
+
 app.get("/api/shipments/:id/documents", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
   const shipmentId = Number(req.params.id);
 
@@ -1714,7 +2713,10 @@ app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (re
   }
 });
 
-// Protected pages
+/* =========================
+   PAGES
+   ========================= */
+
 app.get("/dashboard", requireAuth, (req, res) => {
   return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
@@ -1747,7 +2749,7 @@ app.get("/system-health", allowRoles("admin", "customs", "operations", "accounts
   return res.sendFile(path.join(__dirname, "public", "system-health.html"));
 });
 
-app.get("/health", async (req, res) => {
+app.get("/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
     return res.status(200).json({
@@ -1763,7 +2765,10 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Start server
+/* =========================
+   START SERVER
+   ========================= */
+
 async function startServer() {
   try {
     await initDb();

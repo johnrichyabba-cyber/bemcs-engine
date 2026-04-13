@@ -3,86 +3,154 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shipment Registry Detail</title>
+  <title>BE-MCs Shipment Registry Detail</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="font-family: sans-serif; padding: 40px;">
-  <div style="max-width: 1250px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+<body style="padding: 24px;">
+  <div style="max-width: 1120px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
       <div>
-        <h1>📦 Shipment Registry Detail</h1>
-        <p>Integrated shipment detail with tracking, invoices, payments, financial summary, and documents.</p>
+        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size: 2rem; margin-bottom: 8px;">Shipment Registry Detail</h1>
+        <p class="login-subtitle" style="margin-bottom: 0;">
+          Integrated shipment view with live tracking status, timeline, finance, documents, and sync history.
+        </p>
       </div>
+
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/shipment-registry" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Shipment Registry</a>
-        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Dashboard</a>
-        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
+        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 180px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Back to Shipment Registry</a>
+        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
+        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
       </div>
     </div>
 
-    <hr style="margin: 24px 0;" />
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Current User</h2>
-      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Current User</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin: 0;"><strong>Page:</strong> Shipment Registry Detail</p>
+        </div>
+      </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Shipment Information</h2>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div>
+          <h2 style="margin-bottom: 6px;">Live Tracking Controls</h2>
+          <p class="login-subtitle" style="margin-bottom: 0;">Run sync manually and review current shipment visibility.</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="sync-now-btn" class="btn-primary" style="min-width: 140px;">Sync Now</button>
+          <a id="open-tracking-link" href="/tracking" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 140px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Open Tracking</a>
+        </div>
+      </div>
+
+      <div id="sync-message" style="margin-top: 14px;"></div>
+    </div>
+
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Current Live Status</h2>
+      <div id="live-status-box">
+        <p>Loading live status...</p>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Tracking Source</h2>
+      <div id="tracking-source-box">
+        <p>Loading tracking source...</p>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Shipment Information</h2>
       <div id="shipment-info">
         <p>Loading shipment detail...</p>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Financial Summary</h2>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Financial Summary</h2>
       <div id="financial-summary">
         <p>Loading financial summary...</p>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Tracking Events</h2>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Shipment Timeline</h2>
       <div id="tracking-events">
-        <p>Loading tracking events...</p>
+        <p>Loading tracking timeline...</p>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Invoices & Payments</h2>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Invoices & Payments</h2>
       <div id="invoices-section">
         <p>Loading invoices...</p>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Shipment Documents</h2>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Shipment Documents</h2>
 
-      <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px;">
-        <input id="doc-name" type="text" placeholder="Document name" style="padding: 10px;" />
-        <select id="doc-category" style="padding: 10px;">
-          <option value="">Select category</option>
-          <option value="BL">BL</option>
-          <option value="AWB">AWB</option>
-          <option value="RCN">RCN</option>
-          <option value="Invoice Copy">Invoice Copy</option>
-          <option value="Customs Doc">Customs Doc</option>
-          <option value="Permit">Permit</option>
-          <option value="Payment Proof">Payment Proof</option>
-          <option value="Internal Note">Internal Note</option>
-          <option value="Other">Other</option>
-        </select>
-        <input id="doc-url" type="url" placeholder="Document URL" style="padding: 10px;" />
-        <input id="doc-notes" type="text" placeholder="Notes (optional)" style="padding: 10px;" />
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label for="doc-name">Document Name</label>
+          <input id="doc-name" type="text" placeholder="e.g. BL Copy" />
+        </div>
+
+        <div>
+          <label for="doc-category">Document Category</label>
+          <select id="doc-category">
+            <option value="">Select category</option>
+            <option value="BL">BL</option>
+            <option value="AWB">AWB</option>
+            <option value="RCN">RCN</option>
+            <option value="Invoice Copy">Invoice Copy</option>
+            <option value="Customs Doc">Customs Doc</option>
+            <option value="Permit">Permit</option>
+            <option value="Payment Proof">Payment Proof</option>
+            <option value="Manifest">Manifest</option>
+            <option value="Release Order">Release Order</option>
+            <option value="Internal Note">Internal Note</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="doc-url">Document URL</label>
+          <input id="doc-url" type="url" placeholder="https://..." />
+        </div>
+
+        <div>
+          <label for="doc-notes">Notes</label>
+          <input id="doc-notes" type="text" placeholder="Optional notes" />
+        </div>
       </div>
 
-      <button id="save-document-btn" style="padding: 10px 16px; cursor: pointer;">Save Document</button>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button id="save-document-btn" class="btn-primary" style="min-width: 160px;">Save Document</button>
+      </div>
 
-      <hr style="margin: 20px 0;" />
+      <div id="document-message" style="margin-top: 14px;"></div>
+
+      <hr />
 
       <div id="documents-list">
         <p>Loading documents...</p>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <h2 style="margin-bottom: 12px;">Sync Logs</h2>
+      <div id="sync-logs-list">
+        <p>Loading sync logs...</p>
       </div>
     </div>
   </div>
@@ -113,24 +181,48 @@
       });
     }
 
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      return date.toLocaleString();
+    }
+
+    function showBoxMessage(targetId, message, type = "info") {
+      const target = document.getElementById(targetId);
+      const colorMap = {
+        success: "#86efac",
+        error: "#fca5a5",
+        info: "#cbd5e1"
+      };
+
+      target.innerHTML = `<div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: ${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+    }
+
+    function clearBoxMessage(targetId) {
+      document.getElementById(targetId).innerHTML = "";
+    }
+
     async function loadCurrentUser() {
       const response = await fetch("/api/me");
 
       if (!response.ok) {
         window.location.href = "/login";
-        return;
+        return false;
       }
 
       const data = await response.json();
 
       if (!data.success || !data.user) {
         window.location.href = "/login";
-        return;
+        return false;
       }
 
       currentUser = data.user;
       document.getElementById("user-username").textContent = data.user.username || "-";
       document.getElementById("user-role").textContent = data.user.role || "-";
+      document.getElementById("user-status").textContent = "Authenticated";
+      return true;
     }
 
     function renderShipmentInfo(shipment) {
@@ -142,16 +234,35 @@
       }
 
       target.innerHTML = `
-        <p><strong>ID:</strong> ${shipment.id}</p>
-        <p><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
-        <p><strong>Reference Number:</strong> ${escapeHtml(shipment.reference_number)}</p>
-        <p><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line)}</p>
-        <p><strong>Cargo Description:</strong> ${escapeHtml(shipment.cargo_description)}</p>
-        <p><strong>Status:</strong> ${escapeHtml(shipment.status)}</p>
-        <p><strong>Origin Port:</strong> ${escapeHtml(shipment.origin_port || "-")}</p>
-        <p><strong>Destination Port:</strong> ${escapeHtml(shipment.destination_port || "-")}</p>
-        <p><strong>Created By:</strong> ${escapeHtml(shipment.created_by || "-")}</p>
-        <p><strong>Created At:</strong> ${new Date(shipment.created_at).toLocaleString()}</p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>ID:</strong> ${shipment.id}</p>
+            <p style="margin:0 0 6px 0;"><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
+            <p style="margin:0 0 6px 0;"><strong>Reference Number:</strong> ${escapeHtml(shipment.reference_number)}</p>
+            <p style="margin:0;"><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line)}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Cargo Description:</strong> ${escapeHtml(shipment.cargo_description)}</p>
+            <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Current Tracking Status:</strong> ${escapeHtml(shipment.current_tracking_status || "-")}</p>
+            <p style="margin:0;"><strong>Current Tracking Time:</strong> ${formatDateTime(shipment.current_tracking_time)}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Origin Port:</strong> ${escapeHtml(shipment.origin_port || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Destination Port:</strong> ${escapeHtml(shipment.destination_port || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Port of Loading:</strong> ${escapeHtml(shipment.port_of_loading || "-")}</p>
+            <p style="margin:0;"><strong>Port of Discharge:</strong> ${escapeHtml(shipment.port_of_discharge || "-")}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Final Destination:</strong> ${escapeHtml(shipment.final_destination || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Tracking Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Created By:</strong> ${escapeHtml(shipment.created_by || "-")}</p>
+            <p style="margin:0;"><strong>Created At:</strong> ${formatDateTime(shipment.created_at)}</p>
+          </div>
+        </div>
       `;
     }
 
@@ -164,9 +275,84 @@
       }
 
       target.innerHTML = `
-        <p><strong>Total Billed:</strong> ${formatMoney(summary.total_billed)}</p>
-        <p><strong>Total Paid:</strong> ${formatMoney(summary.total_paid)}</p>
-        <p><strong>Outstanding:</strong> ${formatMoney(summary.outstanding)}</p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div class="stat-card">
+            <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
+            <div class="stat-value">${formatMoney(summary.total_billed)}</div>
+          </div>
+
+          <div class="stat-card">
+            <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
+            <div class="stat-value">${formatMoney(summary.total_paid)}</div>
+          </div>
+
+          <div class="stat-card">
+            <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
+            <div class="stat-value">${formatMoney(summary.outstanding)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLiveStatus(live) {
+      const target = document.getElementById("live-status-box");
+
+      if (!live) {
+        target.innerHTML = "<p>No live status available.</p>";
+        return;
+      }
+
+      target.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
+            <p style="margin:0;"><strong>Status Time:</strong> ${formatDateTime(live.current_status_time)}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Tracking Enabled:</strong> ${live.tracking_enabled ? "Yes" : "No"}</p>
+            <p style="margin:0 0 6px 0;"><strong>Latest Sync:</strong> ${live.latest_sync ? escapeHtml(live.latest_sync.sync_status || "-") : "-"}</p>
+            <p style="margin:0;"><strong>Sync Time:</strong> ${live.latest_sync ? formatDateTime(live.latest_sync.created_at) : "-"}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
+            <p style="margin:0 0 6px 0;"><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
+            <p style="margin:0;"><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "manual") : "-"}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTrackingSource(source) {
+      const target = document.getElementById("tracking-source-box");
+
+      if (!source) {
+        target.innerHTML = "<p>No tracking source configured for this shipment yet.</p>";
+        return;
+      }
+
+      target.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(source.provider_name || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Carrier Code:</strong> ${escapeHtml(source.carrier_code || "-")}</p>
+            <p style="margin:0;"><strong>Tracking Mode:</strong> ${escapeHtml(source.tracking_mode || "-")}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>BL:</strong> ${escapeHtml(source.bill_of_lading || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Container:</strong> ${escapeHtml(source.container_number || "-")}</p>
+            <p style="margin:0;"><strong>Booking:</strong> ${escapeHtml(source.booking_number || "-")}</p>
+          </div>
+
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Label:</strong> ${escapeHtml(source.source_label || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Active:</strong> ${source.is_active ? "Yes" : "No"}</p>
+            <p style="margin:0;"><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
+          </div>
+        </div>
       `;
     }
 
@@ -179,12 +365,26 @@
       }
 
       target.innerHTML = events.map((event) => `
-        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
-          <p><strong>Status:</strong> ${escapeHtml(event.event_status)}</p>
-          <p><strong>Location:</strong> ${escapeHtml(event.location_name)}</p>
-          <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
-          <p><strong>Event Time:</strong> ${new Date(event.event_time).toLocaleString()}</p>
-          <p><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
+        <div class="card" style="margin-bottom: 12px;">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
+              <p style="margin:0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
+            </div>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Event Time:</strong> ${formatDateTime(event.event_time)}</p>
+              <p style="margin:0;"><strong>Source:</strong> ${escapeHtml(event.source_name || "manual")}</p>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+            <div>
+              <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+            </div>
+            <div>
+              <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
+            </div>
+          </div>
         </div>
       `).join("");
     }
@@ -198,28 +398,40 @@
       }
 
       target.innerHTML = invoices.map((invoice) => `
-        <div style="padding: 16px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 16px;">
-          <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
-          <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
-          <p><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
-          <p><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
-          <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
-          <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
-          <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
-          <p><strong>Created At:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
+        <div class="card" style="margin-bottom: 14px;">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+              <p style="margin:0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
+            </div>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
+              <p style="margin:0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
+            </div>
+          </div>
 
-          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
-            <h3 style="margin-top: 0;">Payments</h3>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom:10px;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
+              <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+            </div>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Created At:</strong> ${formatDateTime(invoice.created_at)}</p>
+              <p style="margin:0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+            </div>
+          </div>
+
+          <div style="padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);">
+            <h3 style="margin-bottom:10px;">Payments</h3>
             ${
               invoice.payments && invoice.payments.length
                 ? invoice.payments.map((payment) => `
-                  <div style="padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
-                    <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
-                    <p><strong>Method:</strong> ${escapeHtml(payment.payment_method)}</p>
-                    <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
-                    <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
-                    <p><strong>Created By:</strong> ${escapeHtml(payment.created_by || "-")}</p>
-                    <p><strong>Created At:</strong> ${new Date(payment.created_at).toLocaleString()}</p>
+                  <div class="card" style="margin-bottom:10px; background: rgba(255,255,255,0.02);">
+                    <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+                    <p style="margin:0 0 6px 0;"><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+                    <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+                    <p style="margin:0 0 6px 0;"><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+                    <p style="margin:0;"><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
                   </div>
                 `).join("")
                 : "<p>No payments recorded.</p>"
@@ -240,26 +452,65 @@
       const canDelete = currentUser && (currentUser.role === "admin" || currentUser.role === "operations");
 
       target.innerHTML = documents.map((doc) => `
-        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
-          <p><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
-          <p><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
-          <p><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
-          <p><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
-          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
-          <p><strong>Time:</strong> ${new Date(doc.created_at).toLocaleString()}</p>
-          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" style="padding: 8px 12px; cursor: pointer; margin-top: 8px;">Delete</button>` : ""}
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="margin:0 0 6px 0;"><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
+          <p style="margin:0 0 6px 0;"><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
+          <p style="margin:0 0 6px 0;"><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
+          <p style="margin:0 0 6px 0;"><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
+          <p style="margin:0 0 8px 0;"><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
+          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Delete</button>` : ""}
         </div>
       `).join("");
     }
 
+    function renderSyncLogs(logs) {
+      const target = document.getElementById("sync-logs-list");
+
+      if (!logs || !logs.length) {
+        target.innerHTML = "<p>No sync logs found for this shipment.</p>";
+        return;
+      }
+
+      target.innerHTML = logs.map((log) => `
+        <div class="card" style="margin-bottom: 12px;">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
+              <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
+            </div>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Synced By:</strong> ${escapeHtml(log.synced_by || "-")}</p>
+              <p style="margin:0;"><strong>Time:</strong> ${formatDateTime(log.created_at)}</p>
+            </div>
+          </div>
+          <p style="margin:0;"><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
+        </div>
+      `).join("");
+    }
+
+    async function loadShipmentDocuments() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
+
+      if (!response.ok) {
+        document.getElementById("documents-list").innerHTML = "<p>Could not load shipment documents.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderDocuments(data.documents || []);
+    }
+
     async function saveDocument() {
+      clearBoxMessage("document-message");
+
       const documentName = document.getElementById("doc-name").value.trim();
       const documentCategory = document.getElementById("doc-category").value.trim();
       const documentUrl = document.getElementById("doc-url").value.trim();
       const notes = document.getElementById("doc-notes").value.trim();
 
       if (!documentName || !documentCategory || !documentUrl) {
-        alert("Document name, category, and URL are required.");
+        showBoxMessage("document-message", "Document name, category, and URL are required.", "error");
         return;
       }
 
@@ -280,7 +531,7 @@
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        alert(data.error || "Could not save document.");
+        showBoxMessage("document-message", data.error || "Could not save document.", "error");
         return;
       }
 
@@ -289,13 +540,8 @@
       document.getElementById("doc-url").value = "";
       document.getElementById("doc-notes").value = "";
 
-      renderDocuments([data.document, ...getCurrentRenderedDocuments()]);
-      await loadShipmentFullDetail();
-      alert("Document saved successfully.");
-    }
-
-    function getCurrentRenderedDocuments() {
-      return [];
+      await loadShipmentDocuments();
+      showBoxMessage("document-message", "Document saved successfully.", "success");
     }
 
     async function deleteDocument(documentId) {
@@ -309,12 +555,50 @@
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        alert(data.error || "Could not delete document.");
+        showBoxMessage("document-message", data.error || "Could not delete document.", "error");
         return;
       }
 
-      await loadShipmentFullDetail();
-      alert("Document deleted successfully.");
+      await loadShipmentDocuments();
+      showBoxMessage("document-message", "Document deleted successfully.", "success");
+    }
+
+    window.deleteDocument = deleteDocument;
+
+    async function loadLiveStatus() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/live-status`);
+
+      if (!response.ok) {
+        document.getElementById("live-status-box").innerHTML = "<p>Could not load live status.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderLiveStatus(data.live_status || null);
+    }
+
+    async function loadTrackingSource() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/tracking-source`);
+
+      if (!response.ok) {
+        document.getElementById("tracking-source-box").innerHTML = "<p>Could not load tracking source.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderTrackingSource(data.tracking_source || null);
+    }
+
+    async function loadSyncLogs() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/sync-logs`);
+
+      if (!response.ok) {
+        document.getElementById("sync-logs-list").innerHTML = "<p>Could not load sync logs.</p>";
+        return;
+      }
+
+      const data = await response.json();
+      renderSyncLogs(data.sync_logs || []);
     }
 
     async function loadShipmentFullDetail() {
@@ -325,7 +609,6 @@
         document.getElementById("financial-summary").innerHTML = "<p>Could not load financial summary.</p>";
         document.getElementById("tracking-events").innerHTML = "<p>Could not load tracking events.</p>";
         document.getElementById("invoices-section").innerHTML = "<p>Could not load invoices.</p>";
-        document.getElementById("documents-list").innerHTML = "<p>Could not load documents.</p>";
         return;
       }
 
@@ -336,9 +619,41 @@
       renderTrackingEvents(data.tracking_events || []);
       renderInvoices(data.invoices || []);
       renderDocuments(data.documents || []);
+      renderLiveStatus(data.live_status || null);
+    }
+
+    async function loadAllContext() {
+      await loadShipmentFullDetail();
+      await loadTrackingSource();
+      await loadSyncLogs();
+      document.getElementById("open-tracking-link").href = `/tracking?shipment_id=${currentShipmentId}`;
+    }
+
+    async function runSyncNow() {
+      clearBoxMessage("sync-message");
+      showBoxMessage("sync-message", "Running tracking sync...", "info");
+
+      try {
+        const response = await fetch(`/api/shipments/${currentShipmentId}/sync-tracking`, {
+          method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not sync shipment tracking.");
+        }
+
+        showBoxMessage("sync-message", `Tracking sync completed successfully. Latest status: ${data.sync.latest_status || "-"}`, "success");
+        await loadAllContext();
+      } catch (error) {
+        showBoxMessage("sync-message", error.message || "Could not sync shipment tracking.", "error");
+      }
     }
 
     document.getElementById("save-document-btn").addEventListener("click", saveDocument);
+
+    document.getElementById("sync-now-btn").addEventListener("click", runSyncNow);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
@@ -358,8 +673,10 @@
         return;
       }
 
-      await loadCurrentUser();
-      await loadShipmentFullDetail();
+      const ok = await loadCurrentUser();
+      if (!ok) return;
+
+      await loadAllContext();
     }
 
     initPage();

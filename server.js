@@ -3,6 +3,11 @@ const path = require("path");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
+const {
+  createReference: createVizionReference,
+  listReferenceUpdates: listVizionReferenceUpdates,
+  normalizeUpdatesPayload: normalizeVizionUpdatesPayload
+} = require("./providers/vizion");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -294,6 +299,35 @@ function mapExternalMilestoneToInternal(status) {
   return map[raw] || status || "Tracking Update";
 }
 
+function mapVizionMilestoneToInternal(status) {
+  const raw = String(status || "").trim().toLowerCase();
+
+  const map = {
+    "available for release / delivery": "Released by Shipping Line",
+    "available for pickup": "Out of Port",
+    "carrier release": "Released by Shipping Line",
+    "container available for pickup": "Out of Port",
+    "customs release": "Customs Clearance",
+    "delivered": "Delivered",
+    "gate in": "Container Received",
+    "gate in at origin port": "At Port of Loading",
+    "gate out": "Out of Port",
+    "gate out from destination port": "Out of Port",
+    "loaded": "Loaded on Vessel",
+    "loaded on rail": "Arrived at ICD",
+    "loaded on truck": "Out of Port",
+    "loaded on vessel": "Loaded on Vessel",
+    "loaded on vessel at origin port": "Loaded on Vessel",
+    "loaded on vessel at transshipment port": "Transshipment",
+    "out for delivery": "Delivered",
+    "rail arrived at inland destination": "Arrived at ICD",
+    "rail departed": "In Transit",
+    "truck departed from destination port": "Out of Port"
+  };
+
+  return map[raw] || mapExternalMilestoneToInternal(status);
+}
+
 function rankMilestone(status) {
   const normalized = mapExternalMilestoneToInternal(status);
 
@@ -475,6 +509,28 @@ async function upsertTrackingSource({
   return updateResult.rows[0];
 }
 
+async function saveProviderReferenceIds({
+  shipmentId,
+  externalReferenceId,
+  parentReferenceId = null,
+  providerStatus = null,
+  updatedBy = "system"
+}) {
+  await pool.query(
+    `
+    UPDATE shipment_tracking_sources
+    SET
+      external_reference_id = $2,
+      parent_reference_id = $3,
+      provider_status = $4,
+      updated_by = $5,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE shipment_id = $1
+    `,
+    [shipmentId, externalReferenceId, parentReferenceId, providerStatus, updatedBy]
+  );
+}
+
 async function insertTrackingEventIfNew({
   shipmentId,
   eventStatus,
@@ -643,6 +699,9 @@ async function buildLiveStatus(shipmentId) {
           booking_number: source.booking_number,
           tracking_mode: source.tracking_mode,
           source_label: source.source_label,
+          external_reference_id: source.external_reference_id,
+          parent_reference_id: source.parent_reference_id,
+          provider_status: source.provider_status,
           last_synced_at: source.last_synced_at
         }
       : null,
@@ -653,8 +712,7 @@ async function buildLiveStatus(shipmentId) {
 
 /**
  * DEMO provider adapter.
- * Hii ni placeholder ya hatua ya kwanza.
- * Baadaye utaibadilisha na provider halisi.
+ * Fallback ya foundation ikiwa provider sio vizion.
  */
 async function fetchExternalTrackingEvents(shipment, source) {
   const baseNow = new Date();
@@ -799,9 +857,181 @@ async function syncShipmentTracking(shipmentId, actorUsername = "system", actorR
   }
 }
 
+async function subscribeShipmentToVizion(shipmentId, actorUsername = "system", actorRole = null) {
+  const shipment = await getShipmentById(shipmentId);
+  if (!shipment) {
+    throw new Error("Shipment not found.");
+  }
+
+  const source = await getTrackingSourceByShipmentId(shipmentId);
+  if (!source) {
+    throw new Error("Tracking source is not configured for this shipment.");
+  }
+
+  const created = await createVizionReference({
+    shipmentId,
+    source
+  });
+
+  const responseBody = created.response_body || {};
+  const referenceId =
+    responseBody.reference_id ||
+    responseBody.id ||
+    responseBody.referenceId ||
+    null;
+
+  const parentReferenceId =
+    responseBody.parent_reference_id ||
+    responseBody.parentReferenceId ||
+    null;
+
+  const providerStatus =
+    responseBody.status ||
+    responseBody.reference_status ||
+    "REFERENCE_CREATED";
+
+  if (!referenceId) {
+    throw new Error("Provider did not return a reference ID.");
+  }
+
+  await saveProviderReferenceIds({
+    shipmentId,
+    externalReferenceId: referenceId,
+    parentReferenceId,
+    providerStatus,
+    updatedBy: actorUsername
+  });
+
+  await writeAuditLog({
+    actorUsername,
+    actorRole,
+    actionType: "SUBSCRIBE_TRACKING_PROVIDER",
+    entityType: "SHIPMENT_TRACKING_SOURCE",
+    shipmentId,
+    details: `Subscribed shipment ${shipment.reference_number} to Vizion with reference ${referenceId}.`
+  });
+
+  await logTrackingSync({
+    shipmentId,
+    providerName: "vizion",
+    requestPayload: created.request_body,
+    responsePayload: responseBody,
+    syncStatus: "SUCCESS",
+    message: `Tracking reference created: ${referenceId}`,
+    syncedBy: actorUsername
+  });
+
+  return {
+    provider_name: "vizion",
+    reference_id: referenceId,
+    parent_reference_id: parentReferenceId,
+    provider_status: providerStatus
+  };
+}
+
+async function syncShipmentTrackingFromVizion(shipmentId, actorUsername = "system", actorRole = null) {
+  const shipment = await getShipmentById(shipmentId);
+  if (!shipment) {
+    throw new Error("Shipment not found.");
+  }
+
+  const source = await getTrackingSourceByShipmentId(shipmentId);
+  if (!source) {
+    throw new Error("Tracking source is not configured for this shipment.");
+  }
+
+  if (!source.external_reference_id) {
+    throw new Error("No provider reference found. Subscribe shipment first.");
+  }
+
+  const providerPayload = await listVizionReferenceUpdates(source.external_reference_id);
+  const events = normalizeVizionUpdatesPayload(providerPayload);
+  const insertedEvents = [];
+
+  for (const event of events) {
+    const internalStatus = mapVizionMilestoneToInternal(event.event_status);
+
+    const inserted = await insertTrackingEventIfNew({
+      shipmentId,
+      eventStatus: internalStatus,
+      locationName: event.location_name || "Unknown",
+      remarks: event.remarks || "",
+      eventTime: event.event_time,
+      createdBy: actorUsername || "system",
+      externalEventId: event.external_event_id || null,
+      sourceName: "vizion",
+      sourceStatus: event.source_status || event.event_status,
+      sourcePayload: event.raw_payload
+    });
+
+    if (inserted.inserted && inserted.row) {
+      insertedEvents.push(inserted.row);
+
+      await writeAuditLog({
+        actorUsername,
+        actorRole,
+        actionType: "AUTO_TRACKING_EVENT",
+        entityType: "TRACKING_EVENT",
+        entityId: inserted.row.id,
+        shipmentId,
+        details: `Automated tracking event "${internalStatus}" received from Vizion.`
+      });
+    }
+  }
+
+  const latest = await refreshShipmentCurrentStatus(shipmentId);
+
+  await pool.query(
+    `
+    UPDATE shipment_tracking_sources
+    SET
+      last_synced_at = CURRENT_TIMESTAMP,
+      provider_status = 'SYNCED',
+      updated_by = $2,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE shipment_id = $1
+    `,
+    [shipmentId, actorUsername]
+  );
+
+  await logTrackingSync({
+    shipmentId,
+    providerName: "vizion",
+    requestPayload: { reference_id: source.external_reference_id },
+    responsePayload: providerPayload,
+    syncStatus: "SUCCESS",
+    message: `Vizion sync completed. Inserted ${insertedEvents.length} new event(s).`,
+    syncedBy: actorUsername
+  });
+
+  return {
+    success: true,
+    provider_name: "vizion",
+    inserted_events: insertedEvents,
+    latest_status: latest ? latest.event_status : shipment.status
+  };
+}
+
 /* =========================
    DATABASE INIT
    ========================= */
+
+async function ensureTrackingSourceColumns() {
+  await pool.query(`
+    ALTER TABLE shipment_tracking_sources
+    ADD COLUMN IF NOT EXISTS external_reference_id TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipment_tracking_sources
+    ADD COLUMN IF NOT EXISTS parent_reference_id TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE shipment_tracking_sources
+    ADD COLUMN IF NOT EXISTS provider_status TEXT;
+  `);
+}
 
 async function initDb() {
   if (!process.env.DATABASE_URL) {
@@ -969,6 +1199,8 @@ async function initDb() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  await ensureTrackingSourceColumns();
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tracking_sync_logs (
@@ -1816,7 +2048,7 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
     if (trackingProvider || billOfLading || containerNumber || bookingNumber) {
       await upsertTrackingSource({
         shipmentId: shipment.id,
-        providerName: trackingProvider || "demo",
+        providerName: trackingProvider || "vizion",
         carrierCode,
         billOfLading,
         containerNumber,
@@ -1870,9 +2102,14 @@ app.get("/api/tracking/providers", apiAllowRoles("admin", "operations", "account
     success: true,
     providers: [
       {
+        code: "vizion",
+        name: "Vizion",
+        description: "Real ocean visibility provider for BL / booking / container tracking."
+      },
+      {
         code: "demo",
         name: "Demo Provider",
-        description: "Foundation provider for backend automation testing."
+        description: "Fallback provider for backend automation testing."
       }
     ]
   });
@@ -1881,7 +2118,7 @@ app.get("/api/tracking/providers", apiAllowRoles("admin", "operations", "account
 app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operations"), async (req, res) => {
   const shipmentId = Number(req.params.id);
 
-  const providerName = normalizeText(req.body.provider_name || "demo");
+  const providerName = normalizeText(req.body.provider_name || "vizion");
   const carrierCode = normalizeNullableText(req.body.carrier_code);
   const billOfLading = normalizeNullableText(req.body.bill_of_lading);
   const containerNumber = normalizeNullableText(req.body.container_number);
@@ -1930,6 +2167,12 @@ app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operation
       [shipmentId, providerName, carrierCode, billOfLading, containerNumber, bookingNumber]
     );
 
+    let subscription = null;
+
+    if (providerName === "vizion") {
+      subscription = await subscribeShipmentToVizion(shipmentId, req.user.username, req.user.role);
+    }
+
     await writeAuditLog({
       actorUsername: req.user.username,
       actorRole: req.user.role,
@@ -1942,13 +2185,14 @@ app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operation
 
     return res.status(201).json({
       success: true,
-      tracking_source: source
+      tracking_source: source,
+      subscription
     });
   } catch (error) {
     console.error("Tracking config error:", error.message);
     return res.status(500).json({
       success: false,
-      error: "Could not configure tracking source."
+      error: error.message || "Could not configure tracking source."
     });
   }
 });
@@ -1957,7 +2201,22 @@ app.post("/api/shipments/:id/sync-tracking", apiAllowRoles("admin", "operations"
   const shipmentId = Number(req.params.id);
 
   try {
-    const result = await syncShipmentTracking(shipmentId, req.user.username, req.user.role);
+    const source = await getTrackingSourceByShipmentId(shipmentId);
+
+    if (!source) {
+      return res.status(404).json({
+        success: false,
+        error: "Tracking source is not configured for this shipment."
+      });
+    }
+
+    let result;
+
+    if (source.provider_name === "vizion") {
+      result = await syncShipmentTrackingFromVizion(shipmentId, req.user.username, req.user.role);
+    } else {
+      result = await syncShipmentTracking(shipmentId, req.user.username, req.user.role);
+    }
 
     return res.json({
       success: true,
@@ -2047,6 +2306,95 @@ app.get("/api/shipments/:id/sync-logs", apiAllowRoles("admin", "operations", "ac
     return res.status(500).json({
       success: false,
       error: "Could not load tracking sync logs."
+    });
+  }
+});
+
+/* =========================
+   VIZION WEBHOOK
+   ========================= */
+
+app.post("/webhooks/vizion/:shipmentId", async (req, res) => {
+  const shipmentId = Number(req.params.shipmentId);
+  const token = String(req.query.token || "");
+  const secret = String(process.env.VIZION_WEBHOOK_SECRET || "");
+
+  if (!shipmentId || !secret || token !== secret) {
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized webhook request."
+    });
+  }
+
+  try {
+    const events = normalizeVizionUpdatesPayload(req.body || {});
+    const insertedEvents = [];
+
+    for (const event of events) {
+      const internalStatus = mapVizionMilestoneToInternal(event.event_status);
+
+      const inserted = await insertTrackingEventIfNew({
+        shipmentId,
+        eventStatus: internalStatus,
+        locationName: event.location_name || "Unknown",
+        remarks: event.remarks || "",
+        eventTime: event.event_time,
+        createdBy: "vizion_webhook",
+        externalEventId: event.external_event_id || null,
+        sourceName: "vizion",
+        sourceStatus: event.source_status || event.event_status,
+        sourcePayload: event.raw_payload
+      });
+
+      if (inserted.inserted && inserted.row) {
+        insertedEvents.push(inserted.row);
+      }
+    }
+
+    await refreshShipmentCurrentStatus(shipmentId);
+
+    await pool.query(
+      `
+      UPDATE shipment_tracking_sources
+      SET
+        last_synced_at = CURRENT_TIMESTAMP,
+        provider_status = 'WEBHOOK_RECEIVED',
+        updated_by = 'vizion_webhook',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE shipment_id = $1
+      `,
+      [shipmentId]
+    );
+
+    await logTrackingSync({
+      shipmentId,
+      providerName: "vizion",
+      requestPayload: null,
+      responsePayload: req.body || {},
+      syncStatus: "SUCCESS",
+      message: `Vizion webhook processed. Inserted ${insertedEvents.length} event(s).`,
+      syncedBy: "vizion_webhook"
+    });
+
+    return res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error("Vizion webhook error:", error.message);
+
+    await logTrackingSync({
+      shipmentId,
+      providerName: "vizion",
+      requestPayload: null,
+      responsePayload: req.body || {},
+      syncStatus: "FAILED",
+      message: error.message,
+      syncedBy: "vizion_webhook"
+    });
+
+    return res.status(500).json({
+      success: false,
+      error: "Webhook processing failed."
     });
   }
 });

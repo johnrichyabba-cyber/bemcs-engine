@@ -3,147 +3,457 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Audit Log & Activity History</title>
+  <title>BE-MCs System Health</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="font-family: sans-serif; padding: 40px;">
-  <div style="max-width: 1250px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+<body style="padding: 24px;">
+  <div style="max-width: 1120px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
       <div>
-        <h1>🧾 Audit Log & Activity History</h1>
-        <p>Track who did what, when, and on which system entity.</p>
+        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size: 2rem; margin-bottom: 8px;">System Health</h1>
+        <p class="login-subtitle" style="margin-bottom: 0;">
+          Operational visibility for application health, tracking readiness, and shipment monitoring status.
+        </p>
       </div>
+
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Dashboard</a>
-        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
+        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
+        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 160px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Shipment Registry</a>
+        <a href="/tracking" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Tracking</a>
+        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
       </div>
     </div>
 
-    <hr style="margin: 24px 0;" />
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Current User</h2>
-      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
-    </div>
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Shipment-Specific History</h2>
-      <select id="shipment-select" style="padding: 10px; min-width: 320px;"></select>
-      <button id="load-shipment-history-btn" style="padding: 10px 16px; margin-left: 10px; cursor: pointer;">Load Shipment History</button>
-    </div>
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Shipment Activity History</h2>
-      <div id="shipment-audit-log">
-        <p>No shipment history loaded yet.</p>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Current User</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin: 0;"><strong>Module:</strong> System Health</p>
+        </div>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-      <h2>Recent Global Audit Logs</h2>
-      <div id="global-audit-log">
-        <p>Loading audit logs...</p>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Application Health</p>
+        <div id="health-app" class="stat-value">Checking...</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Database Health</p>
+        <div id="health-db" class="stat-value">Checking...</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Last Refresh</p>
+        <div id="health-refresh-time" class="stat-value" style="font-size: 1rem;">-</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Total Shipments</p>
+        <div id="card-total-shipments" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Active Shipments</p>
+        <div id="card-active-shipments" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Delivered Shipments</p>
+        <div id="card-delivered-shipments" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Total Invoices</p>
+        <div id="card-total-invoices" class="stat-value">0</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Tracking Configured</p>
+        <div id="card-tracking-configured" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Tracking Missing</p>
+        <div id="card-tracking-missing" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Live Status Available</p>
+        <div id="card-live-status-ready" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Ready for Sync</p>
+        <div id="card-ready-for-sync" class="stat-value">0</div>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div>
+          <h2 style="margin-bottom: 6px;">Health Alerts</h2>
+          <p class="login-subtitle" style="margin-bottom: 0;">Operational signals based on current system and shipment state.</p>
+        </div>
+        <button id="refresh-health-btn" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Refresh</button>
+      </div>
+
+      <div id="health-alerts">
+        <p>Loading health alerts...</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div class="page-card">
+        <h2 style="margin-bottom: 12px;">Shipments Ready for Sync</h2>
+        <div id="shipments-ready-sync">
+          <p>Loading shipments...</p>
+        </div>
+      </div>
+
+      <div class="page-card">
+        <h2 style="margin-bottom: 12px;">Shipments Missing Tracking Setup</h2>
+        <div id="shipments-missing-tracking">
+          <p>Loading shipments...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Live Shipment Status Snapshot</h2>
+      <div id="live-status-snapshot">
+        <p>Loading live shipment statuses...</p>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <h2 style="margin-bottom: 12px;">Quick Links</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+        <a href="/dashboard" class="card" style="text-decoration: none; color: inherit;">
+          <h3 style="margin-bottom: 8px;">Dashboard</h3>
+          <p style="margin: 0;">Overview of operations, finance, and live visibility.</p>
+        </a>
+
+        <a href="/shipment-registry" class="card" style="text-decoration: none; color: inherit;">
+          <h3 style="margin-bottom: 8px;">Shipment Registry</h3>
+          <p style="margin: 0;">Create shipments and configure tracking identifiers.</p>
+        </a>
+
+        <a href="/tracking" class="card" style="text-decoration: none; color: inherit;">
+          <h3 style="margin-bottom: 8px;">Tracking Center</h3>
+          <p style="margin: 0;">Run sync and review current status timelines.</p>
+        </a>
+
+        <a href="/accounting" class="card" style="text-decoration: none; color: inherit;">
+          <h3 style="margin-bottom: 8px;">Accounting</h3>
+          <p style="margin: 0;">Manage invoices, payments, and balances.</p>
+        </a>
       </div>
     </div>
   </div>
 
   <script>
-    let shipments = [];
+    let currentUser = null;
+    let shipmentsCache = [];
 
-    async function loadUser() {
-      const response = await fetch("/api/me");
-      if (!response.ok) {
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      return date.toLocaleString();
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/me");
+
+        if (!response.ok) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        currentUser = data.user;
+        setText("user-username", currentUser.username || "-");
+        setText("user-role", currentUser.role || "-");
+        setText("user-status", "Authenticated");
+        return true;
+      } catch (error) {
         window.location.href = "/login";
-        return;
+        return false;
       }
+    }
 
-      const data = await response.json();
-      if (!data.success || !data.user) {
-        window.location.href = "/login";
-        return;
+    async function loadHealthStatus() {
+      try {
+        const response = await fetch("/health");
+        const now = new Date().toLocaleString();
+
+        if (!response.ok) {
+          setText("health-app", "Degraded");
+          setText("health-db", "Unavailable");
+          setText("health-refresh-time", now);
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setText("health-app", "Healthy");
+          setText("health-db", "Healthy");
+        } else {
+          setText("health-app", "Degraded");
+          setText("health-db", "Degraded");
+        }
+
+        setText("health-refresh-time", now);
+      } catch (error) {
+        setText("health-app", "Unavailable");
+        setText("health-db", "Unavailable");
+        setText("health-refresh-time", new Date().toLocaleString());
       }
+    }
 
-      document.getElementById("user-username").textContent = data.user.username || "-";
-      document.getElementById("user-role").textContent = data.user.role || "-";
+    async function loadDashboardSummary() {
+      try {
+        const response = await fetch("/api/dashboard-summary");
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!data.success) return;
+
+        const summary = data.summary || {};
+        setText("card-total-shipments", String(summary.total_shipments || 0));
+        setText("card-active-shipments", String(summary.active_shipments || 0));
+        setText("card-delivered-shipments", String(summary.delivered_shipments || 0));
+        setText("card-total-invoices", String(summary.total_invoices || 0));
+      } catch (error) {
+        // leave defaults
+      }
     }
 
     async function loadShipments() {
-      const response = await fetch("/api/shipments");
-      const select = document.getElementById("shipment-select");
+      try {
+        const response = await fetch("/api/shipments");
+        if (!response.ok) {
+          shipmentsCache = [];
+          return;
+        }
 
-      if (!response.ok) {
-        select.innerHTML = `<option value="">Could not load shipments</option>`;
-        return;
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.shipments)) {
+          shipmentsCache = [];
+          return;
+        }
+
+        shipmentsCache = data.shipments || [];
+      } catch (error) {
+        shipmentsCache = [];
       }
-
-      const data = await response.json();
-      shipments = data.shipments || [];
-
-      if (!shipments.length) {
-        select.innerHTML = `<option value="">No shipments available</option>`;
-        return;
-      }
-
-      select.innerHTML = shipments.map((item) => `
-        <option value="${item.id}">
-          ${item.reference_number} - ${item.client_name}
-        </option>
-      `).join("");
     }
 
-    function renderLogs(targetId, logs, emptyText) {
-      const target = document.getElementById(targetId);
+    function renderTrackingReadinessCards() {
+      const configured = shipmentsCache.filter((s) => Boolean(s.tracking_provider || s.bill_of_lading || s.container_number || s.booking_number));
+      const missing = shipmentsCache.filter((s) => !s.tracking_provider && !s.bill_of_lading && !s.container_number && !s.booking_number);
+      const liveReady = shipmentsCache.filter((s) => Boolean(s.current_tracking_status || s.current_tracking_time));
+      const readyForSync = configured.filter((s) => Boolean(s.id));
 
-      if (!logs || !logs.length) {
-        target.innerHTML = `<p>${emptyText}</p>`;
+      setText("card-tracking-configured", String(configured.length));
+      setText("card-tracking-missing", String(missing.length));
+      setText("card-live-status-ready", String(liveReady.length));
+      setText("card-ready-for-sync", String(readyForSync.length));
+    }
+
+    function renderHealthAlerts() {
+      const target = document.getElementById("health-alerts");
+      const alerts = [];
+
+      const missingTracking = shipmentsCache.filter((s) => !s.tracking_provider && !s.bill_of_lading && !s.container_number && !s.booking_number);
+      const configuredNoLive = shipmentsCache.filter((s) =>
+        (s.tracking_provider || s.bill_of_lading || s.container_number || s.booking_number) &&
+        !s.current_tracking_status &&
+        !s.current_tracking_time
+      );
+
+      if (missingTracking.length > 0) {
+        alerts.push({
+          type: "warning",
+          text: `${missingTracking.length} shipment(s) are missing tracking configuration.`
+        });
+      }
+
+      if (configuredNoLive.length > 0) {
+        alerts.push({
+          type: "info",
+          text: `${configuredNoLive.length} configured shipment(s) do not yet show live tracking status.`
+        });
+      }
+
+      if (!shipmentsCache.length) {
+        alerts.push({
+          type: "info",
+          text: "No shipments found in the system yet."
+        });
+      }
+
+      if (!alerts.length) {
+        target.innerHTML = `<div class="alert alert-success">All key monitoring indicators look healthy right now.</div>`;
         return;
       }
 
-      target.innerHTML = logs.map((log) => `
-        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
-          <p><strong>Action:</strong> ${log.action_type}</p>
-          <p><strong>Actor:</strong> ${log.actor_username}${log.actor_role ? ` (${log.actor_role})` : ""}</p>
-          <p><strong>Entity:</strong> ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""}</p>
-          <p><strong>Shipment ID:</strong> ${log.shipment_id || "-"}</p>
-          <p><strong>Details:</strong> ${log.details || "-"}</p>
-          <p><strong>Time:</strong> ${new Date(log.created_at).toLocaleString()}</p>
+      target.innerHTML = alerts.map((alert) => {
+        const classMap = {
+          success: "alert alert-success",
+          warning: "alert alert-warning",
+          error: "alert alert-danger",
+          info: "alert alert-info"
+        };
+
+        return `<div class="${classMap[alert.type] || 'alert alert-info'}">${escapeHtml(alert.text)}</div>`;
+      }).join("");
+    }
+
+    function renderShipmentsReadyForSync() {
+      const target = document.getElementById("shipments-ready-sync");
+      const items = shipmentsCache.filter((s) => Boolean(s.tracking_provider || s.bill_of_lading || s.container_number || s.booking_number));
+
+      if (!items.length) {
+        target.innerHTML = "<p>No shipments are configured for tracking sync yet.</p>";
+        return;
+      }
+
+      target.innerHTML = items.slice(0, 10).map((shipment) => `
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
+          <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Tracking ID:</strong> ${escapeHtml(shipment.container_number || shipment.bill_of_lading || shipment.booking_number || "-")}</p>
+          <p style="margin:0;"><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
         </div>
       `).join("");
     }
 
-    async function loadGlobalAuditLogs() {
-      const response = await fetch("/api/audit-logs");
+    function renderShipmentsMissingTracking() {
+      const target = document.getElementById("shipments-missing-tracking");
+      const items = shipmentsCache.filter((s) => !s.tracking_provider && !s.bill_of_lading && !s.container_number && !s.booking_number);
 
-      if (!response.ok) {
-        document.getElementById("global-audit-log").innerHTML = "<p>Could not load audit logs.</p>";
+      if (!items.length) {
+        target.innerHTML = "<p>All listed shipments have tracking configuration.</p>";
         return;
       }
 
-      const data = await response.json();
-      renderLogs("global-audit-log", data.logs || [], "No audit logs found.");
+      target.innerHTML = items.slice(0, 10).map((shipment) => `
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
+          <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
+          <p style="margin:0;"><strong>Action:</strong> Add provider / BL / container / booking in Shipment Registry.</p>
+        </div>
+      `).join("");
     }
 
-    async function loadShipmentAuditLogs() {
-      const shipmentId = document.getElementById("shipment-select").value;
+    async function renderLiveStatusSnapshot() {
+      const target = document.getElementById("live-status-snapshot");
 
-      if (!shipmentId) {
-        document.getElementById("shipment-audit-log").innerHTML = "<p>No shipment selected.</p>";
+      if (!shipmentsCache.length) {
+        target.innerHTML = "<p>No shipments found.</p>";
         return;
       }
 
-      const response = await fetch(`/api/shipments/${shipmentId}/audit-logs`);
+      const topShipments = shipmentsCache.slice(0, 8);
 
-      if (!response.ok) {
-        document.getElementById("shipment-audit-log").innerHTML = "<p>Could not load shipment history.</p>";
-        return;
+      try {
+        const results = await Promise.all(
+          topShipments.map(async (shipment) => {
+            try {
+              const response = await fetch(`/api/shipments/${shipment.id}/live-status`);
+              if (!response.ok) {
+                return { shipment, live_status: null };
+              }
+
+              const data = await response.json();
+              return { shipment, live_status: data.live_status || null };
+            } catch (error) {
+              return { shipment, live_status: null };
+            }
+          })
+        );
+
+        target.innerHTML = results.map(({ shipment, live_status }) => `
+          <div class="card" style="margin-bottom: 12px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+              <div>
+                <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
+                <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+              </div>
+              <div>
+                <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+                <p style="margin:0;"><strong>Configured:</strong> ${(shipment.tracking_provider || shipment.container_number || shipment.bill_of_lading || shipment.booking_number) ? "Yes" : "No"}</p>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+              <div>
+                <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml((live_status && live_status.current_status) || shipment.current_tracking_status || shipment.status || "-")}</p>
+                <p style="margin:0;"><strong>Status Time:</strong> ${formatDateTime((live_status && live_status.current_status_time) || shipment.current_tracking_time)}</p>
+              </div>
+              <div>
+                <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${escapeHtml((live_status && live_status.latest_event && live_status.latest_event.event_status) || "-")}</p>
+                <p style="margin:0;"><strong>Source:</strong> ${escapeHtml((live_status && live_status.latest_event && live_status.latest_event.source_name) || "-")}</p>
+              </div>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        target.innerHTML = "<p>Could not load live shipment statuses.</p>";
       }
-
-      const data = await response.json();
-      renderLogs("shipment-audit-log", data.logs || [], "No shipment history found.");
     }
 
-    document.getElementById("load-shipment-history-btn").addEventListener("click", loadShipmentAuditLogs);
+    async function refreshAll() {
+      await loadHealthStatus();
+      await loadDashboardSummary();
+      await loadShipments();
+      renderTrackingReadinessCards();
+      renderHealthAlerts();
+      renderShipmentsReadyForSync();
+      renderShipmentsMissingTracking();
+      await renderLiveStatusSnapshot();
+    }
+
+    document.getElementById("refresh-health-btn").addEventListener("click", async function () {
+      await refreshAll();
+    });
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
@@ -156,9 +466,10 @@
     });
 
     async function initPage() {
-      await loadUser();
-      await loadShipments();
-      await loadGlobalAuditLogs();
+      const ok = await loadCurrentUser();
+      if (!ok) return;
+
+      await refreshAll();
     }
 
     initPage();

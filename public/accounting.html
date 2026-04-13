@@ -3,281 +3,483 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Accounting Module</title>
+  <title>BE-MCs Accounting</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="font-family: sans-serif; padding: 40px;">
-  <div style="max-width: 1250px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+<body style="padding: 24px;">
+  <div style="max-width: 1120px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
       <div>
-        <h1>💰 Accounting Module</h1>
-        <p>Create invoices, record payments, and track balances by shipment.</p>
+        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size: 2rem; margin-bottom: 8px;">Accounting Center</h1>
+        <p class="login-subtitle" style="margin-bottom: 0;">
+          Manage invoices, payments, balances, and shipment billing records.
+        </p>
       </div>
+
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Dashboard</a>
-        <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
+        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
+        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 160px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Shipment Registry</a>
+        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
       </div>
     </div>
 
-    <hr style="margin: 24px 0;" />
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Current User</h2>
-      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px;">
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Invoices</h3>
-        <p id="summary-invoices">0</p>
-      </div>
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Billed</h3>
-        <p id="summary-billed">0</p>
-      </div>
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Outstanding</h3>
-        <p id="summary-outstanding">0</p>
+    <div class="page-card" style="margin-bottom: 16px;">
+      <h2 style="margin-bottom: 12px;">Current User</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin: 0;"><strong>Module:</strong> Accounting</p>
+        </div>
       </div>
     </div>
 
-    <div id="invoice-form-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Create Invoice</h2>
-      <form id="invoice-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
-        <select id="invoice_shipment_id" required></select>
-        <input id="invoice_number" type="text" placeholder="Invoice Number" required />
-        <input id="charge_type" type="text" placeholder="Charge Type" required />
-        <input id="invoice_amount" type="number" step="0.01" placeholder="Amount" required />
-        <input id="invoice_currency" type="text" placeholder="Currency" value="TZS" />
-        <input id="invoice_notes" type="text" placeholder="Notes (optional)" />
-        <button type="submit" style="padding: 10px 16px; cursor: pointer; grid-column: 1 / -1;">Create Invoice</button>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Total Invoices</p>
+        <div id="stat-total-invoices" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Total Billed</p>
+        <div id="stat-total-billed" class="stat-value">0.00</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Total Paid</p>
+        <div id="stat-total-paid" class="stat-value">0.00</div>
+      </div>
+
+      <div class="stat-card">
+        <p class="login-subtitle" style="margin-bottom: 6px;">Outstanding</p>
+        <div id="stat-outstanding" class="stat-value">0.00</div>
+      </div>
+    </div>
+
+    <div id="invoice-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
+      <h2 style="margin-bottom: 12px;">Create Invoice</h2>
+      <p class="login-subtitle" style="margin-bottom: 16px;">
+        Add a new invoice against a shipment record.
+      </p>
+
+      <form id="invoice-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+        <div style="grid-column: 1 / -1;">
+          <label for="invoice_shipment_id">Shipment</label>
+          <select id="invoice_shipment_id" required>
+            <option value="">Select shipment</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="invoice_number">Invoice Number</label>
+          <input id="invoice_number" type="text" placeholder="e.g. INV-001" required />
+        </div>
+
+        <div>
+          <label for="charge_type">Charge Type</label>
+          <select id="charge_type" required>
+            <option value="">Select charge type</option>
+            <option value="Freight">Freight</option>
+            <option value="Port Charges">Port Charges</option>
+            <option value="Customs Clearance">Customs Clearance</option>
+            <option value="Documentation">Documentation</option>
+            <option value="Transport">Transport</option>
+            <option value="Storage">Storage</option>
+            <option value="Handling">Handling</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="invoice_amount">Amount</label>
+          <input id="invoice_amount" type="number" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+
+        <div>
+          <label for="invoice_currency">Currency</label>
+          <select id="invoice_currency" required>
+            <option value="TZS">TZS</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <label for="invoice_notes">Notes</label>
+          <textarea id="invoice_notes" placeholder="Optional notes about this invoice"></textarea>
+        </div>
+
+        <div style="grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="btn-primary" style="min-width: 180px;">Save Invoice</button>
+          <button type="button" id="reset-invoice-btn" class="secondary" style="min-width: 140px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Reset Form</button>
+        </div>
       </form>
-      <p id="invoice-message" style="margin-top: 12px;"></p>
+
+      <div id="invoice-message" style="margin-top: 14px;"></div>
     </div>
 
-    <div id="payment-form-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Add Payment</h2>
-      <form id="payment-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
-        <select id="payment_invoice_id" required></select>
-        <input id="payment_amount" type="number" step="0.01" placeholder="Payment Amount" required />
-        <input id="payment_method" type="text" placeholder="Payment Method" required />
-        <input id="payment_reference" type="text" placeholder="Reference" />
-        <input id="payment_notes" type="text" placeholder="Notes (optional)" style="grid-column: 1 / -1;" />
-        <button type="submit" style="padding: 10px 16px; cursor: pointer; grid-column: 1 / -1;">Add Payment</button>
+    <div id="payment-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
+      <h2 style="margin-bottom: 12px;">Record Payment</h2>
+      <p class="login-subtitle" style="margin-bottom: 16px;">
+        Capture payments made against an existing invoice.
+      </p>
+
+      <form id="payment-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+        <div style="grid-column: 1 / -1;">
+          <label for="payment_invoice_id">Invoice</label>
+          <select id="payment_invoice_id" required>
+            <option value="">Select invoice</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="payment_amount">Amount</label>
+          <input id="payment_amount" type="number" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+
+        <div>
+          <label for="payment_method">Payment Method</label>
+          <select id="payment_method" required>
+            <option value="">Select payment method</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cash">Cash</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Mobile Money">Mobile Money</option>
+            <option value="Card">Card</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="payment_reference">Reference Text</label>
+          <input id="payment_reference" type="text" placeholder="e.g. TXN-889211" />
+        </div>
+
+        <div>
+          <label for="payment_quick_fill">Quick Amount</label>
+          <select id="payment_quick_fill">
+            <option value="">Choose quick fill</option>
+            <option value="full-balance">Use selected invoice balance</option>
+            <option value="half-balance">Use half of selected balance</option>
+          </select>
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <label for="payment_notes">Notes</label>
+          <textarea id="payment_notes" placeholder="Optional notes about this payment"></textarea>
+        </div>
+
+        <div style="grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="btn-primary" style="min-width: 180px;">Save Payment</button>
+          <button type="button" id="reset-payment-btn" class="secondary" style="min-width: 140px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Reset Form</button>
+        </div>
       </form>
-      <p id="payment-message" style="margin-top: 12px;"></p>
+
+      <div id="payment-message" style="margin-top: 14px;"></div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Invoices</h2>
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
-          <thead>
-            <tr>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Invoice</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Shipment</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Client</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Charge Type</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Amount</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Paid</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Balance</th>
-              <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 10px;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="invoices-body">
-            <tr>
-              <td colspan="8" style="padding: 12px;">Loading invoices...</td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="page-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+        <div>
+          <h2 style="margin-bottom: 6px;">Invoice Register</h2>
+          <p class="login-subtitle" style="margin-bottom: 0;">Latest billing records and payment balances.</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="refresh-btn" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Refresh</button>
+        </div>
       </div>
-    </div>
 
-    <div id="invoice-detail-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; display: none;">
-      <h2>Invoice Detail</h2>
-      <div id="invoice-detail-content"></div>
-      <hr style="margin: 20px 0;" />
-      <h3>Payments</h3>
-      <div id="invoice-payments-content"></div>
+      <div id="invoice-list">
+        <p>Loading invoices...</p>
+      </div>
     </div>
   </div>
 
   <script>
     let currentUser = null;
     let shipments = [];
-    let invoices = [];
+    let invoicesCache = [];
 
-    function money(value, currency = "TZS") {
-      const number = Number(value || 0);
-      return `${currency} ${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
-    async function loadUser() {
-      const response = await fetch("/api/me");
-      if (!response.ok) {
-        window.location.href = "/login";
-        return;
+    function formatMoney(value) {
+      const amount = Number(value || 0);
+      return amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function showBoxMessage(targetId, message, type = "info") {
+      const target = document.getElementById(targetId);
+      const colorMap = {
+        success: "#86efac",
+        error: "#fca5a5",
+        info: "#cbd5e1"
+      };
+
+      target.innerHTML = `
+        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: ${colorMap[type] || "#cbd5e1"};">
+          ${escapeHtml(message)}
+        </div>
+      `;
+    }
+
+    function clearBoxMessage(targetId) {
+      document.getElementById(targetId).innerHTML = "";
+    }
+
+    function getInvoiceBadge(balance) {
+      const value = Number(balance || 0);
+
+      if (value <= 0) {
+        return '<span class="badge badge-success">Paid</span>';
       }
 
-      const data = await response.json();
-      if (!data.success || !data.user) {
-        window.location.href = "/login";
-        return;
-      }
+      return '<span class="badge badge-warning">Outstanding</span>';
+    }
 
-      currentUser = data.user;
-      document.getElementById("user-username").textContent = currentUser.username || "-";
-      document.getElementById("user-role").textContent = currentUser.role || "-";
+    function renderStats(invoices) {
+      const totalInvoices = invoices.length;
+      const totalBilled = invoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const totalPaid = invoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
+      const outstanding = invoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+
+      document.getElementById("stat-total-invoices").textContent = String(totalInvoices);
+      document.getElementById("stat-total-billed").textContent = formatMoney(totalBilled);
+      document.getElementById("stat-total-paid").textContent = formatMoney(totalPaid);
+      document.getElementById("stat-outstanding").textContent = formatMoney(outstanding);
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/me");
+
+        if (!response.ok) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        currentUser = data.user;
+        document.getElementById("user-username").textContent = currentUser.username || "-";
+        document.getElementById("user-role").textContent = currentUser.role || "-";
+        document.getElementById("user-status").textContent = "Authenticated";
+
+        if (["admin", "accounts", "operations"].includes(currentUser.role)) {
+          document.getElementById("invoice-form-panel").style.display = "block";
+        }
+
+        if (["admin", "accounts"].includes(currentUser.role)) {
+          document.getElementById("payment-form-panel").style.display = "block";
+        }
+
+        return true;
+      } catch (error) {
+        window.location.href = "/login";
+        return false;
+      }
     }
 
     async function loadShipments() {
-      const response = await fetch("/api/shipments");
       const shipmentSelect = document.getElementById("invoice_shipment_id");
 
-      if (!response.ok) {
-        shipmentSelect.innerHTML = `<option value="">Could not load shipments</option>`;
+      try {
+        const response = await fetch("/api/shipments");
+
+        if (!response.ok) {
+          shipmentSelect.innerHTML = '<option value="">Could not load shipments</option>';
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !Array.isArray(data.shipments)) {
+          shipmentSelect.innerHTML = '<option value="">No shipments found</option>';
+          return;
+        }
+
+        shipments = data.shipments;
+        shipmentSelect.innerHTML = '<option value="">Select shipment</option>';
+
+        shipments.forEach((shipment) => {
+          const option = document.createElement("option");
+          option.value = shipment.id;
+          option.textContent = `${shipment.reference_number} - ${shipment.client_name}`;
+          shipmentSelect.appendChild(option);
+        });
+      } catch (error) {
+        shipmentSelect.innerHTML = '<option value="">Could not load shipments</option>';
+      }
+    }
+
+    function fillPaymentInvoiceOptions(invoices) {
+      const select = document.getElementById("payment_invoice_id");
+      select.innerHTML = '<option value="">Select invoice</option>';
+
+      invoices.forEach((invoice) => {
+        const option = document.createElement("option");
+        option.value = invoice.id;
+        option.textContent = `${invoice.invoice_number} | ${invoice.reference_number || "-"} | Balance: ${formatMoney(invoice.balance)}`;
+        select.appendChild(option);
+      });
+    }
+
+    function renderInvoiceList(invoices) {
+      const target = document.getElementById("invoice-list");
+
+      if (!invoices || !invoices.length) {
+        target.innerHTML = "<p>No invoices found.</p>";
         return;
       }
 
-      const data = await response.json();
-      shipments = data.shipments || [];
+      target.innerHTML = invoices.map((invoice) => {
+        const shipmentLink = invoice.shipment_id ? `/registry-detail?id=${invoice.shipment_id}` : "#";
 
-      if (!shipments.length) {
-        shipmentSelect.innerHTML = `<option value="">No shipments available</option>`;
-        return;
-      }
+        return `
+          <div class="page-card" style="padding: 14px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
+              <div>
+                <p style="margin: 0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+                <p style="margin: 0;"><strong>Reference:</strong> <a href="${shipmentLink}">${escapeHtml(invoice.reference_number || "-")}</a></p>
+              </div>
+              <div>${getInvoiceBadge(invoice.balance)}</div>
+            </div>
 
-      shipmentSelect.innerHTML = shipments.map((item) => `
-        <option value="${item.id}">
-          ${item.reference_number} - ${item.client_name}
-        </option>
-      `).join("");
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+              <div>
+                <p style="margin: 0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
+                <p style="margin: 0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
+                <p style="margin: 0;"><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
+              </div>
+
+              <div>
+                <p style="margin: 0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)}</p>
+                <p style="margin: 0 0 6px 0;"><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
+                <p style="margin: 0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
+              </div>
+
+              <div>
+                <p style="margin: 0 0 6px 0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+                <p style="margin: 0;"><strong>Created At:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 10px;">
+              <p style="margin: 0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
     async function loadInvoices() {
-      const response = await fetch("/api/invoices");
-      const body = document.getElementById("invoices-body");
-      const paymentInvoiceSelect = document.getElementById("payment_invoice_id");
+      const target = document.getElementById("invoice-list");
+      target.innerHTML = "<p>Loading invoices...</p>";
 
-      if (!response.ok) {
-        body.innerHTML = `<tr><td colspan="8" style="padding:12px;">Could not load invoices.</td></tr>`;
-        paymentInvoiceSelect.innerHTML = `<option value="">Could not load invoices</option>`;
-        return;
+      try {
+        const response = await fetch("/api/invoices");
+
+        if (!response.ok) {
+          target.innerHTML = "<p>Could not load invoices.</p>";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          target.innerHTML = "<p>Could not load invoices.</p>";
+          return;
+        }
+
+        invoicesCache = data.invoices || [];
+        renderStats(invoicesCache);
+        renderInvoiceList(invoicesCache);
+        fillPaymentInvoiceOptions(invoicesCache);
+      } catch (error) {
+        target.innerHTML = "<p>Could not load invoices.</p>";
       }
-
-      const data = await response.json();
-      invoices = data.invoices || [];
-
-      if (!invoices.length) {
-        body.innerHTML = `<tr><td colspan="8" style="padding:12px;">No invoices found.</td></tr>`;
-        paymentInvoiceSelect.innerHTML = `<option value="">No invoices available</option>`;
-        updateSummary([]);
-        return;
-      }
-
-      body.innerHTML = invoices.map((item) => `
-        <tr>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.invoice_number}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.reference_number}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.client_name}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.charge_type}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${money(item.amount, item.currency)}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${money(item.paid_amount, item.currency)}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${money(item.balance, item.currency)}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">
-            <button onclick="viewInvoice(${item.id})" style="padding:6px 10px; cursor:pointer;">View</button>
-          </td>
-        </tr>
-      `).join("");
-
-      paymentInvoiceSelect.innerHTML = invoices.map((item) => `
-        <option value="${item.id}">
-          ${item.invoice_number} - Balance: ${money(item.balance, item.currency)}
-        </option>
-      `).join("");
-
-      updateSummary(invoices);
     }
 
-    function updateSummary(items) {
-      const totalInvoices = items.length;
-      const totalBilled = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const totalOutstanding = items.reduce((sum, item) => sum + Number(item.balance || 0), 0);
-
-      document.getElementById("summary-invoices").textContent = totalInvoices;
-      document.getElementById("summary-billed").textContent = money(totalBilled, "TZS");
-      document.getElementById("summary-outstanding").textContent = money(totalOutstanding, "TZS");
+    function resetInvoiceForm() {
+      document.getElementById("invoice-form").reset();
+      clearBoxMessage("invoice-message");
     }
 
-    async function viewInvoice(id) {
-      const response = await fetch(`/api/invoices/${id}`);
-      const panel = document.getElementById("invoice-detail-panel");
-      const detail = document.getElementById("invoice-detail-content");
-      const payments = document.getElementById("invoice-payments-content");
-
-      if (!response.ok) {
-        panel.style.display = "block";
-        detail.innerHTML = "<p>Could not load invoice detail.</p>";
-        payments.innerHTML = "";
-        return;
-      }
-
-      const data = await response.json();
-      if (!data.success || !data.invoice) {
-        panel.style.display = "block";
-        detail.innerHTML = "<p>Invoice not found.</p>";
-        payments.innerHTML = "";
-        return;
-      }
-
-      const invoice = data.invoice;
-      const paymentList = data.payments || [];
-
-      panel.style.display = "block";
-      detail.innerHTML = `
-        <p><strong>Invoice Number:</strong> ${invoice.invoice_number}</p>
-        <p><strong>Shipment:</strong> ${invoice.reference_number}</p>
-        <p><strong>Client:</strong> ${invoice.client_name}</p>
-        <p><strong>Charge Type:</strong> ${invoice.charge_type}</p>
-        <p><strong>Amount:</strong> ${money(invoice.amount, invoice.currency)}</p>
-        <p><strong>Paid:</strong> ${money(invoice.paid_amount, invoice.currency)}</p>
-        <p><strong>Balance:</strong> ${money(invoice.balance, invoice.currency)}</p>
-        <p><strong>Notes:</strong> ${invoice.notes || "-"}</p>
-        <p><strong>Created By:</strong> ${invoice.created_by}</p>
-      `;
-
-      if (!paymentList.length) {
-        payments.innerHTML = "<p>No payments recorded yet.</p>";
-        return;
-      }
-
-      payments.innerHTML = paymentList.map((item) => `
-        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
-          <p><strong>Amount:</strong> ${money(item.amount, invoice.currency)}</p>
-          <p><strong>Method:</strong> ${item.payment_method}</p>
-          <p><strong>Reference:</strong> ${item.reference_text || "-"}</p>
-          <p><strong>Notes:</strong> ${item.notes || "-"}</p>
-          <p><strong>Created By:</strong> ${item.created_by}</p>
-          <p><strong>Created At:</strong> ${new Date(item.created_at).toLocaleString()}</p>
-        </div>
-      `).join("");
+    function resetPaymentForm() {
+      document.getElementById("payment-form").reset();
+      clearBoxMessage("payment-message");
     }
 
-    document.getElementById("invoice-form").addEventListener("submit", async function (e) {
-      e.preventDefault();
+    function applyPaymentQuickFill(value) {
+      const invoiceId = document.getElementById("payment_invoice_id").value;
+      const amountInput = document.getElementById("payment_amount");
 
-      const message = document.getElementById("invoice-message");
+      const invoice = invoicesCache.find((item) => String(item.id) === String(invoiceId));
+      if (!invoice) return;
+
+      const balance = Number(invoice.balance || 0);
+
+      if (value === "full-balance") {
+        amountInput.value = balance > 0 ? balance.toFixed(2) : "0.00";
+      }
+
+      if (value === "half-balance") {
+        amountInput.value = balance > 0 ? (balance / 2).toFixed(2) : "0.00";
+      }
+    }
+
+    document.getElementById("payment_quick_fill").addEventListener("change", function () {
+      applyPaymentQuickFill(this.value);
+    });
+
+    document.getElementById("reset-invoice-btn").addEventListener("click", function () {
+      resetInvoiceForm();
+    });
+
+    document.getElementById("reset-payment-btn").addEventListener("click", function () {
+      resetPaymentForm();
+    });
+
+    document.getElementById("refresh-btn").addEventListener("click", async function () {
+      await loadInvoices();
+    });
+
+    document.getElementById("invoice-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      clearBoxMessage("invoice-message");
+
       const payload = {
-        shipment_id: document.getElementById("invoice_shipment_id").value,
+        shipment_id: Number(document.getElementById("invoice_shipment_id").value),
         invoice_number: document.getElementById("invoice_number").value.trim(),
         charge_type: document.getElementById("charge_type").value.trim(),
-        amount: document.getElementById("invoice_amount").value,
-        currency: document.getElementById("invoice_currency").value.trim() || "TZS",
+        amount: Number(document.getElementById("invoice_amount").value),
+        currency: document.getElementById("invoice_currency").value.trim(),
         notes: document.getElementById("invoice_notes").value.trim()
       };
 
-      message.textContent = "Creating invoice...";
+      if (!payload.shipment_id || !payload.invoice_number || !payload.charge_type || !payload.amount) {
+        showBoxMessage("invoice-message", "Shipment, invoice number, charge type, and amount are required.", "error");
+        return;
+      }
 
       try {
         const response = await fetch("/api/invoices", {
@@ -291,31 +493,33 @@
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "Failed to create invoice.");
+          throw new Error(data.error || "Could not save invoice.");
         }
 
-        message.textContent = `Invoice created: ${data.invoice.invoice_number}`;
-        document.getElementById("invoice-form").reset();
-        await loadShipments();
+        showBoxMessage("invoice-message", `Invoice ${data.invoice.invoice_number} saved successfully.`, "success");
+        resetInvoiceForm();
         await loadInvoices();
       } catch (error) {
-        message.textContent = error.message;
+        showBoxMessage("invoice-message", error.message || "Could not save invoice.", "error");
       }
     });
 
-    document.getElementById("payment-form").addEventListener("submit", async function (e) {
-      e.preventDefault();
+    document.getElementById("payment-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      clearBoxMessage("payment-message");
 
-      const message = document.getElementById("payment-message");
       const payload = {
-        invoice_id: document.getElementById("payment_invoice_id").value,
-        amount: document.getElementById("payment_amount").value,
+        invoice_id: Number(document.getElementById("payment_invoice_id").value),
+        amount: Number(document.getElementById("payment_amount").value),
         payment_method: document.getElementById("payment_method").value.trim(),
         reference_text: document.getElementById("payment_reference").value.trim(),
         notes: document.getElementById("payment_notes").value.trim()
       };
 
-      message.textContent = "Adding payment...";
+      if (!payload.invoice_id || !payload.amount || !payload.payment_method) {
+        showBoxMessage("payment-message", "Invoice, amount, and payment method are required.", "error");
+        return;
+      }
 
       try {
         const response = await fetch("/api/payments", {
@@ -329,14 +533,14 @@
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "Failed to add payment.");
+          throw new Error(data.error || "Could not save payment.");
         }
 
-        message.textContent = `Payment added: ${money(data.payment.amount, "TZS")}`;
-        document.getElementById("payment-form").reset();
+        showBoxMessage("payment-message", "Payment recorded successfully.", "success");
+        resetPaymentForm();
         await loadInvoices();
       } catch (error) {
-        message.textContent = error.message;
+        showBoxMessage("payment-message", error.message || "Could not save payment.", "error");
       }
     });
 
@@ -351,7 +555,9 @@
     });
 
     async function initPage() {
-      await loadUser();
+      const ok = await loadCurrentUser();
+      if (!ok) return;
+
       await loadShipments();
       await loadInvoices();
     }

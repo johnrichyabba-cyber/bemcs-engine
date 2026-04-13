@@ -46,6 +46,15 @@ function toMoney(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function writeAuditLog({
   actorUsername,
   actorRole = null,
@@ -337,6 +346,19 @@ async function initDb() {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shipment_documents (
+      id SERIAL PRIMARY KEY,
+      shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      document_name TEXT NOT NULL,
+      document_category TEXT NOT NULL,
+      document_url TEXT NOT NULL,
+      notes TEXT,
+      uploaded_by TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   const seedUsers = [
     { username: "admin", password: "1234", role: "admin" },
     { username: "operations", password: "1234", role: "operations" },
@@ -448,7 +470,7 @@ app.post("/login", async (req, res) => {
       entityType: "SESSION",
       entityId: null,
       shipmentId: null,
-      details: `User logged in successfully.`
+      details: "User logged in successfully."
     });
 
     return res.json({
@@ -479,7 +501,7 @@ app.post("/logout", async (req, res) => {
         actorRole: session.role,
         actionType: "LOGOUT",
         entityType: "SESSION",
-        details: `User logged out.`
+        details: "User logged out."
       });
     }
 
@@ -903,6 +925,24 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
       [shipmentId]
     );
 
+    const documentsResult = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        document_name,
+        document_category,
+        document_url,
+        notes,
+        uploaded_by,
+        created_at
+      FROM shipment_documents
+      WHERE shipment_id = $1
+      ORDER BY created_at DESC
+      `,
+      [shipmentId]
+    );
+
     const invoiceIds = invoicesResult.rows.map((row) => row.id);
     let payments = [];
 
@@ -952,6 +992,7 @@ app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "
       shipment: shipmentResult.rows[0],
       tracking_events: trackingResult.rows,
       invoices,
+      documents: documentsResult.rows,
       financial_summary: {
         total_billed: totalBilled,
         total_paid: totalPaid,
@@ -1497,6 +1538,178 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
     return res.status(500).json({
       success: false,
       error: "Could not create payment."
+    });
+  }
+});
+
+// Document APIs
+app.get("/api/shipments/:id/documents", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        document_name,
+        document_category,
+        document_url,
+        notes,
+        uploaded_by,
+        created_at
+      FROM shipment_documents
+      WHERE shipment_id = $1
+      ORDER BY created_at DESC
+      `,
+      [shipmentId]
+    );
+
+    return res.json({
+      success: true,
+      documents: result.rows
+    });
+  } catch (error) {
+    console.error("List shipment documents error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch shipment documents."
+    });
+  }
+});
+
+app.post("/api/documents", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.body.shipment_id);
+  const documentName = String(req.body.document_name || "").trim();
+  const documentCategory = String(req.body.document_category || "").trim();
+  const documentUrl = String(req.body.document_url || "").trim();
+  const notes = String(req.body.notes || "").trim();
+
+  if (!shipmentId || !documentName || !documentCategory || !documentUrl) {
+    return res.status(400).json({
+      success: false,
+      error: "Shipment, document name, category, and document URL are required."
+    });
+  }
+
+  try {
+    const shipmentCheck = await pool.query(
+      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
+      [shipmentId]
+    );
+
+    if (!shipmentCheck.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO shipment_documents (
+        shipment_id,
+        document_name,
+        document_category,
+        document_url,
+        notes,
+        uploaded_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING
+        id,
+        shipment_id,
+        document_name,
+        document_category,
+        document_url,
+        notes,
+        uploaded_by,
+        created_at
+      `,
+      [
+        shipmentId,
+        documentName,
+        documentCategory,
+        documentUrl,
+        notes,
+        req.user.username
+      ]
+    );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "ADD_DOCUMENT",
+      entityType: "SHIPMENT_DOCUMENT",
+      entityId: result.rows[0].id,
+      shipmentId,
+      details: `Added document "${documentName}" (${documentCategory}) to shipment ${shipmentCheck.rows[0].reference_number}.`
+    });
+
+    return res.status(201).json({
+      success: true,
+      document: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Create document error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not save document."
+    });
+  }
+});
+
+app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (req, res) => {
+  const documentId = Number(req.params.id);
+
+  try {
+    const existing = await pool.query(
+      `
+      SELECT
+        id,
+        shipment_id,
+        document_name,
+        document_category
+      FROM shipment_documents
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [documentId]
+    );
+
+    if (!existing.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Document not found."
+      });
+    }
+
+    const doc = existing.rows[0];
+
+    await pool.query(
+      "DELETE FROM shipment_documents WHERE id = $1",
+      [documentId]
+    );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "DELETE_DOCUMENT",
+      entityType: "SHIPMENT_DOCUMENT",
+      entityId: documentId,
+      shipmentId: doc.shipment_id,
+      details: `Deleted document "${doc.document_name}" (${doc.document_category}).`
+    });
+
+    return res.json({
+      success: true,
+      deleted_id: documentId
+    });
+  } catch (error) {
+    console.error("Delete document error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not delete document."
     });
   }
 });

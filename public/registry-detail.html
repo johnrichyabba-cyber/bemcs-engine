@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Integrated Shipment Detail</title>
+  <title>Shipment Registry Detail</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="font-family: sans-serif; padding: 40px;">
   <div style="max-width: 1250px; margin: 0 auto;">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
       <div>
-        <h1>📦 Integrated Shipment Detail</h1>
-        <p>Single operational view for shipment, tracking, invoices, payments, and balances.</p>
+        <h1>📦 Shipment Registry Detail</h1>
+        <p>Integrated shipment detail with tracking, invoices, payments, financial summary, and documents.</p>
       </div>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/shipment-registry" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Registry</a>
+        <a href="/shipment-registry" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Back to Shipment Registry</a>
         <a href="/dashboard" style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">Dashboard</a>
         <button id="logout-btn" style="padding: 10px 16px; cursor: pointer;">Logout</button>
       </div>
@@ -29,201 +29,323 @@
     </div>
 
     <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Select Shipment</h2>
-      <select id="shipment-select" style="padding: 10px; min-width: 320px;"></select>
-      <button id="load-detail-btn" style="padding: 10px 16px; margin-left: 10px; cursor: pointer;">Load Detail</button>
-    </div>
-
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h2>Shipment Summary</h2>
-        <div id="shipment-summary">
-          <p>Select a shipment to view summary.</p>
-        </div>
-      </div>
-
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h2>Financial Summary</h2>
-        <div id="financial-summary">
-          <p>No financial summary loaded yet.</p>
-        </div>
+      <h2>Shipment Information</h2>
+      <div id="shipment-info">
+        <p>Loading shipment detail...</p>
       </div>
     </div>
 
     <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Tracking Timeline</h2>
-      <div id="tracking-timeline">
-        <p>No tracking events found.</p>
+      <h2>Financial Summary</h2>
+      <div id="financial-summary">
+        <p>Loading financial summary...</p>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Tracking Events</h2>
+      <div id="tracking-events">
+        <p>Loading tracking events...</p>
+      </div>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
       <h2>Invoices & Payments</h2>
-      <div id="invoice-sections">
-        <p>No invoices found.</p>
+      <div id="invoices-section">
+        <p>Loading invoices...</p>
+      </div>
+    </div>
+
+    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
+      <h2>Shipment Documents</h2>
+
+      <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px;">
+        <input id="doc-name" type="text" placeholder="Document name" style="padding: 10px;" />
+        <select id="doc-category" style="padding: 10px;">
+          <option value="">Select category</option>
+          <option value="BL">BL</option>
+          <option value="AWB">AWB</option>
+          <option value="RCN">RCN</option>
+          <option value="Invoice Copy">Invoice Copy</option>
+          <option value="Customs Doc">Customs Doc</option>
+          <option value="Permit">Permit</option>
+          <option value="Payment Proof">Payment Proof</option>
+          <option value="Internal Note">Internal Note</option>
+          <option value="Other">Other</option>
+        </select>
+        <input id="doc-url" type="url" placeholder="Document URL" style="padding: 10px;" />
+        <input id="doc-notes" type="text" placeholder="Notes (optional)" style="padding: 10px;" />
+      </div>
+
+      <button id="save-document-btn" style="padding: 10px 16px; cursor: pointer;">Save Document</button>
+
+      <hr style="margin: 20px 0;" />
+
+      <div id="documents-list">
+        <p>Loading documents...</p>
       </div>
     </div>
   </div>
 
   <script>
+    let currentShipmentId = null;
     let currentUser = null;
-    let shipments = [];
 
-    function money(value, currency = "TZS") {
-      const number = Number(value || 0);
-      return `${currency} ${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    function getShipmentIdFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return Number(params.get("id"));
     }
 
-    async function loadUser() {
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatMoney(value) {
+      const amount = Number(value || 0);
+      return amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    async function loadCurrentUser() {
       const response = await fetch("/api/me");
+
       if (!response.ok) {
         window.location.href = "/login";
         return;
       }
 
       const data = await response.json();
+
       if (!data.success || !data.user) {
         window.location.href = "/login";
         return;
       }
 
       currentUser = data.user;
-      document.getElementById("user-username").textContent = currentUser.username || "-";
-      document.getElementById("user-role").textContent = currentUser.role || "-";
+      document.getElementById("user-username").textContent = data.user.username || "-";
+      document.getElementById("user-role").textContent = data.user.role || "-";
     }
 
-    async function loadShipments() {
-      const response = await fetch("/api/shipments");
-      const select = document.getElementById("shipment-select");
+    function renderShipmentInfo(shipment) {
+      const target = document.getElementById("shipment-info");
 
-      if (!response.ok) {
-        select.innerHTML = `<option value="">Could not load shipments</option>`;
+      if (!shipment) {
+        target.innerHTML = "<p>Shipment detail not found.</p>";
         return;
       }
 
-      const data = await response.json();
-      shipments = data.shipments || [];
+      target.innerHTML = `
+        <p><strong>ID:</strong> ${shipment.id}</p>
+        <p><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
+        <p><strong>Reference Number:</strong> ${escapeHtml(shipment.reference_number)}</p>
+        <p><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line)}</p>
+        <p><strong>Cargo Description:</strong> ${escapeHtml(shipment.cargo_description)}</p>
+        <p><strong>Status:</strong> ${escapeHtml(shipment.status)}</p>
+        <p><strong>Origin Port:</strong> ${escapeHtml(shipment.origin_port || "-")}</p>
+        <p><strong>Destination Port:</strong> ${escapeHtml(shipment.destination_port || "-")}</p>
+        <p><strong>Created By:</strong> ${escapeHtml(shipment.created_by || "-")}</p>
+        <p><strong>Created At:</strong> ${new Date(shipment.created_at).toLocaleString()}</p>
+      `;
+    }
 
-      if (!shipments.length) {
-        select.innerHTML = `<option value="">No shipments available</option>`;
+    function renderFinancialSummary(summary) {
+      const target = document.getElementById("financial-summary");
+
+      if (!summary) {
+        target.innerHTML = "<p>No financial summary available.</p>";
         return;
       }
 
-      select.innerHTML = shipments.map((item) => `
-        <option value="${item.id}">
-          ${item.reference_number} - ${item.client_name} (${item.status})
-        </option>
+      target.innerHTML = `
+        <p><strong>Total Billed:</strong> ${formatMoney(summary.total_billed)}</p>
+        <p><strong>Total Paid:</strong> ${formatMoney(summary.total_paid)}</p>
+        <p><strong>Outstanding:</strong> ${formatMoney(summary.outstanding)}</p>
+      `;
+    }
+
+    function renderTrackingEvents(events) {
+      const target = document.getElementById("tracking-events");
+
+      if (!events || !events.length) {
+        target.innerHTML = "<p>No tracking events found.</p>";
+        return;
+      }
+
+      target.innerHTML = events.map((event) => `
+        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
+          <p><strong>Status:</strong> ${escapeHtml(event.event_status)}</p>
+          <p><strong>Location:</strong> ${escapeHtml(event.location_name)}</p>
+          <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+          <p><strong>Event Time:</strong> ${new Date(event.event_time).toLocaleString()}</p>
+          <p><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
+        </div>
       `).join("");
     }
 
-    async function loadIntegratedDetail() {
-      const shipmentId = document.getElementById("shipment-select").value;
-      const shipmentSummary = document.getElementById("shipment-summary");
-      const financialSummary = document.getElementById("financial-summary");
-      const trackingTimeline = document.getElementById("tracking-timeline");
-      const invoiceSections = document.getElementById("invoice-sections");
+    function renderInvoices(invoices) {
+      const target = document.getElementById("invoices-section");
 
-      if (!shipmentId) {
-        shipmentSummary.innerHTML = "<p>No shipment selected.</p>";
-        financialSummary.innerHTML = "<p>No financial summary loaded yet.</p>";
-        trackingTimeline.innerHTML = "<p>No tracking events found.</p>";
-        invoiceSections.innerHTML = "<p>No invoices found.</p>";
+      if (!invoices || !invoices.length) {
+        target.innerHTML = "<p>No invoices found for this shipment.</p>";
         return;
       }
 
-      const response = await fetch(`/api/shipments/${shipmentId}/full-detail`);
+      target.innerHTML = invoices.map((invoice) => `
+        <div style="padding: 16px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 16px;">
+          <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+          <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
+          <p><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
+          <p><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
+          <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
+          <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+          <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+          <p><strong>Created At:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
+
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+            <h3 style="margin-top: 0;">Payments</h3>
+            ${
+              invoice.payments && invoice.payments.length
+                ? invoice.payments.map((payment) => `
+                  <div style="padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
+                    <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+                    <p><strong>Method:</strong> ${escapeHtml(payment.payment_method)}</p>
+                    <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+                    <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+                    <p><strong>Created By:</strong> ${escapeHtml(payment.created_by || "-")}</p>
+                    <p><strong>Created At:</strong> ${new Date(payment.created_at).toLocaleString()}</p>
+                  </div>
+                `).join("")
+                : "<p>No payments recorded.</p>"
+            }
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderDocuments(documents) {
+      const target = document.getElementById("documents-list");
+
+      if (!documents || !documents.length) {
+        target.innerHTML = "<p>No documents uploaded for this shipment yet.</p>";
+        return;
+      }
+
+      const canDelete = currentUser && (currentUser.role === "admin" || currentUser.role === "operations");
+
+      target.innerHTML = documents.map((doc) => `
+        <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
+          <p><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
+          <p><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
+          <p><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
+          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
+          <p><strong>Time:</strong> ${new Date(doc.created_at).toLocaleString()}</p>
+          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" style="padding: 8px 12px; cursor: pointer; margin-top: 8px;">Delete</button>` : ""}
+        </div>
+      `).join("");
+    }
+
+    async function loadShipmentDocuments() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
 
       if (!response.ok) {
-        shipmentSummary.innerHTML = "<p>Could not load shipment detail.</p>";
-        financialSummary.innerHTML = "<p>Could not load financial summary.</p>";
-        trackingTimeline.innerHTML = "<p>Could not load tracking timeline.</p>";
-        invoiceSections.innerHTML = "<p>Could not load invoices.</p>";
+        document.getElementById("documents-list").innerHTML = "<p>Could not load shipment documents.</p>";
         return;
       }
 
       const data = await response.json();
-      if (!data.success) {
-        shipmentSummary.innerHTML = "<p>Shipment detail unavailable.</p>";
-        financialSummary.innerHTML = "<p>Financial summary unavailable.</p>";
-        trackingTimeline.innerHTML = "<p>Tracking timeline unavailable.</p>";
-        invoiceSections.innerHTML = "<p>Invoices unavailable.</p>";
+      renderDocuments(data.documents || []);
+    }
+
+    async function saveDocument() {
+      const documentName = document.getElementById("doc-name").value.trim();
+      const documentCategory = document.getElementById("doc-category").value.trim();
+      const documentUrl = document.getElementById("doc-url").value.trim();
+      const notes = document.getElementById("doc-notes").value.trim();
+
+      if (!documentName || !documentCategory || !documentUrl) {
+        alert("Document name, category, and URL are required.");
         return;
       }
 
-      const shipment = data.shipment;
-      const events = data.tracking_events || [];
-      const invoices = data.invoices || [];
-      const financial = data.financial_summary || {};
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          shipment_id: currentShipmentId,
+          document_name: documentName,
+          document_category: documentCategory,
+          document_url: documentUrl,
+          notes
+        })
+      });
 
-      shipmentSummary.innerHTML = `
-        <p><strong>Client Name:</strong> ${shipment.client_name}</p>
-        <p><strong>Reference Number:</strong> ${shipment.reference_number}</p>
-        <p><strong>Shipping Line:</strong> ${shipment.shipping_line}</p>
-        <p><strong>Cargo Description:</strong> ${shipment.cargo_description}</p>
-        <p><strong>Current Status:</strong> ${shipment.status}</p>
-        <p><strong>Origin Port:</strong> ${shipment.origin_port || "-"}</p>
-        <p><strong>Destination Port:</strong> ${shipment.destination_port || "-"}</p>
-        <p><strong>Created By:</strong> ${shipment.created_by}</p>
-        <p><strong>Created At:</strong> ${new Date(shipment.created_at).toLocaleString()}</p>
-      `;
+      const data = await response.json();
 
-      financialSummary.innerHTML = `
-        <p><strong>Total Billed:</strong> ${money(financial.total_billed, "TZS")}</p>
-        <p><strong>Total Paid:</strong> ${money(financial.total_paid, "TZS")}</p>
-        <p><strong>Outstanding Balance:</strong> ${money(financial.outstanding, "TZS")}</p>
-      `;
-
-      if (!events.length) {
-        trackingTimeline.innerHTML = "<p>No tracking events recorded yet.</p>";
-      } else {
-        trackingTimeline.innerHTML = events.map((event) => `
-          <div style="padding: 14px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 12px;">
-            <p><strong>Status:</strong> ${event.event_status}</p>
-            <p><strong>Location:</strong> ${event.location_name}</p>
-            <p><strong>Event Time:</strong> ${new Date(event.event_time).toLocaleString()}</p>
-            <p><strong>Remarks:</strong> ${event.remarks || "-"}</p>
-            <p><strong>Created By:</strong> ${event.created_by}</p>
-          </div>
-        `).join("");
+      if (!response.ok || !data.success) {
+        alert(data.error || "Could not save document.");
+        return;
       }
 
-      if (!invoices.length) {
-        invoiceSections.innerHTML = "<p>No invoices found for this shipment.</p>";
-      } else {
-        invoiceSections.innerHTML = invoices.map((invoice) => `
-          <div style="padding: 16px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 18px;">
-            <h3>Invoice: ${invoice.invoice_number}</h3>
-            <p><strong>Charge Type:</strong> ${invoice.charge_type}</p>
-            <p><strong>Amount:</strong> ${money(invoice.amount, invoice.currency)}</p>
-            <p><strong>Paid:</strong> ${money(invoice.paid_amount, invoice.currency)}</p>
-            <p><strong>Balance:</strong> ${money(invoice.balance, invoice.currency)}</p>
-            <p><strong>Notes:</strong> ${invoice.notes || "-"}</p>
-            <p><strong>Created By:</strong> ${invoice.created_by}</p>
-            <p><strong>Created At:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
+      document.getElementById("doc-name").value = "";
+      document.getElementById("doc-category").value = "";
+      document.getElementById("doc-url").value = "";
+      document.getElementById("doc-notes").value = "";
 
-            <div style="margin-top: 14px;">
-              <h4>Payments</h4>
-              ${
-                invoice.payments && invoice.payments.length
-                  ? invoice.payments.map((payment) => `
-                    <div style="padding: 12px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
-                      <p><strong>Amount:</strong> ${money(payment.amount, invoice.currency)}</p>
-                      <p><strong>Method:</strong> ${payment.payment_method}</p>
-                      <p><strong>Reference:</strong> ${payment.reference_text || "-"}</p>
-                      <p><strong>Notes:</strong> ${payment.notes || "-"}</p>
-                      <p><strong>Created By:</strong> ${payment.created_by}</p>
-                      <p><strong>Created At:</strong> ${new Date(payment.created_at).toLocaleString()}</p>
-                    </div>
-                  `).join("")
-                  : "<p>No payments recorded for this invoice.</p>"
-              }
-            </div>
-          </div>
-        `).join("");
-      }
+      await loadShipmentDocuments();
+      alert("Document saved successfully.");
     }
 
-    document.getElementById("load-detail-btn").addEventListener("click", loadIntegratedDetail);
+    async function deleteDocument(documentId) {
+      const ok = confirm("Delete this document?");
+      if (!ok) return;
+
+      const response = await fetch(`/api/documents/${documentId}`, {
+        method: "DELETE"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.error || "Could not delete document.");
+        return;
+      }
+
+      await loadShipmentDocuments();
+      alert("Document deleted successfully.");
+    }
+
+    async function loadShipmentFullDetail() {
+      const response = await fetch(`/api/shipments/${currentShipmentId}/full-detail`);
+
+      if (!response.ok) {
+        document.getElementById("shipment-info").innerHTML = "<p>Could not load shipment detail.</p>";
+        document.getElementById("financial-summary").innerHTML = "<p>Could not load financial summary.</p>";
+        document.getElementById("tracking-events").innerHTML = "<p>Could not load tracking events.</p>";
+        document.getElementById("invoices-section").innerHTML = "<p>Could not load invoices.</p>";
+        document.getElementById("documents-list").innerHTML = "<p>Could not load documents.</p>";
+        return;
+      }
+
+      const data = await response.json();
+
+      renderShipmentInfo(data.shipment);
+      renderFinancialSummary(data.financial_summary);
+      renderTrackingEvents(data.tracking_events || []);
+      renderInvoices(data.invoices || []);
+      renderDocuments(data.documents || []);
+    }
+
+    document.getElementById("save-document-btn").addEventListener("click", saveDocument);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
@@ -236,9 +358,16 @@
     });
 
     async function initPage() {
-      await loadUser();
-      await loadShipments();
-      await loadIntegratedDetail();
+      currentShipmentId = getShipmentIdFromQuery();
+
+      if (!currentShipmentId) {
+        alert("Shipment ID missing in URL. Open page like /registry-detail?id=1");
+        return;
+      }
+
+      await loadCurrentUser();
+      await loadShipmentFullDetail();
+      await loadShipmentDocuments();
     }
 
     initPage();

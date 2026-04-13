@@ -3,50 +3,101 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BE-MCs Login</title>
+  <title>BEMCS Login</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body class="auth-body">
+<body class="login-page">
   <div class="login-card">
     <div class="login-brand">MarineTraffic Group Limited</div>
 
-    <h1>Bandari Electronic Monitoring and Control System (BE-MCs)</h1>
+    <h1 class="login-title">
+      Bandari Electronic Monitoring and Control System (BE-MCs)
+    </h1>
 
-    <div class="gold-pill">BANDARI SALAMA AFRIKA</div>
+    <div class="pill mb-4">Bandari Salama Afrika</div>
 
-    <div class="section-title" style="margin-bottom: 10px;">System Login</div>
-    <p class="login-subtitle">
-      Enter your authorized username and password to access the operational control environment.
-    </p>
+    <div class="mb-4">
+      <h2 class="mt-0 mb-2">System Login</h2>
+      <p class="login-subtitle mb-0">
+        Enter your authorized username and password to access the operational control environment.
+      </p>
+    </div>
 
-    <form id="login-form">
-      <div class="form-group">
+    <div id="login-alert" class="alert alert-danger" style="display: none;"></div>
+
+    <form id="login-form" class="login-form" autocomplete="on">
+      <div>
         <label for="username">Username</label>
-        <input class="input" type="text" id="username" name="username" placeholder="Enter username" required />
+        <input
+          id="username"
+          name="username"
+          type="text"
+          placeholder="Enter username"
+          autocomplete="username"
+          required
+        />
       </div>
 
-      <div class="form-group">
+      <div>
         <label for="password">Password</label>
-        <input class="input" type="password" id="password" name="password" placeholder="Enter password" required />
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Enter password"
+          autocomplete="current-password"
+          required
+        />
       </div>
 
-      <button class="btn btn-gold" style="width: 100%;" type="submit">Login</button>
-      <div id="login-message" class="message"></div>
+      <button id="login-btn" type="submit" class="btn-primary">
+        Login
+      </button>
     </form>
+
+    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08);">
+      <p class="small mb-1"><strong>Authorized Accounts</strong></p>
+      <p class="small mb-0">
+        Access is restricted to approved users only.
+      </p>
+    </div>
   </div>
 
   <script>
-    const form = document.getElementById("login-form");
-    const message = document.getElementById("login-message");
+    const loginForm = document.getElementById("login-form");
+    const loginButton = document.getElementById("login-btn");
+    const loginAlert = document.getElementById("login-alert");
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
 
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+    function showError(message) {
+      loginAlert.textContent = message;
+      loginAlert.style.display = "block";
+    }
 
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
+    function hideError() {
+      loginAlert.textContent = "";
+      loginAlert.style.display = "none";
+    }
 
-      message.classList.remove("error");
-      message.textContent = "Signing in...";
+    function setLoading(isLoading) {
+      loginButton.disabled = isLoading;
+      loginButton.textContent = isLoading ? "Signing in..." : "Login";
+    }
+
+    loginForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      hideError();
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (!username || !password) {
+        showError("Username and password are required.");
+        return;
+      }
+
+      setLoading(true);
 
       try {
         const response = await fetch("/login", {
@@ -54,19 +105,23 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({
+            username,
+            password
+          })
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "Login failed");
+          throw new Error(data.error || "Login failed. Please try again.");
         }
 
         window.location.href = data.redirect || "/dashboard";
       } catch (error) {
-        message.classList.add("error");
-        message.textContent = error.message;
+        showError(error.message || "Login service unavailable.");
+      } finally {
+        setLoading(false);
       }
     });
   </script>

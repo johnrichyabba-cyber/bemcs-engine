@@ -3,219 +3,284 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Real Dashboard Summary</title>
+  <title>BEMCS Dashboard</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="font-family: sans-serif; padding: 40px;">
-  <div style="max-width: 1250px; margin: 0 auto;">
+<body style="font-family: sans-serif; padding: 40px; background: #f8fafc; color: #111827;">
+  <div style="max-width: 1300px; margin: 0 auto;">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
       <div>
-        <h1>📊 BE-MCs Control Center</h1>
-        <p>Real operational summary from PostgreSQL.</p>
+        <h1 style="margin: 0;">📊 BEMCS Dashboard</h1>
+        <p style="margin-top: 8px; color: #4b5563;">
+          Overview of shipments, billing, payments, and recent activity.
+        </p>
       </div>
-      <button id="logout-btn" style="padding: 10px 18px; cursor: pointer;">Logout</button>
-    </div>
 
-    <hr style="margin: 24px 0;" />
-
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 20px;">
-      <h2>Current User</h2>
-      <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-      <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px;">
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Shipments</h3>
-        <p id="total-shipments">0</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Active Shipments</h3>
-        <p id="active-shipments">0</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Delivered Shipments</h3>
-        <p id="delivered-shipments">0</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Invoices</h3>
-        <p id="total-invoices">0</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Billed</h3>
-        <p id="total-billed">TZS 0.00</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Total Paid</h3>
-        <p id="total-paid">TZS 0.00</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Outstanding</h3>
-        <p id="outstanding">TZS 0.00</p>
-      </div>
-      <div style="padding: 18px; border: 1px solid #ddd; border-radius: 12px;">
-        <h3>Role Access</h3>
-        <p id="role-access">-</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/shipment-registry" style="padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; text-decoration: none; background: #fff; color: #111827;">Shipment Registry</a>
+        <a href="/tracking" style="padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; text-decoration: none; background: #fff; color: #111827;">Tracking</a>
+        <a href="/accounting" style="padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; text-decoration: none; background: #fff; color: #111827;">Accounting</a>
+        <a href="/system-health" style="padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; text-decoration: none; background: #fff; color: #111827;">System Health</a>
+        <button id="logout-btn" style="padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; cursor: pointer;">Logout</button>
       </div>
     </div>
 
-    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 24px;">
-      <h2>Quick Links</h2>
-      <div id="module-links" style="display: grid; gap: 12px;"></div>
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; margin-bottom: 24px; background: #fff;">
+      <h2 style="margin-top: 0;">Current User</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin: 0;"><strong>Session:</strong> <span id="session-state">Active</span></p>
+        </div>
+      </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h2>Recent Tracking Events</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Total Shipments</p>
+        <h2 id="card-total-shipments" style="margin: 0;">0</h2>
+      </div>
+
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Active Shipments</p>
+        <h2 id="card-active-shipments" style="margin: 0;">0</h2>
+      </div>
+
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Delivered Shipments</p>
+        <h2 id="card-delivered-shipments" style="margin: 0;">0</h2>
+      </div>
+
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Total Invoices</p>
+        <h2 id="card-total-invoices" style="margin: 0;">0</h2>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Total Billed</p>
+        <h2 id="card-total-billed" style="margin: 0;">0.00</h2>
+      </div>
+
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Total Paid</p>
+        <h2 id="card-total-paid" style="margin: 0;">0.00</h2>
+      </div>
+
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+        <p style="margin: 0 0 8px 0; color: #6b7280;">Outstanding</p>
+        <h2 id="card-outstanding" style="margin: 0;">0.00</h2>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <a href="/shipment-registry" style="padding: 18px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; text-decoration: none; color: inherit;">
+        <h3 style="margin-top: 0;">📦 Shipment Registry</h3>
+        <p style="margin-bottom: 0; color: #4b5563;">Create and manage shipment records.</p>
+      </a>
+
+      <a href="/tracking" style="padding: 18px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; text-decoration: none; color: inherit;">
+        <h3 style="margin-top: 0;">📍 Tracking</h3>
+        <p style="margin-bottom: 0; color: #4b5563;">Review and update shipment movement events.</p>
+      </a>
+
+      <a href="/accounting" style="padding: 18px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; text-decoration: none; color: inherit;">
+        <h3 style="margin-top: 0;">💰 Accounting</h3>
+        <p style="margin-bottom: 0; color: #4b5563;">Manage invoices, payments, and balances.</p>
+      </a>
+
+      <a href="/system-health" style="padding: 18px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; text-decoration: none; color: inherit;">
+        <h3 style="margin-top: 0;">🩺 System Health</h3>
+        <p style="margin-bottom: 0; color: #4b5563;">Check application and database status.</p>
+      </a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-bottom: 24px;">
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; min-width: 0;">
+        <h2 style="margin-top: 0;">Recent Tracking Events</h2>
         <div id="recent-tracking">
-          <p>Loading...</p>
+          <p>Loading recent tracking events...</p>
         </div>
       </div>
 
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h2>Recent Invoices</h2>
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; min-width: 0;">
+        <h2 style="margin-top: 0;">Recent Invoices</h2>
         <div id="recent-invoices">
-          <p>Loading...</p>
+          <p>Loading recent invoices...</p>
         </div>
       </div>
+    </div>
 
-      <div style="padding: 20px; border: 1px solid #ddd; border-radius: 12px;">
-        <h2>Recent Payments</h2>
-        <div id="recent-payments">
-          <p>Loading...</p>
-        </div>
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff;">
+      <h2 style="margin-top: 0;">Recent Payments</h2>
+      <div id="recent-payments">
+        <p>Loading recent payments...</p>
       </div>
     </div>
   </div>
 
   <script>
-    const roleModules = {
-      admin: [
-        { name: "About System", href: "/about" },
-        { name: "Tracking", href: "/tracking" },
-        { name: "Shipment Registry", href: "/shipment-registry" },
-        { name: "Integrated Shipment Detail", href: "/registry-detail" },
-        { name: "Accounting", href: "/accounting" },
-        { name: "System Health", href: "/system-health" }
-      ],
-      operations: [
-        { name: "Tracking", href: "/tracking" },
-        { name: "Shipment Registry", href: "/shipment-registry" },
-        { name: "Integrated Shipment Detail", href: "/registry-detail" },
-        { name: "Accounting", href: "/accounting" }
-      ],
-      accounts: [
-        { name: "Shipment Registry", href: "/shipment-registry" },
-        { name: "Integrated Shipment Detail", href: "/registry-detail" },
-        { name: "Tracking", href: "/tracking" },
-        { name: "Accounting", href: "/accounting" }
-      ],
-      customs: [
-        { name: "Tracking", href: "/tracking" },
-        { name: "Shipment Registry", href: "/shipment-registry" },
-        { name: "Integrated Shipment Detail", href: "/registry-detail" },
-        { name: "System Health", href: "/system-health" }
-      ]
-    };
+    let currentUser = null;
 
-    function money(value, currency = "TZS") {
-      const number = Number(value || 0);
-      return `${currency} ${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
-    async function loadUser() {
-      const response = await fetch("/api/me");
-      if (!response.ok) {
+    function formatMoney(value) {
+      const amount = Number(value || 0);
+      return amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/me");
+
+        if (!response.ok) {
+          window.location.href = "/login";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return;
+        }
+
+        currentUser = data.user;
+        setText("user-username", currentUser.username || "-");
+        setText("user-role", currentUser.role || "-");
+        setText("user-status", "Authenticated");
+        setText("session-state", "Active");
+      } catch (error) {
         window.location.href = "/login";
-        return null;
+      }
+    }
+
+    function renderSummaryCards(summary) {
+      setText("card-total-shipments", String(summary.total_shipments || 0));
+      setText("card-active-shipments", String(summary.active_shipments || 0));
+      setText("card-delivered-shipments", String(summary.delivered_shipments || 0));
+      setText("card-total-invoices", String(summary.total_invoices || 0));
+      setText("card-total-billed", formatMoney(summary.total_billed));
+      setText("card-total-paid", formatMoney(summary.total_paid));
+      setText("card-outstanding", formatMoney(summary.outstanding));
+    }
+
+    function renderRecentTracking(events) {
+      const target = document.getElementById("recent-tracking");
+
+      if (!events || !events.length) {
+        target.innerHTML = "<p>No recent tracking events found.</p>";
+        return;
       }
 
-      const data = await response.json();
-      if (!data.success || !data.user) {
-        window.location.href = "/login";
-        return null;
+      target.innerHTML = events.map((event) => `
+        <div style="padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 12px;">
+          <p style="margin: 0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status)}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(event.reference_number || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(event.client_name || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+          <p style="margin: 0;"><strong>Time:</strong> ${new Date(event.event_time).toLocaleString()}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderRecentInvoices(invoices) {
+      const target = document.getElementById("recent-invoices");
+
+      if (!invoices || !invoices.length) {
+        target.innerHTML = "<p>No recent invoices found.</p>";
+        return;
       }
 
-      document.getElementById("user-username").textContent = data.user.username || "-";
-      document.getElementById("user-role").textContent = data.user.role || "-";
-      document.getElementById("role-access").textContent = data.user.role || "-";
+      target.innerHTML = invoices.map((invoice) => `
+        <div style="padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 12px;">
+          <p style="margin: 0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(invoice.reference_number || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
+          <p style="margin: 0;"><strong>Created:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
+        </div>
+      `).join("");
+    }
 
-      const links = roleModules[data.user.role] || [];
-      const linksContainer = document.getElementById("module-links");
+    function renderRecentPayments(payments) {
+      const target = document.getElementById("recent-payments");
 
-      if (!links.length) {
-        linksContainer.innerHTML = "<p>No modules available for this role.</p>";
-      } else {
-        linksContainer.innerHTML = links
-          .map(
-            (item) =>
-              `<a href="${item.href}" style="padding: 12px 16px; border: 1px solid #ddd; border-radius: 10px; text-decoration: none;">${item.name}</a>`
-          )
-          .join("");
+      if (!payments || !payments.length) {
+        target.innerHTML = "<p>No recent payments found.</p>";
+        return;
       }
 
-      return data.user;
+      target.innerHTML = payments.map((payment) => `
+        <div style="padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 12px;">
+          <p style="margin: 0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(payment.invoice_number || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(payment.reference_number || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(payment.client_name || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+          <p style="margin: 0 0 6px 0;"><strong>Reference Text:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+          <p style="margin: 0;"><strong>Created:</strong> ${new Date(payment.created_at).toLocaleString()}</p>
+        </div>
+      `).join("");
     }
 
     async function loadDashboardSummary() {
-      const response = await fetch("/api/dashboard-summary");
-      if (!response.ok) {
-        document.getElementById("recent-tracking").innerHTML = "<p>Could not load dashboard summary.</p>";
-        document.getElementById("recent-invoices").innerHTML = "<p>Could not load dashboard summary.</p>";
-        document.getElementById("recent-payments").innerHTML = "<p>Could not load dashboard summary.</p>";
-        return;
+      const trackingTarget = document.getElementById("recent-tracking");
+      const invoiceTarget = document.getElementById("recent-invoices");
+      const paymentTarget = document.getElementById("recent-payments");
+
+      try {
+        const response = await fetch("/api/dashboard-summary");
+
+        if (!response.ok) {
+          trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+          return;
+        }
+
+        renderSummaryCards(data.summary || {});
+        renderRecentTracking(data.recent_tracking || []);
+        renderRecentInvoices(data.recent_invoices || []);
+        renderRecentPayments(data.recent_payments || []);
+      } catch (error) {
+        trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+        invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+        paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
       }
-
-      const data = await response.json();
-      if (!data.success) {
-        return;
-      }
-
-      const summary = data.summary || {};
-      document.getElementById("total-shipments").textContent = summary.total_shipments || 0;
-      document.getElementById("active-shipments").textContent = summary.active_shipments || 0;
-      document.getElementById("delivered-shipments").textContent = summary.delivered_shipments || 0;
-      document.getElementById("total-invoices").textContent = summary.total_invoices || 0;
-      document.getElementById("total-billed").textContent = money(summary.total_billed, "TZS");
-      document.getElementById("total-paid").textContent = money(summary.total_paid, "TZS");
-      document.getElementById("outstanding").textContent = money(summary.outstanding, "TZS");
-
-      const tracking = data.recent_tracking || [];
-      const invoices = data.recent_invoices || [];
-      const payments = data.recent_payments || [];
-
-      document.getElementById("recent-tracking").innerHTML = tracking.length
-        ? tracking.map((item) => `
-            <div style="padding: 10px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
-              <p><strong>${item.event_status}</strong></p>
-              <p>${item.reference_number} - ${item.client_name}</p>
-              <p>${item.location_name}</p>
-              <p>${new Date(item.event_time).toLocaleString()}</p>
-            </div>
-          `).join("")
-        : "<p>No recent tracking events.</p>";
-
-      document.getElementById("recent-invoices").innerHTML = invoices.length
-        ? invoices.map((item) => `
-            <div style="padding: 10px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
-              <p><strong>${item.invoice_number}</strong></p>
-              <p>${item.reference_number} - ${item.client_name}</p>
-              <p>${item.charge_type}</p>
-              <p>${money(item.amount, item.currency)}</p>
-            </div>
-          `).join("")
-        : "<p>No recent invoices.</p>";
-
-      document.getElementById("recent-payments").innerHTML = payments.length
-        ? payments.map((item) => `
-            <div style="padding: 10px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px;">
-              <p><strong>${item.invoice_number}</strong></p>
-              <p>${item.reference_number} - ${item.client_name}</p>
-              <p>${item.payment_method}</p>
-              <p>${money(item.amount, "TZS")}</p>
-            </div>
-          `).join("")
-        : "<p>No recent payments.</p>";
     }
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
@@ -229,7 +294,7 @@
     });
 
     async function initPage() {
-      await loadUser();
+      await loadCurrentUser();
       await loadDashboardSummary();
     }
 

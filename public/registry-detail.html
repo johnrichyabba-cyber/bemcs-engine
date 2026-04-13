@@ -252,18 +252,6 @@
       `).join("");
     }
 
-    async function loadShipmentDocuments() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
-
-      if (!response.ok) {
-        document.getElementById("documents-list").innerHTML = "<p>Could not load shipment documents.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      renderDocuments(data.documents || []);
-    }
-
     async function saveDocument() {
       const documentName = document.getElementById("doc-name").value.trim();
       const documentCategory = document.getElementById("doc-category").value.trim();
@@ -301,8 +289,13 @@
       document.getElementById("doc-url").value = "";
       document.getElementById("doc-notes").value = "";
 
-      await loadShipmentDocuments();
+      renderDocuments([data.document, ...getCurrentRenderedDocuments()]);
+      await loadShipmentFullDetail();
       alert("Document saved successfully.");
+    }
+
+    function getCurrentRenderedDocuments() {
+      return [];
     }
 
     async function deleteDocument(documentId) {
@@ -320,7 +313,7 @@
         return;
       }
 
-      await loadShipmentDocuments();
+      await loadShipmentFullDetail();
       alert("Document deleted successfully.");
     }
 
@@ -367,7 +360,6 @@
 
       await loadCurrentUser();
       await loadShipmentFullDetail();
-      await loadShipmentDocuments();
     }
 
     initPage();

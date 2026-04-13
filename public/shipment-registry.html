@@ -66,101 +66,88 @@
         </table>
       </div>
     </div>
-
-    <div id="shipment-detail-panel" style="padding: 20px; border: 1px solid #ddd; border-radius: 12px; margin-top: 20px; display: none;">
-      <h2>Shipment Detail</h2>
-      <div id="shipment-detail-content"></div>
-    </div>
   </div>
 
   <script>
     let currentUser = null;
 
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     async function loadUser() {
-      const response = await fetch("/api/me");
-      if (!response.ok) {
+      try {
+        const response = await fetch("/api/me");
+
+        if (!response.ok) {
+          window.location.href = "/login";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return;
+        }
+
+        currentUser = data.user;
+        document.getElementById("user-username").textContent = currentUser.username || "-";
+        document.getElementById("user-role").textContent = currentUser.role || "-";
+
+        if (currentUser.role === "admin" || currentUser.role === "operations") {
+          document.getElementById("create-shipment-panel").style.display = "block";
+        }
+      } catch (error) {
         window.location.href = "/login";
-        return;
-      }
-
-      const data = await response.json();
-      if (!data.success || !data.user) {
-        window.location.href = "/login";
-        return;
-      }
-
-      currentUser = data.user;
-      document.getElementById("user-username").textContent = currentUser.username || "-";
-      document.getElementById("user-role").textContent = currentUser.role || "-";
-
-      if (currentUser.role === "admin" || currentUser.role === "operations") {
-        document.getElementById("create-shipment-panel").style.display = "block";
       }
     }
 
     async function loadShipments() {
-      const response = await fetch("/api/shipments");
       const body = document.getElementById("shipments-body");
 
-      if (!response.ok) {
+      try {
+        const response = await fetch("/api/shipments");
+
+        if (!response.ok) {
+          body.innerHTML = `<tr><td colspan="8" style="padding:12px;">Could not load shipments.</td></tr>`;
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !Array.isArray(data.shipments) || !data.shipments.length) {
+          body.innerHTML = `<tr><td colspan="8" style="padding:12px;">No shipments found.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = data.shipments.map((item) => `
+          <tr>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${item.id}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${escapeHtml(item.client_name)}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${escapeHtml(item.reference_number)}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${escapeHtml(item.shipping_line)}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${escapeHtml(item.status)}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${escapeHtml(item.created_by)}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">${new Date(item.created_at).toLocaleString()}</td>
+            <td style="padding:10px; border-bottom:1px solid #eee;">
+              <a
+                href="/registry-detail?id=${item.id}"
+                style="padding:6px 10px; cursor:pointer; border:1px solid #ddd; border-radius:8px; text-decoration:none; display:inline-block;"
+              >
+                View
+              </a>
+            </td>
+          </tr>
+        `).join("");
+      } catch (error) {
         body.innerHTML = `<tr><td colspan="8" style="padding:12px;">Could not load shipments.</td></tr>`;
-        return;
       }
-
-      const data = await response.json();
-      if (!data.success || !Array.isArray(data.shipments) || !data.shipments.length) {
-        body.innerHTML = `<tr><td colspan="8" style="padding:12px;">No shipments found.</td></tr>`;
-        return;
-      }
-
-      body.innerHTML = data.shipments.map((item) => `
-        <tr>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.id}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.client_name}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.reference_number}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.shipping_line}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.status}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${item.created_by}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">${new Date(item.created_at).toLocaleString()}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">
-            <button onclick="viewShipment(${item.id})" style="padding:6px 10px; cursor:pointer;">View</button>
-          </td>
-        </tr>
-      `).join("");
-    }
-
-    async function viewShipment(id) {
-      const response = await fetch(`/api/shipments/${id}`);
-      const panel = document.getElementById("shipment-detail-panel");
-      const content = document.getElementById("shipment-detail-content");
-
-      if (!response.ok) {
-        panel.style.display = "block";
-        content.innerHTML = "<p>Could not load shipment detail.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      if (!data.success || !data.shipment) {
-        panel.style.display = "block";
-        content.innerHTML = "<p>Shipment not found.</p>";
-        return;
-      }
-
-      const s = data.shipment;
-      panel.style.display = "block";
-      content.innerHTML = `
-        <p><strong>ID:</strong> ${s.id}</p>
-        <p><strong>Client Name:</strong> ${s.client_name}</p>
-        <p><strong>Reference Number:</strong> ${s.reference_number}</p>
-        <p><strong>Shipping Line:</strong> ${s.shipping_line}</p>
-        <p><strong>Cargo Description:</strong> ${s.cargo_description}</p>
-        <p><strong>Status:</strong> ${s.status}</p>
-        <p><strong>Origin Port:</strong> ${s.origin_port || "-"}</p>
-        <p><strong>Destination Port:</strong> ${s.destination_port || "-"}</p>
-        <p><strong>Created By:</strong> ${s.created_by}</p>
-        <p><strong>Created At:</strong> ${new Date(s.created_at).toLocaleString()}</p>
-      `;
     }
 
     document.getElementById("shipment-form").addEventListener("submit", async function (e) {
@@ -178,6 +165,7 @@
       };
 
       message.textContent = "Creating shipment...";
+      message.style.color = "";
 
       try {
         const response = await fetch("/api/shipments", {
@@ -195,10 +183,12 @@
         }
 
         message.textContent = `Shipment created: ${data.shipment.reference_number}`;
+        message.style.color = "green";
         document.getElementById("shipment-form").reset();
-        loadShipments();
+        await loadShipments();
       } catch (error) {
-        message.textContent = error.message;
+        message.textContent = error.message || "Failed to create shipment.";
+        message.style.color = "red";
       }
     });
 

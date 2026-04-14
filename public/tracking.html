@@ -3,177 +3,161 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BE-MCs Tracking Center</title>
+  <title>BE-MCs Customs Live</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
   <div style="max-width: 1180px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       <div>
-        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size: 2rem; margin-bottom: 8px;">Tracking Center</h1>
-        <p class="login-subtitle" style="margin-bottom: 0;">
-          Monitor live shipment visibility, run provider sync, and manage manual fallback milestones.
+        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size:2rem;margin-bottom:8px;">Customs Live</h1>
+        <p class="login-subtitle" style="margin-bottom:0;">
+          Start from the tracking number, classify the shipment, review existing live status, then transfer to Front Desk Registry when needed.
         </p>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
-        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 160px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Shipment Registry</a>
-        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
+        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Front Desk Registry</a>
+        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current User</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Current User</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin: 0;"><strong>Module:</strong> Shipment Tracking</p>
+          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin:0;"><strong>Workspace:</strong> Customs Live Intake</p>
         </div>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Shipment Selector</h2>
-
-      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 14px;">
-        <div>
-          <label for="shipment_id">Shipment</label>
-          <select id="shipment_id">
-            <option value="">Select shipment</option>
-          </select>
-        </div>
-
-        <div style="display: flex; align-items: end;">
-          <button id="load-shipment-btn" class="btn-primary" style="width: 100%;">Load Shipment</button>
-        </div>
-
-        <div style="display: flex; align-items: end;">
-          <button id="sync-shipment-btn" class="secondary" style="width: 100%; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Sync Now</button>
-        </div>
-
-        <div style="display: flex; align-items: end;">
-          <button id="toggle-refresh-btn" class="secondary" style="width: 100%; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Auto Refresh: Off</button>
-        </div>
-      </div>
-
-      <div id="tracking-message" style="margin-top: 14px;"></div>
-    </div>
-
-    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px;">
-      <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Current Live Status</h2>
-        <div id="live-status-box">
-          <p>Select a shipment to load current tracking state.</p>
-        </div>
-      </div>
-
-      <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Tracking Source</h2>
-        <div id="tracking-source-box">
-          <p>Select a shipment to load tracking source configuration.</p>
-        </div>
-      </div>
-    </div>
-
-    <div id="tracking-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
-      <h2 style="margin-bottom: 12px;">Manual Tracking Event</h2>
-      <p class="login-subtitle" style="margin-bottom: 16px;">
-        Use manual update only when provider data has not yet delivered the operational milestone.
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Tracking Channels</h2>
+      <p class="login-subtitle" style="margin-bottom:16px;">
+        Choose a mode first, then enter the tracking number or reference.
       </p>
 
-      <form id="tracking-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
-        <div>
-          <label for="event_status">Event Status</label>
-          <select id="event_status" required>
-            <option value="">Select status</option>
-            <option value="Registered">Registered</option>
-            <option value="Booking Confirmed">Booking Confirmed</option>
-            <option value="Container Received">Container Received</option>
-            <option value="At Port of Loading">At Port of Loading</option>
-            <option value="Loaded on Vessel">Loaded on Vessel</option>
-            <option value="Vessel Departed">Vessel Departed</option>
-            <option value="In Transit">In Transit</option>
-            <option value="Transshipment">Transshipment</option>
-            <option value="Arrived at Port of Discharge">Arrived at Port of Discharge</option>
-            <option value="Manifest Available">Manifest Available</option>
-            <option value="Customs Clearance">Customs Clearance</option>
-            <option value="Released by Shipping Line">Released by Shipping Line</option>
-            <option value="Out of Port">Out of Port</option>
-            <option value="Arrived at ICD">Arrived at ICD</option>
-            <option value="Released from ICD">Released from ICD</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Completed">Completed</option>
-            <option value="Closed">Closed</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="location_name">Location</label>
-          <input id="location_name" type="text" placeholder="e.g. Dar es Salaam Port" required />
-        </div>
-
-        <div>
-          <label for="event_time">Event Time</label>
-          <input id="event_time" type="datetime-local" required />
-        </div>
-
-        <div>
-          <label for="quick-fill">Quick Time</label>
-          <select id="quick-fill">
-            <option value="">Choose quick time</option>
-            <option value="now">Use current date and time</option>
-            <option value="today-0800">Today 08:00</option>
-            <option value="today-1200">Today 12:00</option>
-            <option value="today-1700">Today 17:00</option>
-          </select>
-        </div>
-
-        <div style="grid-column: 1 / -1;">
-          <label for="remarks">Remarks</label>
-          <textarea id="remarks" placeholder="Optional remarks about the event"></textarea>
-        </div>
-
-        <div style="grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="submit" class="btn-primary" style="min-width: 180px;">Save Manual Event</button>
-          <button type="button" id="reset-form-btn" class="secondary" style="min-width: 140px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Reset Form</button>
-        </div>
-      </form>
+      <div id="mode-grid" style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:12px;">
+      </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Lookup Panel</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:14px;align-items:end;">
         <div>
-          <h2 style="margin-bottom: 6px;">Shipment Timeline</h2>
-          <p class="login-subtitle" style="margin-bottom: 0;">Automated and manual milestones for the selected shipment.</p>
+          <label for="tracking_mode">Tracking Mode</label>
+          <select id="tracking_mode">
+            <option value="express">Express</option>
+            <option value="air_cargo">Air Cargo</option>
+            <option value="post_ems">Post / EMS</option>
+            <option value="container" selected>Container</option>
+            <option value="bill_of_lading">Bill of Lading</option>
+          </select>
         </div>
-        <a id="open-detail-link" href="/registry-detail" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 150px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Open Detail View</a>
+
+        <div>
+          <label for="tracking_number">Tracking Number / Reference</label>
+          <input id="tracking_number" type="text" placeholder="Enter tracking number..." />
+        </div>
+
+        <div>
+          <button id="lookup-btn" class="btn-primary" style="min-width:140px;">Track Now</button>
+        </div>
       </div>
 
-      <div id="tracking-events-list">
-        <p>Select a shipment to load timeline events.</p>
+      <div id="lookup-message" style="margin-top:14px;"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Lookup Result</h2>
+        <div id="lookup-result">
+          <p>No lookup performed yet.</p>
+        </div>
+      </div>
+
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Existing Shipment Match</h2>
+        <div id="existing-match-result">
+          <p>No internal shipment match checked yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <h2 style="margin-bottom:6px;">Live Status</h2>
+          <p class="login-subtitle" style="margin-bottom:0;">
+            If the number already belongs to a recorded shipment, its live status will appear here.
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="transfer-btn" class="btn-primary" style="min-width:210px;display:none;">Transfer to Registry (Front Desk)</button>
+          <a id="open-detail-btn" href="/shipment-registry" class="secondary" style="display:none;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Open Shipment Detail</a>
+        </div>
+      </div>
+
+      <div id="live-status-box">
+        <p>No live status available yet.</p>
       </div>
     </div>
 
     <div class="page-card">
-      <h2 style="margin-bottom: 12px;">Sync Logs</h2>
-      <div id="sync-logs-list">
-        <p>Select a shipment to load sync logs.</p>
+      <h2 style="margin-bottom:12px;">Shipment Timeline</h2>
+      <div id="timeline-box">
+        <p>No timeline loaded yet.</p>
       </div>
     </div>
   </div>
 
   <script>
     let currentUser = null;
-    let selectedShipmentId = null;
-    let shipmentMap = new Map();
-    let autoRefreshEnabled = false;
-    let autoRefreshTimer = null;
+    let shipmentsCache = [];
+    let selectedMode = "container";
+    let lastLookup = null;
+    let matchedShipment = null;
+
+    const modes = [
+      {
+        code: "express",
+        title: "Express",
+        subtitle: "Courier parcels",
+        hint: "DHL / UPS / FedEx style references"
+      },
+      {
+        code: "air_cargo",
+        title: "Air Cargo",
+        subtitle: "Airway bill flow",
+        hint: "3 + 8 digits / AWB style"
+      },
+      {
+        code: "post_ems",
+        title: "Post / EMS",
+        subtitle: "Postal items",
+        hint: "2 letters + 9 digits + 2 letters"
+      },
+      {
+        code: "container",
+        title: "Container",
+        subtitle: "Ocean equipment",
+        hint: "4 letters + 6 or 7 digits"
+      },
+      {
+        code: "bill_of_lading",
+        title: "Bill of Lading",
+        subtitle: "Ocean shipment ref",
+        hint: "BL / BOL document number"
+      }
+    ];
 
     function escapeHtml(value) {
       return String(value || "")
@@ -191,141 +175,187 @@
       return date.toLocaleString();
     }
 
-    function toDatetimeLocalValue(date) {
-      const pad = (num) => String(num).padStart(2, "0");
-      return [
-        date.getFullYear(),
-        pad(date.getMonth() + 1),
-        pad(date.getDate())
-      ].join("-") + "T" + [pad(date.getHours()), pad(date.getMinutes())].join(":");
-    }
-
-    function applyQuickFill(value) {
-      const input = document.getElementById("event_time");
-      if (!input) return;
-
-      if (value === "now") {
-        input.value = toDatetimeLocalValue(new Date());
-        return;
-      }
-
-      const d = new Date();
-
-      if (value === "today-0800") {
-        d.setHours(8, 0, 0, 0);
-        input.value = toDatetimeLocalValue(d);
-        return;
-      }
-
-      if (value === "today-1200") {
-        d.setHours(12, 0, 0, 0);
-        input.value = toDatetimeLocalValue(d);
-        return;
-      }
-
-      if (value === "today-1700") {
-        d.setHours(17, 0, 0, 0);
-        input.value = toDatetimeLocalValue(d);
-      }
-    }
-
     function showMessage(message, type = "info") {
-      const target = document.getElementById("tracking-message");
+      const target = document.getElementById("lookup-message");
       const colorMap = {
         success: "#86efac",
         error: "#fca5a5",
         info: "#cbd5e1"
       };
 
-      target.innerHTML = `<div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: ${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
     }
 
     function clearMessage() {
-      document.getElementById("tracking-message").innerHTML = "";
+      document.getElementById("lookup-message").innerHTML = "";
     }
 
-    async function loadCurrentUser() {
-      try {
-        const response = await fetch("/api/me");
+    function renderModes() {
+      const grid = document.getElementById("mode-grid");
 
-        if (!response.ok) {
-          window.location.href = "/login";
-          return false;
-        }
+      grid.innerHTML = modes.map((mode) => `
+        <button
+          class="card tracking-mode-card"
+          data-mode="${mode.code}"
+          style="
+            text-align:left;
+            cursor:pointer;
+            border:1px solid ${mode.code === selectedMode ? "var(--accent)" : "rgba(255,255,255,0.08)"};
+            background:${mode.code === selectedMode ? "rgba(232, 193, 76, 0.10)" : "rgba(255,255,255,0.02)"};
+          "
+        >
+          <h3 style="margin-bottom:8px;">${escapeHtml(mode.title)}</h3>
+          <p style="margin:0 0 8px 0;">${escapeHtml(mode.subtitle)}</p>
+          <p class="login-subtitle" style="margin:0;">${escapeHtml(mode.hint)}</p>
+        </button>
+      `).join("");
 
-        const data = await response.json();
-
-        if (!data.success || !data.user) {
-          window.location.href = "/login";
-          return false;
-        }
-
-        currentUser = data.user;
-        document.getElementById("user-username").textContent = currentUser.username || "-";
-        document.getElementById("user-role").textContent = currentUser.role || "-";
-        document.getElementById("user-status").textContent = "Authenticated";
-
-        if (["admin", "operations", "customs"].includes(currentUser.role)) {
-          document.getElementById("tracking-form-panel").style.display = "block";
-        }
-
-        return true;
-      } catch (error) {
-        window.location.href = "/login";
-        return false;
-      }
-    }
-
-    async function loadShipments() {
-      const select = document.getElementById("shipment_id");
-
-      try {
-        const response = await fetch("/api/shipments");
-
-        if (!response.ok) {
-          select.innerHTML = '<option value="">Could not load shipments</option>';
-          return;
-        }
-
-        const data = await response.json();
-
-        if (!data.success || !Array.isArray(data.shipments)) {
-          select.innerHTML = '<option value="">No shipments found</option>';
-          return;
-        }
-
-        shipmentMap.clear();
-        select.innerHTML = '<option value="">Select shipment</option>';
-
-        data.shipments.forEach((shipment) => {
-          shipmentMap.set(String(shipment.id), shipment);
-          const option = document.createElement("option");
-          option.value = shipment.id;
-          option.textContent = `${shipment.reference_number} - ${shipment.client_name}`;
-          select.appendChild(option);
+      document.querySelectorAll(".tracking-mode-card").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          selectedMode = this.dataset.mode;
+          document.getElementById("tracking_mode").value = selectedMode;
+          renderModes();
         });
+      });
+    }
 
-        const queryParams = new URLSearchParams(window.location.search);
-        const shipmentIdFromQuery = queryParams.get("shipment_id");
-        if (shipmentIdFromQuery && shipmentMap.has(String(shipmentIdFromQuery))) {
-          select.value = shipmentIdFromQuery;
-          selectedShipmentId = Number(shipmentIdFromQuery);
-        }
-      } catch (error) {
-        select.innerHTML = '<option value="">Could not load shipments</option>';
+    function classifyTrackingNumber(mode, number) {
+      const value = String(number || "").trim().toUpperCase();
+
+      const patterns = {
+        container: /^[A-Z]{4}\d{6,7}$/,
+        air_cargo: /^\d{3}-?\d{8}$/,
+        post_ems: /^[A-Z]{2}\d{9}[A-Z]{2}$/
+      };
+
+      let valid = true;
+      let hint = "Accepted for manual review.";
+
+      if (mode === "container") {
+        valid = patterns.container.test(value);
+        hint = valid
+          ? "Container format looks correct."
+          : "Container format should usually be 4 letters + 6 or 7 digits.";
       }
+
+      if (mode === "air_cargo") {
+        valid = patterns.air_cargo.test(value.replace(/\s+/g, ""));
+        hint = valid
+          ? "Air cargo / AWB format looks correct."
+          : "Air cargo usually looks like 3 digits + 8 digits.";
+      }
+
+      if (mode === "post_ems") {
+        valid = patterns.post_ems.test(value);
+        hint = valid
+          ? "Postal / EMS format looks correct."
+          : "Postal / EMS usually looks like 2 letters + 9 digits + 2 letters.";
+      }
+
+      if (mode === "bill_of_lading") {
+        valid = value.length >= 6;
+        hint = valid
+          ? "Bill of Lading number accepted."
+          : "Bill of Lading should be at least 6 characters for practical lookup.";
+      }
+
+      if (mode === "express") {
+        valid = value.length >= 6;
+        hint = valid
+          ? "Express reference accepted."
+          : "Express tracking number looks too short.";
+      }
+
+      return {
+        normalized: value,
+        valid,
+        hint
+      };
+    }
+
+    function renderLookupResult(result) {
+      const target = document.getElementById("lookup-result");
+
+      if (!result) {
+        target.innerHTML = "<p>No lookup performed yet.</p>";
+        return;
+      }
+
+      target.innerHTML = `
+        <div class="card">
+          <p style="margin:0 0 6px 0;"><strong>Mode:</strong> ${escapeHtml(result.mode)}</p>
+          <p style="margin:0 0 6px 0;"><strong>Tracking Number:</strong> ${escapeHtml(result.number)}</p>
+          <p style="margin:0 0 6px 0;"><strong>Validation:</strong> ${result.valid ? "Valid format" : "Needs review"}</p>
+          <p style="margin:0;"><strong>Hint:</strong> ${escapeHtml(result.hint)}</p>
+        </div>
+      `;
+    }
+
+    function findExistingShipment(mode, number) {
+      const value = String(number || "").trim().toUpperCase();
+
+      return shipmentsCache.find((shipment) => {
+        const reference = String(shipment.reference_number || "").trim().toUpperCase();
+        const bl = String(shipment.bill_of_lading || "").trim().toUpperCase();
+        const container = String(shipment.container_number || "").trim().toUpperCase();
+        const booking = String(shipment.booking_number || "").trim().toUpperCase();
+
+        if (mode === "container") return container === value;
+        if (mode === "bill_of_lading") return bl === value;
+        if (mode === "express") return reference === value || booking === value;
+        if (mode === "air_cargo") return reference === value;
+        if (mode === "post_ems") return reference === value;
+
+        return reference === value || bl === value || container === value || booking === value;
+      }) || null;
+    }
+
+    function renderExistingShipmentMatch(shipment) {
+      const target = document.getElementById("existing-match-result");
+      const transferBtn = document.getElementById("transfer-btn");
+      const openDetailBtn = document.getElementById("open-detail-btn");
+
+      if (!shipment) {
+        matchedShipment = null;
+        transferBtn.style.display = "inline-flex";
+        openDetailBtn.style.display = "none";
+
+        target.innerHTML = `
+          <div class="card">
+            <p style="margin:0 0 6px 0;"><strong>Status:</strong> No existing internal shipment found.</p>
+            <p style="margin:0 0 6px 0;"><strong>Next Action:</strong> Transfer this lookup to Front Desk Registry.</p>
+            <p style="margin:0;"><strong>Purpose:</strong> Open and record a new shipment file before provider sync.</p>
+          </div>
+        `;
+        return;
+      }
+
+      matchedShipment = shipment;
+      transferBtn.style.display = "none";
+      openDetailBtn.style.display = "inline-flex";
+      openDetailBtn.href = `/registry-detail?id=${shipment.id}`;
+
+      target.innerHTML = `
+        <div class="card">
+          <p style="margin:0 0 6px 0;"><strong>Shipment Found:</strong> Yes</p>
+          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(shipment.reference_number || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
+          <p style="margin:0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+        </div>
+      `;
     }
 
     function renderLiveStatus(live) {
       const target = document.getElementById("live-status-box");
 
       if (!live) {
-        target.innerHTML = "<p>No live status available.</p>";
+        target.innerHTML = "<p>No live status available yet for this lookup.</p>";
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
           <div class="card">
             <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
             <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
@@ -341,289 +371,173 @@
           <div class="card">
             <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
             <p style="margin:0 0 6px 0;"><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
-            <p style="margin:0;"><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "manual") : "-"}</p>
+            <p style="margin:0;"><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "-") : "-"}</p>
           </div>
         </div>
       `;
     }
 
-    function renderTrackingSource(source) {
-      const target = document.getElementById("tracking-source-box");
-
-      if (!source) {
-        target.innerHTML = "<p>No tracking source configured for this shipment yet.</p>";
-        return;
-      }
-
-      target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(source.provider_name || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Carrier Code:</strong> ${escapeHtml(source.carrier_code || "-")}</p>
-            <p style="margin:0;"><strong>Tracking Mode:</strong> ${escapeHtml(source.tracking_mode || "-")}</p>
-          </div>
-
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>BL:</strong> ${escapeHtml(source.bill_of_lading || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Container:</strong> ${escapeHtml(source.container_number || "-")}</p>
-            <p style="margin:0;"><strong>Booking:</strong> ${escapeHtml(source.booking_number || "-")}</p>
-          </div>
-
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Reference ID:</strong> ${escapeHtml(source.external_reference_id || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Provider Status:</strong> ${escapeHtml(source.provider_status || "-")}</p>
-            <p style="margin:0;"><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderTrackingEvents(events) {
-      const target = document.getElementById("tracking-events-list");
+    function renderTimeline(events) {
+      const target = document.getElementById("timeline-box");
 
       if (!events || !events.length) {
-        target.innerHTML = "<p>No tracking events found for this shipment.</p>";
+        target.innerHTML = "<p>No timeline loaded yet.</p>";
         return;
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="card" style="margin-bottom: 12px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
               <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
               <p style="margin:0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
             </div>
             <div>
               <p style="margin:0 0 6px 0;"><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
-              <p style="margin:0;"><strong>Source:</strong> ${escapeHtml(event.source_name || "manual")}</p>
+              <p style="margin:0;"><strong>Source:</strong> ${escapeHtml(event.source_name || "-")}</p>
             </div>
           </div>
-
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
-            <div>
-              <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
-            </div>
-            <div>
-              <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
-            </div>
-          </div>
+          <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
         </div>
       `).join("");
     }
 
-    function renderSyncLogs(logs) {
-      const target = document.getElementById("sync-logs-list");
-
-      if (!logs || !logs.length) {
-        target.innerHTML = "<p>No sync logs found for this shipment.</p>";
-        return;
-      }
-
-      target.innerHTML = logs.map((log) => `
-        <div class="card" style="margin-bottom: 12px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
-            <div>
-              <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
-              <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
-            </div>
-            <div>
-              <p style="margin:0 0 6px 0;"><strong>Synced By:</strong> ${escapeHtml(log.synced_by || "-")}</p>
-              <p style="margin:0;"><strong>Time:</strong> ${formatDateTime(log.created_at)}</p>
-            </div>
-          </div>
-
-          <p style="margin:0;"><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
-        </div>
-      `).join("");
-    }
-
-    async function loadLiveStatus(shipmentId) {
-      const response = await fetch(`/api/shipments/${shipmentId}/live-status`);
-      if (!response.ok) {
-        document.getElementById("live-status-box").innerHTML = "<p>Could not load live status.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      renderLiveStatus(data.live_status || null);
-    }
-
-    async function loadTrackingSource(shipmentId) {
-      const response = await fetch(`/api/shipments/${shipmentId}/tracking-source`);
-      if (!response.ok) {
-        document.getElementById("tracking-source-box").innerHTML = "<p>Could not load tracking source.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      renderTrackingSource(data.tracking_source || null);
-    }
-
-    async function loadTrackingEvents(shipmentId) {
-      const response = await fetch(`/api/tracking-events?shipment_id=${shipmentId}`);
-      if (!response.ok) {
-        document.getElementById("tracking-events-list").innerHTML = "<p>Could not load tracking events.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      renderTrackingEvents(data.tracking_events || []);
-    }
-
-    async function loadSyncLogs(shipmentId) {
-      const response = await fetch(`/api/shipments/${shipmentId}/sync-logs`);
-      if (!response.ok) {
-        document.getElementById("sync-logs-list").innerHTML = "<p>Could not load sync logs.</p>";
-        return;
-      }
-
-      const data = await response.json();
-      renderSyncLogs(data.sync_logs || []);
-    }
-
-    async function loadShipmentContext() {
-      if (!selectedShipmentId) {
-        showMessage("Please select a shipment first.", "error");
-        return;
-      }
-
-      clearMessage();
-      document.getElementById("open-detail-link").href = `/registry-detail?id=${selectedShipmentId}`;
-      await loadLiveStatus(selectedShipmentId);
-      await loadTrackingSource(selectedShipmentId);
-      await loadTrackingEvents(selectedShipmentId);
-      await loadSyncLogs(selectedShipmentId);
-    }
-
-    function startAutoRefresh() {
-      stopAutoRefresh();
-      autoRefreshTimer = setInterval(async () => {
-        if (selectedShipmentId) {
-          await loadShipmentContext();
-        }
-      }, 30000);
-    }
-
-    function stopAutoRefresh() {
-      if (autoRefreshTimer) {
-        clearInterval(autoRefreshTimer);
-        autoRefreshTimer = null;
-      }
-    }
-
-    function updateAutoRefreshButton() {
-      document.getElementById("toggle-refresh-btn").textContent = autoRefreshEnabled
-        ? "Auto Refresh: On"
-        : "Auto Refresh: Off";
-    }
-
-    document.getElementById("load-shipment-btn").addEventListener("click", async function () {
-      const value = document.getElementById("shipment_id").value;
-      if (!value) {
-        showMessage("Please select a shipment.", "error");
-        return;
-      }
-
-      selectedShipmentId = Number(value);
-      await loadShipmentContext();
-    });
-
-    document.getElementById("sync-shipment-btn").addEventListener("click", async function () {
-      const value = document.getElementById("shipment_id").value;
-      if (!value) {
-        showMessage("Please select a shipment first.", "error");
-        return;
-      }
-
-      selectedShipmentId = Number(value);
-      showMessage("Running tracking sync...", "info");
-
+    async function loadCurrentUser() {
       try {
-        const response = await fetch(`/api/shipments/${selectedShipmentId}/sync-tracking`, {
-          method: "POST"
-        });
+        const response = await fetch("/api/me");
+        if (!response.ok) {
+          window.location.href = "/login";
+          return false;
+        }
 
         const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Could not sync shipment tracking.");
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return false;
         }
 
-        showMessage(`Tracking sync completed successfully. Latest status: ${data.sync.latest_status || "-"}`, "success");
-        await loadShipmentContext();
-      } catch (error) {
-        showMessage(error.message || "Could not sync shipment tracking.", "error");
+        currentUser = data.user;
+        document.getElementById("user-username").textContent = currentUser.username || "-";
+        document.getElementById("user-role").textContent = currentUser.role || "-";
+        document.getElementById("user-status").textContent = "Authenticated";
+        return true;
+      } catch (_error) {
+        window.location.href = "/login";
+        return false;
       }
-    });
+    }
 
-    document.getElementById("toggle-refresh-btn").addEventListener("click", function () {
-      autoRefreshEnabled = !autoRefreshEnabled;
-      updateAutoRefreshButton();
+    async function loadShipments() {
+      try {
+        const response = await fetch("/api/shipments");
+        if (!response.ok) {
+          shipmentsCache = [];
+          return;
+        }
 
-      if (autoRefreshEnabled) {
-        startAutoRefresh();
-      } else {
-        stopAutoRefresh();
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.shipments)) {
+          shipmentsCache = [];
+          return;
+        }
+
+        shipmentsCache = data.shipments || [];
+      } catch (_error) {
+        shipmentsCache = [];
       }
-    });
+    }
 
-    document.getElementById("quick-fill").addEventListener("change", function () {
-      applyQuickFill(this.value);
-    });
+    async function loadLiveContextForShipment(shipmentId) {
+      try {
+        const [liveRes, eventsRes] = await Promise.all([
+          fetch(`/api/shipments/${shipmentId}/live-status`),
+          fetch(`/api/tracking-events?shipment_id=${shipmentId}`)
+        ]);
 
-    document.getElementById("reset-form-btn").addEventListener("click", function () {
-      document.getElementById("tracking-form").reset();
+        const liveData = liveRes.ok ? await liveRes.json() : { live_status: null };
+        const eventsData = eventsRes.ok ? await eventsRes.json() : { tracking_events: [] };
+
+        renderLiveStatus(liveData.live_status || null);
+        renderTimeline(eventsData.tracking_events || []);
+      } catch (_error) {
+        renderLiveStatus(null);
+        renderTimeline([]);
+      }
+    }
+
+    function transferToRegistry() {
+      if (!lastLookup) return;
+
+      const mode = encodeURIComponent(lastLookup.mode);
+      const number = encodeURIComponent(lastLookup.number);
+
+      window.location.href = `/shipment-registry?transfer_mode=${mode}&transfer_number=${number}`;
+    }
+
+    async function runLookup() {
       clearMessage();
-    });
 
-    document.getElementById("tracking-form").addEventListener("submit", async function (event) {
-      event.preventDefault();
-      clearMessage();
+      const mode = document.getElementById("tracking_mode").value;
+      const number = document.getElementById("tracking_number").value.trim();
 
-      const shipmentId = Number(document.getElementById("shipment_id").value);
-      const payload = {
-        shipment_id: shipmentId,
-        event_status: document.getElementById("event_status").value.trim(),
-        location_name: document.getElementById("location_name").value.trim(),
-        event_time: document.getElementById("event_time").value,
-        remarks: document.getElementById("remarks").value.trim()
+      if (!number) {
+        showMessage("Enter a tracking number or reference first.", "error");
+        return;
+      }
+
+      selectedMode = mode;
+      renderModes();
+
+      const classified = classifyTrackingNumber(mode, number);
+      lastLookup = {
+        mode,
+        number: classified.normalized,
+        valid: classified.valid,
+        hint: classified.hint
       };
 
-      if (!shipmentId || !payload.event_status || !payload.location_name || !payload.event_time) {
-        showMessage("Shipment, event status, location, and event time are required.", "error");
-        return;
+      renderLookupResult(lastLookup);
+
+      const shipment = findExistingShipment(mode, classified.normalized);
+      renderExistingShipmentMatch(shipment);
+
+      if (shipment) {
+        showMessage("Existing shipment found. Loading live tracking context...", "success");
+        await loadLiveContextForShipment(shipment.id);
+      } else {
+        showMessage(
+          classified.valid
+            ? "No existing shipment found. Ready to transfer to Front Desk Registry."
+            : "Format needs review, but you can still transfer to Front Desk Registry.",
+          classified.valid ? "info" : "error"
+        );
+        renderLiveStatus(null);
+        renderTimeline([]);
       }
+    }
 
-      try {
-        const response = await fetch("/api/tracking-events", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
+    document.getElementById("tracking_mode").addEventListener("change", function () {
+      selectedMode = this.value;
+      renderModes();
+    });
 
-        const data = await response.json();
+    document.getElementById("lookup-btn").addEventListener("click", runLookup);
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Could not save manual tracking event.");
-        }
-
-        selectedShipmentId = shipmentId;
-        showMessage("Manual tracking event saved successfully.", "success");
-        document.getElementById("tracking-form").reset();
-        await loadShipmentContext();
-      } catch (error) {
-        showMessage(error.message || "Could not save manual tracking event.", "error");
+    document.getElementById("tracking_number").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runLookup();
       }
     });
+
+    document.getElementById("transfer-btn").addEventListener("click", transferToRegistry);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
         const response = await fetch("/logout", { method: "POST" });
         const data = await response.json();
         window.location.href = data.redirect || "/login";
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
       }
     });
@@ -633,16 +547,8 @@
       if (!ok) return;
 
       await loadShipments();
-
-      if (selectedShipmentId) {
-        await loadShipmentContext();
-      }
-
-      if (document.getElementById("tracking-form-panel").style.display !== "none") {
-        applyQuickFill("now");
-      }
-
-      updateAutoRefreshButton();
+      renderModes();
+      document.getElementById("tracking_mode").value = selectedMode;
     }
 
     initPage();

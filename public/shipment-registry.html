@@ -19,7 +19,7 @@
 
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
-        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Tracking</a>
+        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Customs Live</a>
         <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
       </div>
     </div>
@@ -33,7 +33,7 @@
         </div>
         <div>
           <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin:0;"><strong>Module:</strong> Shipment Registry</p>
+          <p style="margin:0;"><strong>Module:</strong> Front Desk Registry</p>
         </div>
       </div>
     </div>
@@ -156,7 +156,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div>
           <h2 style="margin-bottom:6px;">Shipment Register</h2>
-          <p class="login-subtitle" style="margin-bottom:0;">View shipment readiness, live status, and tracking setup.</p>
+          <p class="login-subtitle" style="margin-bottom:0;">View shipment readiness, provider visibility, and live tracking setup.</p>
         </div>
         <button id="refresh-btn" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh</button>
       </div>
@@ -232,8 +232,8 @@
         }
 
         currentUser = data.user;
-        document.getElementById("user-username").textContent = currentUser.username || "-";
-        document.getElementById("user-role").textContent = currentUser.role || "-";
+        document.getElementById("user-username").textContent = data.user.username || "-";
+        document.getElementById("user-role").textContent = data.user.role || "-";
         document.getElementById("user-status").textContent = "Authenticated";
 
         if (["admin", "operations"].includes(currentUser.role)) {
@@ -269,8 +269,7 @@
       const rows = await Promise.all(
         shipments.map(async (shipment) => {
           const live = await fetchLiveStatusForShipment(shipment.id);
-          const providerRef =
-            live?.tracking_source?.external_reference_id || "-";
+          const providerRef = live?.tracking_source?.external_reference_id || "-";
 
           const status =
             live?.current_status ||
@@ -328,6 +327,35 @@
       document.getElementById("shipment-form").reset();
       document.getElementById("tracking_provider").value = "vizion";
       clearMessage();
+    }
+
+    function applyTransferPrefill() {
+      const params = new URLSearchParams(window.location.search);
+      const mode = (params.get("transfer_mode") || "").trim();
+      const number = (params.get("transfer_number") || "").trim();
+
+      if (!mode || !number) return;
+
+      document.getElementById("tracking_provider").value = "vizion";
+
+      if (mode === "container") {
+        document.getElementById("container_number").value = number;
+        document.getElementById("cargo_description").value = "Imported container shipment captured from Customs Live.";
+      } else if (mode === "bill_of_lading") {
+        document.getElementById("bill_of_lading").value = number;
+        document.getElementById("cargo_description").value = "Bill of Lading intake captured from Customs Live.";
+      } else if (mode === "air_cargo") {
+        document.getElementById("reference_number").value = number;
+        document.getElementById("cargo_description").value = "Air cargo intake captured from Customs Live.";
+      } else if (mode === "post_ems") {
+        document.getElementById("reference_number").value = number;
+        document.getElementById("cargo_description").value = "Post / EMS intake captured from Customs Live.";
+      } else {
+        document.getElementById("reference_number").value = number;
+        document.getElementById("cargo_description").value = "Express / general intake captured from Customs Live.";
+      }
+
+      showMessage(`Transfer received from Customs Live. Prefilled using ${mode.replace(/_/g, " ")}: ${number}`, "info");
     }
 
     document.getElementById("reset-form-btn").addEventListener("click", resetForm);
@@ -420,7 +448,9 @@
     async function initPage() {
       const ok = await loadCurrentUser();
       if (!ok) return;
+
       document.getElementById("tracking_provider").value = "vizion";
+      applyTransferPrefill();
       await loadShipments();
     }
 

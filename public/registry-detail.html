@@ -7,99 +7,103 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1120px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+  <div style="max-width: 1180px; margin: 0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       <div>
-        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size: 2rem; margin-bottom: 8px;">Shipment Registry Detail</h1>
-        <p class="login-subtitle" style="margin-bottom: 0;">
-          Integrated shipment view with live tracking status, timeline, finance, documents, and sync history.
+        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size:2rem;margin-bottom:8px;">Shipment Registry Detail</h1>
+        <p class="login-subtitle" style="margin-bottom:0;">
+          Integrated shipment workspace for tracking, provider sync, finance, and documents.
         </p>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 180px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Back to Shipment Registry</a>
-        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
-        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:180px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Back to Shipment Registry</a>
+        <a id="tracking-page-link" href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Open Tracking</a>
+        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current User</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Current User</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin: 0;"><strong>Page:</strong> Shipment Registry Detail</p>
+          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin:0;"><strong>Page:</strong> Shipment Registry Detail</p>
         </div>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
         <div>
-          <h2 style="margin-bottom: 6px;">Live Tracking Controls</h2>
-          <p class="login-subtitle" style="margin-bottom: 0;">Run sync manually and review current shipment visibility.</p>
+          <h2 style="margin-bottom:6px;">Live Controls</h2>
+          <p class="login-subtitle" style="margin-bottom:0;">
+            Refresh shipment visibility and run provider synchronization.
+          </p>
         </div>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button id="sync-now-btn" class="btn-primary" style="min-width: 140px;">Sync Now</button>
-          <a id="open-tracking-link" href="/tracking" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 140px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Open Tracking</a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="refresh-live-btn" class="secondary" style="min-width:140px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh Live Data</button>
+          <button id="sync-now-btn" class="btn-primary" style="min-width:140px;">Sync Now</button>
         </div>
       </div>
 
-      <div id="sync-message" style="margin-top: 14px;"></div>
+      <div id="sync-message" style="margin-top:14px;"></div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current Live Status</h2>
-      <div id="live-status-box">
-        <p>Loading live status...</p>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Current Live Status</h2>
+        <div id="live-status-box">
+          <p>Loading live status...</p>
+        </div>
+      </div>
+
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Tracking Source</h2>
+        <div id="tracking-source-box">
+          <p>Loading tracking source...</p>
+        </div>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Tracking Source</h2>
-      <div id="tracking-source-box">
-        <p>Loading tracking source...</p>
-      </div>
-    </div>
-
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Shipment Information</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Shipment Information</h2>
       <div id="shipment-info">
         <p>Loading shipment detail...</p>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Financial Summary</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Financial Summary</h2>
       <div id="financial-summary">
         <p>Loading financial summary...</p>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Shipment Timeline</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Shipment Timeline</h2>
       <div id="tracking-events">
         <p>Loading tracking timeline...</p>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Invoices & Payments</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Invoices & Payments</h2>
       <div id="invoices-section">
         <p>Loading invoices...</p>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Shipment Documents</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Shipment Documents</h2>
 
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px;">
+      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;margin-bottom:14px;">
         <div>
           <label for="doc-name">Document Name</label>
           <input id="doc-name" type="text" placeholder="e.g. BL Copy" />
@@ -134,11 +138,11 @@
         </div>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <button id="save-document-btn" class="btn-primary" style="min-width: 160px;">Save Document</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="save-document-btn" class="btn-primary" style="min-width:160px;">Save Document</button>
       </div>
 
-      <div id="document-message" style="margin-top: 14px;"></div>
+      <div id="document-message" style="margin-top:14px;"></div>
 
       <hr />
 
@@ -148,7 +152,7 @@
     </div>
 
     <div class="page-card">
-      <h2 style="margin-bottom: 12px;">Sync Logs</h2>
+      <h2 style="margin-bottom:12px;">Sync Logs</h2>
       <div id="sync-logs-list">
         <p>Loading sync logs...</p>
       </div>
@@ -196,7 +200,7 @@
         info: "#cbd5e1"
       };
 
-      target.innerHTML = `<div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: ${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
     }
 
     function clearBoxMessage(targetId) {
@@ -234,7 +238,7 @@
       }
 
       target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
           <div class="card">
             <p style="margin:0 0 6px 0;"><strong>ID:</strong> ${shipment.id}</p>
             <p style="margin:0 0 6px 0;"><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
@@ -275,7 +279,7 @@
       }
 
       target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
           <div class="stat-card">
             <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
             <div class="stat-value">${formatMoney(summary.total_billed)}</div>
@@ -303,7 +307,7 @@
       }
 
       target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
           <div class="card">
             <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
             <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
@@ -334,7 +338,7 @@
       }
 
       target.innerHTML = `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
           <div class="card">
             <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(source.provider_name || "-")}</p>
             <p style="margin:0 0 6px 0;"><strong>Carrier Code:</strong> ${escapeHtml(source.carrier_code || "-")}</p>
@@ -348,8 +352,8 @@
           </div>
 
           <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Label:</strong> ${escapeHtml(source.source_label || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Active:</strong> ${source.is_active ? "Yes" : "No"}</p>
+            <p style="margin:0 0 6px 0;"><strong>Reference ID:</strong> ${escapeHtml(source.external_reference_id || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Provider Status:</strong> ${escapeHtml(source.provider_status || "-")}</p>
             <p style="margin:0;"><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
           </div>
         </div>
@@ -365,8 +369,8 @@
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="card" style="margin-bottom: 12px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
               <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
               <p style="margin:0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
@@ -377,7 +381,7 @@
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;">
             <div>
               <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
             </div>
@@ -398,8 +402,8 @@
       }
 
       target.innerHTML = invoices.map((invoice) => `
-        <div class="card" style="margin-bottom: 14px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
             <div>
               <p style="margin:0 0 6px 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
               <p style="margin:0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
@@ -410,7 +414,7 @@
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom:10px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-bottom:10px;">
             <div>
               <p style="margin:0 0 6px 0;"><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
               <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
@@ -421,12 +425,12 @@
             </div>
           </div>
 
-          <div style="padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);">
+          <div style="padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
             <h3 style="margin-bottom:10px;">Payments</h3>
             ${
               invoice.payments && invoice.payments.length
                 ? invoice.payments.map((payment) => `
-                  <div class="card" style="margin-bottom:10px; background: rgba(255,255,255,0.02);">
+                  <div class="card" style="margin-bottom:10px;background:rgba(255,255,255,0.02);">
                     <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
                     <p style="margin:0 0 6px 0;"><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
                     <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
@@ -452,14 +456,14 @@
       const canDelete = currentUser && (currentUser.role === "admin" || currentUser.role === "operations");
 
       target.innerHTML = documents.map((doc) => `
-        <div class="card" style="margin-bottom: 12px;">
+        <div class="card" style="margin-bottom:12px;">
           <p style="margin:0 0 6px 0;"><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
           <p style="margin:0 0 6px 0;"><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
           <p style="margin:0 0 6px 0;"><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
           <p style="margin:0 0 6px 0;"><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
           <p style="margin:0 0 8px 0;"><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
-          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Delete</button>` : ""}
+          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Delete</button>` : ""}
         </div>
       `).join("");
     }
@@ -473,8 +477,8 @@
       }
 
       target.innerHTML = logs.map((log) => `
-        <div class="card" style="margin-bottom: 12px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
               <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
               <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
@@ -516,9 +520,7 @@
 
       const response = await fetch("/api/documents", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shipment_id: currentShipmentId,
           document_name: documentName,
@@ -623,10 +625,10 @@
     }
 
     async function loadAllContext() {
+      document.getElementById("tracking-page-link").href = `/tracking?shipment_id=${currentShipmentId}`;
       await loadShipmentFullDetail();
       await loadTrackingSource();
       await loadSyncLogs();
-      document.getElementById("open-tracking-link").href = `/tracking?shipment_id=${currentShipmentId}`;
     }
 
     async function runSyncNow() {
@@ -651,16 +653,23 @@
       }
     }
 
-    document.getElementById("save-document-btn").addEventListener("click", saveDocument);
+    async function refreshLiveData() {
+      clearBoxMessage("sync-message");
+      showBoxMessage("sync-message", "Refreshing live shipment data...", "info");
+      await loadAllContext();
+      showBoxMessage("sync-message", "Live shipment data refreshed.", "success");
+    }
 
+    document.getElementById("save-document-btn").addEventListener("click", saveDocument);
     document.getElementById("sync-now-btn").addEventListener("click", runSyncNow);
+    document.getElementById("refresh-live-btn").addEventListener("click", refreshLiveData);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
         const response = await fetch("/logout", { method: "POST" });
         const data = await response.json();
         window.location.href = data.redirect || "/login";
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
       }
     });

@@ -7,68 +7,69 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1180px; margin: 0 auto;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+  <div class="page-shell">
+    <div class="topbar">
       <div>
-        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size:2rem;margin-bottom:8px;">Operational Finance</h1>
-        <p class="login-subtitle" style="margin-bottom:0;">
+        <div class="brand-kicker">MarineTraffic Group Limited</div>
+        <h1 class="page-title">Operational Finance</h1>
+        <p class="page-subtitle">
           Manage shipment billing, record payments, monitor balances, and support clearance and release workflows.
         </p>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
-        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Shipment Registry</a>
-        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Customs Live</a>
-        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
+      <div class="topbar-actions">
+        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <a href="/dashboard" class="btn-outline">Dashboard</a>
+        <a href="/shipment-registry" class="btn-outline">Shipment Registry</a>
+        <a href="/tracking" class="btn-outline">Customs Live</a>
+        <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Current User</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    <section class="panel">
+      <h2 class="section-title">Current User</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin:0;"><strong>Module:</strong> Operational Finance</p>
+        <div class="info-card">
+          <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p><strong>Module:</strong> Operational Finance</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px;margin-bottom:16px;">
-      <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom:6px;">Total Invoices</p>
-        <div id="card-total-invoices" class="stat-value">0</div>
+    <section class="panel">
+      <div class="info-grid" style="grid-template-columns:repeat(4, minmax(0, 1fr));">
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Total Invoices</p>
+          <div id="card-total-invoices" class="stat-value">0</div>
+        </div>
+
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
+          <div id="card-total-billed" class="stat-value">0.00</div>
+        </div>
+
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
+          <div id="card-total-paid" class="stat-value">0.00</div>
+        </div>
+
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
+          <div id="card-total-outstanding" class="stat-value">0.00</div>
+        </div>
       </div>
+    </section>
 
-      <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
-        <div id="card-total-billed" class="stat-value">0.00</div>
-      </div>
+    <div class="two-col-grid">
+      <section id="invoice-panel" class="panel" style="display:none;">
+        <h2 class="section-title">Create Invoice</h2>
+        <p class="section-subtitle">Link a financial charge directly to a shipment file.</p>
 
-      <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
-        <div id="card-total-paid" class="stat-value">0.00</div>
-      </div>
-
-      <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
-        <div id="card-total-outstanding" class="stat-value">0.00</div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-      <div id="invoice-panel" class="page-card" style="display:none;">
-        <h2 style="margin-bottom:12px;">Create Invoice</h2>
-        <p class="login-subtitle" style="margin-bottom:16px;">
-          Link a financial charge directly to a shipment file.
-        </p>
-
-        <form id="invoice-form" style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;">
+        <form id="invoice-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
           <div>
             <label for="invoice_shipment_id">Shipment</label>
             <select id="invoice_shipment_id" required>
@@ -117,21 +118,19 @@
           </div>
 
           <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
-            <button type="submit" class="btn-primary" style="min-width:160px;">Save Invoice</button>
-            <button type="button" id="reset-invoice-btn" class="secondary" style="min-width:130px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Reset</button>
+            <button type="submit" class="btn-primary">Save Invoice</button>
+            <button type="button" id="reset-invoice-btn" class="btn-outline">Reset</button>
           </div>
         </form>
 
-        <div id="invoice-message" style="margin-top:14px;"></div>
-      </div>
+        <div id="invoice-message" class="message-box" style="margin-top:14px;"></div>
+      </section>
 
-      <div id="payment-panel" class="page-card" style="display:none;">
-        <h2 style="margin-bottom:12px;">Record Payment</h2>
-        <p class="login-subtitle" style="margin-bottom:16px;">
-          Apply payment to an invoice and reduce shipment outstanding balance.
-        </p>
+      <section id="payment-panel" class="panel" style="display:none;">
+        <h2 class="section-title">Record Payment</h2>
+        <p class="section-subtitle">Apply payment to an invoice and reduce shipment outstanding balance.</p>
 
-        <form id="payment-form" style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;">
+        <form id="payment-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
           <div>
             <label for="payment_invoice_id">Invoice</label>
             <select id="payment_invoice_id" required>
@@ -168,37 +167,35 @@
           </div>
 
           <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
-            <button type="submit" class="btn-primary" style="min-width:160px;">Save Payment</button>
-            <button type="button" id="reset-payment-btn" class="secondary" style="min-width:130px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Reset</button>
+            <button type="submit" class="btn-primary">Save Payment</button>
+            <button type="button" id="reset-payment-btn" class="btn-outline">Reset</button>
           </div>
         </form>
 
-        <div id="payment-message" style="margin-top:14px;"></div>
-      </div>
+        <div id="payment-message" class="message-box" style="margin-top:14px;"></div>
+      </section>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+    <section class="panel">
+      <div class="section-head">
         <div>
-          <h2 style="margin-bottom:6px;">Outstanding Balance Alerts</h2>
-          <p class="login-subtitle" style="margin-bottom:0;">
-            Shipment-linked invoices that still require settlement.
-          </p>
+          <h2 class="section-title">Outstanding Balance Alerts</h2>
+          <p class="section-subtitle">Shipment-linked invoices that still require settlement.</p>
         </div>
-        <button id="refresh-finance-btn" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh</button>
+        <button id="refresh-finance-btn" class="btn-outline" type="button">Refresh</button>
       </div>
 
       <div id="outstanding-alerts">
-        <p>Loading finance alerts...</p>
+        <p class="empty-state">Loading finance alerts...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card">
-      <h2 style="margin-bottom:12px;">Invoices and Payments</h2>
+    <section class="panel">
+      <h2 class="section-title">Invoices and Payments</h2>
       <div id="invoice-list">
-        <p>Loading invoices...</p>
+        <p class="empty-state">Loading invoices...</p>
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
@@ -232,13 +229,13 @@
 
     function showMessage(targetId, message, type = "info") {
       const target = document.getElementById(targetId);
-      const colorMap = {
-        success: "#86efac",
-        error: "#fca5a5",
-        info: "#cbd5e1"
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
       };
 
-      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearMessage(targetId) {
@@ -248,6 +245,26 @@
     function setText(id, value) {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+
+      const btn = document.getElementById("theme-toggle-btn");
+      if (btn) {
+        btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+      applyTheme(savedTheme);
+
+      document.getElementById("theme-toggle-btn").addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
     }
 
     async function loadCurrentUser() {
@@ -380,23 +397,22 @@
       const outstanding = invoices.filter((invoice) => Number(invoice.balance || 0) > 0);
 
       if (!outstanding.length) {
-        target.innerHTML = "<p>No outstanding balance alerts found.</p>";
+        target.innerHTML = '<p class="empty-state">No outstanding balance alerts found.</p>';
         return;
       }
 
       target.innerHTML = outstanding.map((invoice) => `
-        <div class="card" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Invoice:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
-              <p style="margin:0 0 6px 0;"><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
-              <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
+              <p><strong>Invoice:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
+              <p><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
+              <p><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
-
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Billed:</strong> ${formatMoney(invoice.amount)}</p>
-              <p style="margin:0 0 6px 0;"><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
-              <p style="margin:0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
+              <p><strong>Billed:</strong> ${formatMoney(invoice.amount)}</p>
+              <p><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
+              <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
             </div>
           </div>
         </div>
@@ -407,45 +423,44 @@
       const target = document.getElementById("invoice-list");
 
       if (!invoices.length) {
-        target.innerHTML = "<p>No invoices found.</p>";
+        target.innerHTML = '<p class="empty-state">No invoices found.</p>';
         return;
       }
 
       target.innerHTML = invoices.map((invoice) => `
         <div class="card" style="margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+          <div class="timeline-row" style="margin-bottom:10px;">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
-              <p style="margin:0 0 6px 0;"><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
-              <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
+              <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
+              <p><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
+              <p><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
-
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
-              <p style="margin:0 0 6px 0;"><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
-              <p style="margin:0;"><strong>Created:</strong> ${formatDateTime(invoice.created_at)}</p>
+              <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
+              <p><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
+              <p><strong>Created:</strong> ${formatDateTime(invoice.created_at)}</p>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;margin-bottom:10px;">
-            <div class="card" style="background:rgba(255,255,255,0.02);">
+          <div class="info-grid" style="grid-template-columns:repeat(3, minmax(0, 1fr));margin-bottom:10px;">
+            <div class="stat-card">
               <p class="login-subtitle" style="margin-bottom:6px;">Amount</p>
               <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.amount)}</div>
             </div>
 
-            <div class="card" style="background:rgba(255,255,255,0.02);">
+            <div class="stat-card">
               <p class="login-subtitle" style="margin-bottom:6px;">Paid</p>
               <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.paid_amount)}</div>
             </div>
 
-            <div class="card" style="background:rgba(255,255,255,0.02);">
+            <div class="stat-card">
               <p class="login-subtitle" style="margin-bottom:6px;">Balance</p>
               <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.balance)}</div>
             </div>
           </div>
 
-          <p style="margin:0 0 10px 0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
-          <p style="margin:0 0 12px 0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+          <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+          <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
         </div>
       `).join("");
     }
@@ -559,6 +574,8 @@
     });
 
     async function initPage() {
+      initTheme();
+
       const ok = await loadCurrentUser();
       if (!ok) return;
 

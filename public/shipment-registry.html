@@ -7,44 +7,45 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1180px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+  <div class="page-shell">
+    <div class="topbar">
       <div>
-        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size: 2rem; margin-bottom: 8px;">Shipment Registry</h1>
-        <p class="login-subtitle" style="margin-bottom: 0;">
+        <div class="brand-kicker">MarineTraffic Group Limited</div>
+        <h1 class="page-title">Shipment Registry</h1>
+        <p class="page-subtitle">
           Register shipments, assign tracking identifiers, and prepare live provider sync.
         </p>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
-        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Customs Live</a>
-        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
+      <div class="topbar-actions">
+        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <a href="/dashboard" class="btn-outline">Dashboard</a>
+        <a href="/tracking" class="btn-outline">Customs Live</a>
+        <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current User</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    <section class="panel">
+      <h2 class="section-title">Current User</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin:0;"><strong>Module:</strong> Front Desk Registry</p>
+        <div class="info-card">
+          <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p><strong>Module:</strong> Front Desk Registry</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div id="create-shipment-panel" class="page-card" style="margin-bottom:16px;display:none;">
-      <h2 style="margin-bottom: 12px;">Create Shipment</h2>
-      <p class="login-subtitle" style="margin-bottom: 16px;">
+    <section id="create-shipment-panel" class="panel" style="display:none;">
+      <h2 class="section-title">Create Shipment</h2>
+      <p class="section-subtitle">
         Save shipment details together with provider-ready tracking identifiers.
       </p>
 
-      <form id="shipment-form" style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;">
+      <form id="shipment-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
         <div>
           <label for="client_name">Client Name</label>
           <input id="client_name" type="text" placeholder="e.g. Test Client" required />
@@ -86,9 +87,9 @@
           <textarea id="cargo_description" placeholder="e.g. General cargo / containerized cargo / pharmaceuticals" required></textarea>
         </div>
 
-        <div style="grid-column:1 / -1; margin-top:4px;">
+        <div style="grid-column:1 / -1;">
           <h3 style="margin-bottom:10px;">Tracking Provider Details</h3>
-          <p class="login-subtitle" style="margin-bottom:0;">
+          <p class="section-subtitle" style="margin-bottom:0;">
             These fields prepare the shipment for Vizion-based live sync.
           </p>
         </div>
@@ -136,29 +137,27 @@
           <input id="final_destination" type="text" placeholder="e.g. Dar / ICD / Inland destination" />
         </div>
 
-        <div style="display:flex;align-items:end;">
-          <div style="width:100%;">
-            <label for="auto_sync_hint">Sync Readiness</label>
-            <input id="auto_sync_hint" type="text" value="Provide BL / container / booking for live subscription" disabled />
-          </div>
+        <div>
+          <label for="auto_sync_hint">Sync Readiness</label>
+          <input id="auto_sync_hint" type="text" value="Provide BL / container / booking for live subscription" disabled />
         </div>
 
-        <div style="grid-column:1 / -1; display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="submit" class="btn-primary" style="min-width:180px;">Save Shipment</button>
-          <button type="button" id="reset-form-btn" class="secondary" style="min-width:140px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Reset Form</button>
+        <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="submit" class="btn-primary">Save Shipment</button>
+          <button type="button" id="reset-form-btn" class="btn-outline">Reset Form</button>
         </div>
       </form>
 
-      <div id="shipment-message" style="margin-top:14px;"></div>
-    </div>
+      <div id="shipment-message" class="message-box" style="margin-top:14px;"></div>
+    </section>
 
-    <div class="page-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+    <section class="panel">
+      <div class="section-head">
         <div>
-          <h2 style="margin-bottom:6px;">Shipment Register</h2>
-          <p class="login-subtitle" style="margin-bottom:0;">View shipment readiness, provider visibility, and live tracking setup.</p>
+          <h2 class="section-title">Shipment Register</h2>
+          <p class="section-subtitle">View shipment readiness, provider visibility, and live tracking setup.</p>
         </div>
-        <button id="refresh-btn" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh</button>
+        <button id="refresh-btn" class="btn-outline" type="button">Refresh</button>
       </div>
 
       <div style="overflow-x:auto;">
@@ -182,7 +181,7 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
@@ -200,17 +199,36 @@
 
     function showMessage(message, type = "info") {
       const target = document.getElementById("shipment-message");
-      const colorMap = {
-        success: "#86efac",
-        error: "#fca5a5",
-        info: "#cbd5e1"
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
       };
-
-      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearMessage() {
       document.getElementById("shipment-message").innerHTML = "";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+
+      const btn = document.getElementById("theme-toggle-btn");
+      if (btn) {
+        btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+      applyTheme(savedTheme);
+
+      document.getElementById("theme-toggle-btn").addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
     }
 
     function getTrackingReference(shipment) {
@@ -270,12 +288,7 @@
         shipments.map(async (shipment) => {
           const live = await fetchLiveStatusForShipment(shipment.id);
           const providerRef = live?.tracking_source?.external_reference_id || "-";
-
-          const status =
-            live?.current_status ||
-            shipment.current_tracking_status ||
-            shipment.status ||
-            "-";
+          const status = live?.current_status || shipment.current_tracking_status || shipment.status || "-";
 
           return `
             <tr>
@@ -405,8 +418,7 @@
         }
 
         const shipment = data.shipment;
-        const hasTrackingIdentity =
-          payload.bill_of_lading || payload.container_number || payload.booking_number;
+        const hasTrackingIdentity = payload.bill_of_lading || payload.container_number || payload.booking_number;
 
         if (shipment && hasTrackingIdentity) {
           try {
@@ -423,8 +435,7 @@
                 source_label: "Primary Tracking Source"
               })
             });
-          } catch (_configError) {
-          }
+          } catch (_configError) {}
         }
 
         showMessage(`Shipment ${shipment.reference_number} saved successfully.`, "success");
@@ -446,6 +457,8 @@
     });
 
     async function initPage() {
+      initTheme();
+
       const ok = await loadCurrentUser();
       if (!ok) return;
 

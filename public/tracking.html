@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1120px; margin: 0 auto;">
+  <div style="max-width: 1180px; margin: 0 auto;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
       <div>
         <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
         <h1 style="font-size: 2rem; margin-bottom: 8px;">Tracking Center</h1>
         <p class="login-subtitle" style="margin-bottom: 0;">
-          Monitor automated shipment visibility, sync provider data, and maintain operational milestones.
+          Monitor live shipment visibility, run provider sync, and manage manual fallback milestones.
         </p>
       </div>
 
@@ -41,7 +41,7 @@
     <div class="page-card" style="margin-bottom: 16px;">
       <h2 style="margin-bottom: 12px;">Shipment Selector</h2>
 
-      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 14px;">
         <div>
           <label for="shipment_id">Shipment</label>
           <select id="shipment_id">
@@ -56,29 +56,35 @@
         <div style="display: flex; align-items: end;">
           <button id="sync-shipment-btn" class="secondary" style="width: 100%; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Sync Now</button>
         </div>
+
+        <div style="display: flex; align-items: end;">
+          <button id="toggle-refresh-btn" class="secondary" style="width: 100%; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Auto Refresh: Off</button>
+        </div>
       </div>
 
       <div id="tracking-message" style="margin-top: 14px;"></div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current Live Status</h2>
-      <div id="live-status-box">
-        <p>Select a shipment to load current tracking state.</p>
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div class="page-card">
+        <h2 style="margin-bottom: 12px;">Current Live Status</h2>
+        <div id="live-status-box">
+          <p>Select a shipment to load current tracking state.</p>
+        </div>
       </div>
-    </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Tracking Source</h2>
-      <div id="tracking-source-box">
-        <p>Select a shipment to load tracking source configuration.</p>
+      <div class="page-card">
+        <h2 style="margin-bottom: 12px;">Tracking Source</h2>
+        <div id="tracking-source-box">
+          <p>Select a shipment to load tracking source configuration.</p>
+        </div>
       </div>
     </div>
 
     <div id="tracking-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
       <h2 style="margin-bottom: 12px;">Manual Tracking Event</h2>
       <p class="login-subtitle" style="margin-bottom: 16px;">
-        Use manual entry as a fallback when an external provider has not yet supplied an operational milestone.
+        Use manual update only when provider data has not yet delivered the operational milestone.
       </p>
 
       <form id="tracking-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
@@ -141,7 +147,14 @@
     </div>
 
     <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Shipment Timeline</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div>
+          <h2 style="margin-bottom: 6px;">Shipment Timeline</h2>
+          <p class="login-subtitle" style="margin-bottom: 0;">Automated and manual milestones for the selected shipment.</p>
+        </div>
+        <a id="open-detail-link" href="/registry-detail" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 150px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Open Detail View</a>
+      </div>
+
       <div id="tracking-events-list">
         <p>Select a shipment to load timeline events.</p>
       </div>
@@ -159,6 +172,8 @@
     let currentUser = null;
     let selectedShipmentId = null;
     let shipmentMap = new Map();
+    let autoRefreshEnabled = false;
+    let autoRefreshTimer = null;
 
     function escapeHtml(value) {
       return String(value || "")
@@ -355,8 +370,8 @@
           </div>
 
           <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Label:</strong> ${escapeHtml(source.source_label || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Active:</strong> ${source.is_active ? "Yes" : "No"}</p>
+            <p style="margin:0 0 6px 0;"><strong>Reference ID:</strong> ${escapeHtml(source.external_reference_id || "-")}</p>
+            <p style="margin:0 0 6px 0;"><strong>Provider Status:</strong> ${escapeHtml(source.provider_status || "-")}</p>
             <p style="margin:0;"><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
           </div>
         </div>
@@ -473,10 +488,33 @@
       }
 
       clearMessage();
+      document.getElementById("open-detail-link").href = `/registry-detail?id=${selectedShipmentId}`;
       await loadLiveStatus(selectedShipmentId);
       await loadTrackingSource(selectedShipmentId);
       await loadTrackingEvents(selectedShipmentId);
       await loadSyncLogs(selectedShipmentId);
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoRefreshTimer = setInterval(async () => {
+        if (selectedShipmentId) {
+          await loadShipmentContext();
+        }
+      }, 30000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+    }
+
+    function updateAutoRefreshButton() {
+      document.getElementById("toggle-refresh-btn").textContent = autoRefreshEnabled
+        ? "Auto Refresh: On"
+        : "Auto Refresh: Off";
     }
 
     document.getElementById("load-shipment-btn").addEventListener("click", async function () {
@@ -515,6 +553,17 @@
         await loadShipmentContext();
       } catch (error) {
         showMessage(error.message || "Could not sync shipment tracking.", "error");
+      }
+    });
+
+    document.getElementById("toggle-refresh-btn").addEventListener("click", function () {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      updateAutoRefreshButton();
+
+      if (autoRefreshEnabled) {
+        startAutoRefresh();
+      } else {
+        stopAutoRefresh();
       }
     });
 
@@ -592,6 +641,8 @@
       if (document.getElementById("tracking-form-panel").style.display !== "none") {
         applyQuickFill("now");
       }
+
+      updateAutoRefreshButton();
     }
 
     initPage();

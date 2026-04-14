@@ -3,197 +3,198 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BE-MCs Accounting</title>
+  <title>BE-MCs Operational Finance</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1120px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+  <div style="max-width: 1180px; margin: 0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       <div>
-        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size: 2rem; margin-bottom: 8px;">Accounting Center</h1>
-        <p class="login-subtitle" style="margin-bottom: 0;">
-          Manage invoices, payments, balances, and shipment billing records.
+        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size:2rem;margin-bottom:8px;">Operational Finance</h1>
+        <p class="login-subtitle" style="margin-bottom:0;">
+          Manage shipment billing, record payments, monitor balances, and support clearance and release workflows.
         </p>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/dashboard" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Dashboard</a>
-        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 160px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Shipment Registry</a>
-        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
+        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Shipment Registry</a>
+        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Customs Live</a>
+        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current User</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Current User</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin: 0;"><strong>Module:</strong> Accounting</p>
+          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin:0;"><strong>Module:</strong> Operational Finance</p>
         </div>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px;">
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px;margin-bottom:16px;">
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Invoices</p>
-        <div id="stat-total-invoices" class="stat-value">0</div>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Invoices</p>
+        <div id="card-total-invoices" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Billed</p>
-        <div id="stat-total-billed" class="stat-value">0.00</div>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
+        <div id="card-total-billed" class="stat-value">0.00</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Paid</p>
-        <div id="stat-total-paid" class="stat-value">0.00</div>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
+        <div id="card-total-paid" class="stat-value">0.00</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Outstanding</p>
-        <div id="stat-outstanding" class="stat-value">0.00</div>
+        <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
+        <div id="card-total-outstanding" class="stat-value">0.00</div>
       </div>
     </div>
 
-    <div id="invoice-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
-      <h2 style="margin-bottom: 12px;">Create Invoice</h2>
-      <p class="login-subtitle" style="margin-bottom: 16px;">
-        Add a new invoice against a shipment record.
-      </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div id="invoice-panel" class="page-card" style="display:none;">
+        <h2 style="margin-bottom:12px;">Create Invoice</h2>
+        <p class="login-subtitle" style="margin-bottom:16px;">
+          Link a financial charge directly to a shipment file.
+        </p>
 
-      <form id="invoice-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
-        <div style="grid-column: 1 / -1;">
-          <label for="invoice_shipment_id">Shipment</label>
-          <select id="invoice_shipment_id" required>
-            <option value="">Select shipment</option>
-          </select>
-        </div>
+        <form id="invoice-form" style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;">
+          <div>
+            <label for="invoice_shipment_id">Shipment</label>
+            <select id="invoice_shipment_id" required>
+              <option value="">Select shipment</option>
+            </select>
+          </div>
 
-        <div>
-          <label for="invoice_number">Invoice Number</label>
-          <input id="invoice_number" type="text" placeholder="e.g. INV-001" required />
-        </div>
+          <div>
+            <label for="invoice_number">Invoice Number</label>
+            <input id="invoice_number" type="text" placeholder="e.g. INV-2026-001" required />
+          </div>
 
-        <div>
-          <label for="charge_type">Charge Type</label>
-          <select id="charge_type" required>
-            <option value="">Select charge type</option>
-            <option value="Freight">Freight</option>
-            <option value="Port Charges">Port Charges</option>
-            <option value="Customs Clearance">Customs Clearance</option>
-            <option value="Documentation">Documentation</option>
-            <option value="Transport">Transport</option>
-            <option value="Storage">Storage</option>
-            <option value="Handling">Handling</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
+          <div>
+            <label for="charge_type">Charge Type</label>
+            <select id="charge_type" required>
+              <option value="">Select charge type</option>
+              <option value="Freight">Freight</option>
+              <option value="Port Charges">Port Charges</option>
+              <option value="Handling">Handling</option>
+              <option value="Storage">Storage</option>
+              <option value="Documentation">Documentation</option>
+              <option value="Customs Clearance">Customs Clearance</option>
+              <option value="Transport">Transport</option>
+              <option value="Delivery">Delivery</option>
+              <option value="Release Fee">Release Fee</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
-        <div>
-          <label for="invoice_amount">Amount</label>
-          <input id="invoice_amount" type="number" min="0" step="0.01" placeholder="0.00" required />
-        </div>
+          <div>
+            <label for="invoice_amount">Amount</label>
+            <input id="invoice_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+          </div>
 
-        <div>
-          <label for="invoice_currency">Currency</label>
-          <select id="invoice_currency" required>
-            <option value="TZS">TZS</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </select>
-        </div>
+          <div>
+            <label for="invoice_currency">Currency</label>
+            <select id="invoice_currency">
+              <option value="TZS">TZS</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
 
-        <div style="grid-column: 1 / -1;">
-          <label for="invoice_notes">Notes</label>
-          <textarea id="invoice_notes" placeholder="Optional notes about this invoice"></textarea>
-        </div>
+          <div>
+            <label for="invoice_notes">Notes</label>
+            <input id="invoice_notes" type="text" placeholder="Optional finance note" />
+          </div>
 
-        <div style="grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="submit" class="btn-primary" style="min-width: 180px;">Save Invoice</button>
-          <button type="button" id="reset-invoice-btn" class="secondary" style="min-width: 140px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Reset Form</button>
-        </div>
-      </form>
+          <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn-primary" style="min-width:160px;">Save Invoice</button>
+            <button type="button" id="reset-invoice-btn" class="secondary" style="min-width:130px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Reset</button>
+          </div>
+        </form>
 
-      <div id="invoice-message" style="margin-top: 14px;"></div>
+        <div id="invoice-message" style="margin-top:14px;"></div>
+      </div>
+
+      <div id="payment-panel" class="page-card" style="display:none;">
+        <h2 style="margin-bottom:12px;">Record Payment</h2>
+        <p class="login-subtitle" style="margin-bottom:16px;">
+          Apply payment to an invoice and reduce shipment outstanding balance.
+        </p>
+
+        <form id="payment-form" style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;">
+          <div>
+            <label for="payment_invoice_id">Invoice</label>
+            <select id="payment_invoice_id" required>
+              <option value="">Select invoice</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="payment_amount">Amount</label>
+            <input id="payment_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+          </div>
+
+          <div>
+            <label for="payment_method">Payment Method</label>
+            <select id="payment_method" required>
+              <option value="">Select method</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cash">Cash</option>
+              <option value="Mobile Money">Mobile Money</option>
+              <option value="Cheque">Cheque</option>
+              <option value="Card">Card</option>
+              <option value="Internal Journal">Internal Journal</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="payment_reference">Reference</label>
+            <input id="payment_reference" type="text" placeholder="Transaction / bank reference" />
+          </div>
+
+          <div style="grid-column:1 / -1;">
+            <label for="payment_notes">Notes</label>
+            <input id="payment_notes" type="text" placeholder="Optional payment note" />
+          </div>
+
+          <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn-primary" style="min-width:160px;">Save Payment</button>
+            <button type="button" id="reset-payment-btn" class="secondary" style="min-width:130px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Reset</button>
+          </div>
+        </form>
+
+        <div id="payment-message" style="margin-top:14px;"></div>
+      </div>
     </div>
 
-    <div id="payment-form-panel" class="page-card" style="margin-bottom: 16px; display: none;">
-      <h2 style="margin-bottom: 12px;">Record Payment</h2>
-      <p class="login-subtitle" style="margin-bottom: 16px;">
-        Capture payments made against an existing invoice.
-      </p>
-
-      <form id="payment-form" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
-        <div style="grid-column: 1 / -1;">
-          <label for="payment_invoice_id">Invoice</label>
-          <select id="payment_invoice_id" required>
-            <option value="">Select invoice</option>
-          </select>
-        </div>
-
+    <div class="page-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
         <div>
-          <label for="payment_amount">Amount</label>
-          <input id="payment_amount" type="number" min="0" step="0.01" placeholder="0.00" required />
+          <h2 style="margin-bottom:6px;">Outstanding Balance Alerts</h2>
+          <p class="login-subtitle" style="margin-bottom:0;">
+            Shipment-linked invoices that still require settlement.
+          </p>
         </div>
+        <button id="refresh-finance-btn" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh</button>
+      </div>
 
-        <div>
-          <label for="payment_method">Payment Method</label>
-          <select id="payment_method" required>
-            <option value="">Select payment method</option>
-            <option value="Bank Transfer">Bank Transfer</option>
-            <option value="Cash">Cash</option>
-            <option value="Cheque">Cheque</option>
-            <option value="Mobile Money">Mobile Money</option>
-            <option value="Card">Card</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="payment_reference">Reference Text</label>
-          <input id="payment_reference" type="text" placeholder="e.g. TXN-889211" />
-        </div>
-
-        <div>
-          <label for="payment_quick_fill">Quick Amount</label>
-          <select id="payment_quick_fill">
-            <option value="">Choose quick fill</option>
-            <option value="full-balance">Use selected invoice balance</option>
-            <option value="half-balance">Use half of selected balance</option>
-          </select>
-        </div>
-
-        <div style="grid-column: 1 / -1;">
-          <label for="payment_notes">Notes</label>
-          <textarea id="payment_notes" placeholder="Optional notes about this payment"></textarea>
-        </div>
-
-        <div style="grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="submit" class="btn-primary" style="min-width: 180px;">Save Payment</button>
-          <button type="button" id="reset-payment-btn" class="secondary" style="min-width: 140px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Reset Form</button>
-        </div>
-      </form>
-
-      <div id="payment-message" style="margin-top: 14px;"></div>
+      <div id="outstanding-alerts">
+        <p>Loading finance alerts...</p>
+      </div>
     </div>
 
     <div class="page-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
-        <div>
-          <h2 style="margin-bottom: 6px;">Invoice Register</h2>
-          <p class="login-subtitle" style="margin-bottom: 0;">Latest billing records and payment balances.</p>
-        </div>
-
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button id="refresh-btn" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Refresh</button>
-        </div>
-      </div>
-
+      <h2 style="margin-bottom:12px;">Invoices and Payments</h2>
       <div id="invoice-list">
         <p>Loading invoices...</p>
       </div>
@@ -202,7 +203,7 @@
 
   <script>
     let currentUser = null;
-    let shipments = [];
+    let shipmentsCache = [];
     let invoicesCache = [];
 
     function escapeHtml(value) {
@@ -222,7 +223,14 @@
       });
     }
 
-    function showBoxMessage(targetId, message, type = "info") {
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      return date.toLocaleString();
+    }
+
+    function showMessage(targetId, message, type = "info") {
       const target = document.getElementById(targetId);
       const colorMap = {
         success: "#86efac",
@@ -230,242 +238,231 @@
         info: "#cbd5e1"
       };
 
-      target.innerHTML = `
-        <div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: ${colorMap[type] || "#cbd5e1"};">
-          ${escapeHtml(message)}
-        </div>
-      `;
+      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
     }
 
-    function clearBoxMessage(targetId) {
+    function clearMessage(targetId) {
       document.getElementById(targetId).innerHTML = "";
     }
 
-    function getInvoiceBadge(balance) {
-      const value = Number(balance || 0);
-
-      if (value <= 0) {
-        return '<span class="badge badge-success">Paid</span>';
-      }
-
-      return '<span class="badge badge-warning">Outstanding</span>';
-    }
-
-    function renderStats(invoices) {
-      const totalInvoices = invoices.length;
-      const totalBilled = invoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const totalPaid = invoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
-      const outstanding = invoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
-
-      document.getElementById("stat-total-invoices").textContent = String(totalInvoices);
-      document.getElementById("stat-total-billed").textContent = formatMoney(totalBilled);
-      document.getElementById("stat-total-paid").textContent = formatMoney(totalPaid);
-      document.getElementById("stat-outstanding").textContent = formatMoney(outstanding);
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
     }
 
     async function loadCurrentUser() {
       try {
         const response = await fetch("/api/me");
-
         if (!response.ok) {
           window.location.href = "/login";
           return false;
         }
 
         const data = await response.json();
-
         if (!data.success || !data.user) {
           window.location.href = "/login";
           return false;
         }
 
         currentUser = data.user;
-        document.getElementById("user-username").textContent = currentUser.username || "-";
-        document.getElementById("user-role").textContent = currentUser.role || "-";
-        document.getElementById("user-status").textContent = "Authenticated";
+        setText("user-username", currentUser.username || "-");
+        setText("user-role", currentUser.role || "-");
+        setText("user-status", "Authenticated");
 
         if (["admin", "accounts", "operations"].includes(currentUser.role)) {
-          document.getElementById("invoice-form-panel").style.display = "block";
+          document.getElementById("invoice-panel").style.display = "block";
         }
 
         if (["admin", "accounts"].includes(currentUser.role)) {
-          document.getElementById("payment-form-panel").style.display = "block";
+          document.getElementById("payment-panel").style.display = "block";
         }
 
         return true;
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
         return false;
       }
     }
 
     async function loadShipments() {
-      const shipmentSelect = document.getElementById("invoice_shipment_id");
-
       try {
         const response = await fetch("/api/shipments");
-
         if (!response.ok) {
-          shipmentSelect.innerHTML = '<option value="">Could not load shipments</option>';
+          shipmentsCache = [];
           return;
         }
 
         const data = await response.json();
-
         if (!data.success || !Array.isArray(data.shipments)) {
-          shipmentSelect.innerHTML = '<option value="">No shipments found</option>';
+          shipmentsCache = [];
           return;
         }
 
-        shipments = data.shipments;
-        shipmentSelect.innerHTML = '<option value="">Select shipment</option>';
-
-        shipments.forEach((shipment) => {
-          const option = document.createElement("option");
-          option.value = shipment.id;
-          option.textContent = `${shipment.reference_number} - ${shipment.client_name}`;
-          shipmentSelect.appendChild(option);
-        });
-      } catch (error) {
-        shipmentSelect.innerHTML = '<option value="">Could not load shipments</option>';
+        shipmentsCache = data.shipments || [];
+      } catch (_error) {
+        shipmentsCache = [];
       }
     }
 
-    function fillPaymentInvoiceOptions(invoices) {
-      const select = document.getElementById("payment_invoice_id");
-      select.innerHTML = '<option value="">Select invoice</option>';
+    async function loadInvoices() {
+      try {
+        const response = await fetch("/api/invoices");
+        if (!response.ok) {
+          invoicesCache = [];
+          renderInvoiceList([]);
+          renderOutstandingAlerts([]);
+          renderSummaryCards([]);
+          return;
+        }
 
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.invoices)) {
+          invoicesCache = [];
+          renderInvoiceList([]);
+          renderOutstandingAlerts([]);
+          renderSummaryCards([]);
+          return;
+        }
+
+        invoicesCache = data.invoices || [];
+        renderInvoiceList(invoicesCache);
+        renderOutstandingAlerts(invoicesCache);
+        renderSummaryCards(invoicesCache);
+        populateInvoiceDropdown(invoicesCache);
+      } catch (_error) {
+        invoicesCache = [];
+        renderInvoiceList([]);
+        renderOutstandingAlerts([]);
+        renderSummaryCards([]);
+      }
+    }
+
+    function populateShipmentDropdown(shipments) {
+      const select = document.getElementById("invoice_shipment_id");
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Select shipment</option>';
+      shipments.forEach((shipment) => {
+        const option = document.createElement("option");
+        option.value = shipment.id;
+        option.textContent = `${shipment.reference_number} - ${shipment.client_name}`;
+        select.appendChild(option);
+      });
+    }
+
+    function populateInvoiceDropdown(invoices) {
+      const select = document.getElementById("payment_invoice_id");
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Select invoice</option>';
       invoices.forEach((invoice) => {
         const option = document.createElement("option");
         option.value = invoice.id;
-        option.textContent = `${invoice.invoice_number} | ${invoice.reference_number || "-"} | Balance: ${formatMoney(invoice.balance)}`;
+        option.textContent = `${invoice.invoice_number} - ${invoice.reference_number} - Balance ${formatMoney(invoice.balance)}`;
         select.appendChild(option);
       });
+    }
+
+    function renderSummaryCards(invoices) {
+      const totalInvoices = invoices.length;
+      const totalBilled = invoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const totalPaid = invoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
+      const totalOutstanding = invoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+
+      setText("card-total-invoices", String(totalInvoices));
+      setText("card-total-billed", formatMoney(totalBilled));
+      setText("card-total-paid", formatMoney(totalPaid));
+      setText("card-total-outstanding", formatMoney(totalOutstanding));
+    }
+
+    function renderOutstandingAlerts(invoices) {
+      const target = document.getElementById("outstanding-alerts");
+      const outstanding = invoices.filter((invoice) => Number(invoice.balance || 0) > 0);
+
+      if (!outstanding.length) {
+        target.innerHTML = "<p>No outstanding balance alerts found.</p>";
+        return;
+      }
+
+      target.innerHTML = outstanding.map((invoice) => `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Invoice:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
+              <p style="margin:0 0 6px 0;"><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
+              <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
+            </div>
+
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Billed:</strong> ${formatMoney(invoice.amount)}</p>
+              <p style="margin:0 0 6px 0;"><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
+              <p style="margin:0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
+            </div>
+          </div>
+        </div>
+      `).join("");
     }
 
     function renderInvoiceList(invoices) {
       const target = document.getElementById("invoice-list");
 
-      if (!invoices || !invoices.length) {
+      if (!invoices.length) {
         target.innerHTML = "<p>No invoices found.</p>";
         return;
       }
 
-      target.innerHTML = invoices.map((invoice) => {
-        const shipmentLink = invoice.shipment_id ? `/registry-detail?id=${invoice.shipment_id}` : "#";
-
-        return `
-          <div class="page-card" style="padding: 14px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
-              <div>
-                <p style="margin: 0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_number)}</p>
-                <p style="margin: 0;"><strong>Reference:</strong> <a href="${shipmentLink}">${escapeHtml(invoice.reference_number || "-")}</a></p>
-              </div>
-              <div>${getInvoiceBadge(invoice.balance)}</div>
+      target.innerHTML = invoices.map((invoice) => `
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
+              <p style="margin:0 0 6px 0;"><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
+              <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
-              <div>
-                <p style="margin: 0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
-                <p style="margin: 0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
-                <p style="margin: 0;"><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
-              </div>
-
-              <div>
-                <p style="margin: 0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)}</p>
-                <p style="margin: 0 0 6px 0;"><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
-                <p style="margin: 0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
-              </div>
-
-              <div>
-                <p style="margin: 0 0 6px 0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
-                <p style="margin: 0;"><strong>Created At:</strong> ${new Date(invoice.created_at).toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div style="margin-top: 10px;">
-              <p style="margin: 0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
+              <p style="margin:0 0 6px 0;"><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
+              <p style="margin:0;"><strong>Created:</strong> ${formatDateTime(invoice.created_at)}</p>
             </div>
           </div>
-        `;
-      }).join("");
-    }
 
-    async function loadInvoices() {
-      const target = document.getElementById("invoice-list");
-      target.innerHTML = "<p>Loading invoices...</p>";
+          <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;margin-bottom:10px;">
+            <div class="card" style="background:rgba(255,255,255,0.02);">
+              <p class="login-subtitle" style="margin-bottom:6px;">Amount</p>
+              <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.amount)}</div>
+            </div>
 
-      try {
-        const response = await fetch("/api/invoices");
+            <div class="card" style="background:rgba(255,255,255,0.02);">
+              <p class="login-subtitle" style="margin-bottom:6px;">Paid</p>
+              <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.paid_amount)}</div>
+            </div>
 
-        if (!response.ok) {
-          target.innerHTML = "<p>Could not load invoices.</p>";
-          return;
-        }
+            <div class="card" style="background:rgba(255,255,255,0.02);">
+              <p class="login-subtitle" style="margin-bottom:6px;">Balance</p>
+              <div class="stat-value" style="font-size:1.15rem;">${formatMoney(invoice.balance)}</div>
+            </div>
+          </div>
 
-        const data = await response.json();
-
-        if (!data.success) {
-          target.innerHTML = "<p>Could not load invoices.</p>";
-          return;
-        }
-
-        invoicesCache = data.invoices || [];
-        renderStats(invoicesCache);
-        renderInvoiceList(invoicesCache);
-        fillPaymentInvoiceOptions(invoicesCache);
-      } catch (error) {
-        target.innerHTML = "<p>Could not load invoices.</p>";
-      }
+          <p style="margin:0 0 10px 0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+          <p style="margin:0 0 12px 0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+        </div>
+      `).join("");
     }
 
     function resetInvoiceForm() {
       document.getElementById("invoice-form").reset();
-      clearBoxMessage("invoice-message");
+      clearMessage("invoice-message");
     }
 
     function resetPaymentForm() {
       document.getElementById("payment-form").reset();
-      clearBoxMessage("payment-message");
+      clearMessage("payment-message");
     }
 
-    function applyPaymentQuickFill(value) {
-      const invoiceId = document.getElementById("payment_invoice_id").value;
-      const amountInput = document.getElementById("payment_amount");
-
-      const invoice = invoicesCache.find((item) => String(item.id) === String(invoiceId));
-      if (!invoice) return;
-
-      const balance = Number(invoice.balance || 0);
-
-      if (value === "full-balance") {
-        amountInput.value = balance > 0 ? balance.toFixed(2) : "0.00";
-      }
-
-      if (value === "half-balance") {
-        amountInput.value = balance > 0 ? (balance / 2).toFixed(2) : "0.00";
-      }
-    }
-
-    document.getElementById("payment_quick_fill").addEventListener("change", function () {
-      applyPaymentQuickFill(this.value);
-    });
-
-    document.getElementById("reset-invoice-btn").addEventListener("click", function () {
-      resetInvoiceForm();
-    });
-
-    document.getElementById("reset-payment-btn").addEventListener("click", function () {
-      resetPaymentForm();
-    });
-
-    document.getElementById("refresh-btn").addEventListener("click", async function () {
-      await loadInvoices();
-    });
-
-    document.getElementById("invoice-form").addEventListener("submit", async function (event) {
+    async function saveInvoice(event) {
       event.preventDefault();
-      clearBoxMessage("invoice-message");
+      clearMessage("invoice-message");
 
       const payload = {
         shipment_id: Number(document.getElementById("invoice_shipment_id").value),
@@ -477,16 +474,14 @@
       };
 
       if (!payload.shipment_id || !payload.invoice_number || !payload.charge_type || !payload.amount) {
-        showBoxMessage("invoice-message", "Shipment, invoice number, charge type, and amount are required.", "error");
+        showMessage("invoice-message", "Shipment, invoice number, charge type, and amount are required.", "error");
         return;
       }
 
       try {
         const response = await fetch("/api/invoices", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
@@ -496,17 +491,17 @@
           throw new Error(data.error || "Could not save invoice.");
         }
 
-        showBoxMessage("invoice-message", `Invoice ${data.invoice.invoice_number} saved successfully.`, "success");
+        showMessage("invoice-message", `Invoice ${data.invoice.invoice_number} saved successfully.`, "success");
         resetInvoiceForm();
         await loadInvoices();
       } catch (error) {
-        showBoxMessage("invoice-message", error.message || "Could not save invoice.", "error");
+        showMessage("invoice-message", error.message || "Could not save invoice.", "error");
       }
-    });
+    }
 
-    document.getElementById("payment-form").addEventListener("submit", async function (event) {
+    async function savePayment(event) {
       event.preventDefault();
-      clearBoxMessage("payment-message");
+      clearMessage("payment-message");
 
       const payload = {
         invoice_id: Number(document.getElementById("payment_invoice_id").value),
@@ -517,16 +512,14 @@
       };
 
       if (!payload.invoice_id || !payload.amount || !payload.payment_method) {
-        showBoxMessage("payment-message", "Invoice, amount, and payment method are required.", "error");
+        showMessage("payment-message", "Invoice, amount, and payment method are required.", "error");
         return;
       }
 
       try {
         const response = await fetch("/api/payments", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
@@ -536,12 +529,23 @@
           throw new Error(data.error || "Could not save payment.");
         }
 
-        showBoxMessage("payment-message", "Payment recorded successfully.", "success");
+        showMessage("payment-message", "Payment recorded successfully.", "success");
         resetPaymentForm();
         await loadInvoices();
       } catch (error) {
-        showBoxMessage("payment-message", error.message || "Could not save payment.", "error");
+        showMessage("payment-message", error.message || "Could not save payment.", "error");
       }
+    }
+
+    document.getElementById("invoice-form").addEventListener("submit", saveInvoice);
+    document.getElementById("payment-form").addEventListener("submit", savePayment);
+
+    document.getElementById("reset-invoice-btn").addEventListener("click", resetInvoiceForm);
+    document.getElementById("reset-payment-btn").addEventListener("click", resetPaymentForm);
+
+    document.getElementById("refresh-finance-btn").addEventListener("click", async function () {
+      await Promise.all([loadShipments(), loadInvoices()]);
+      populateShipmentDropdown(shipmentsCache);
     });
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
@@ -549,7 +553,7 @@
         const response = await fetch("/logout", { method: "POST" });
         const data = await response.json();
         window.location.href = data.redirect || "/login";
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
       }
     });
@@ -558,8 +562,9 @@
       const ok = await loadCurrentUser();
       if (!ok) return;
 
-      await loadShipments();
-      await loadInvoices();
+      await Promise.all([loadShipments(), loadInvoices()]);
+      populateShipmentDropdown(shipmentsCache);
+      populateInvoiceDropdown(invoicesCache);
     }
 
     initPage();

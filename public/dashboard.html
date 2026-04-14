@@ -7,174 +7,199 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1120px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+  <div style="max-width: 1180px; margin: 0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       <div>
-        <div class="login-brand" style="margin-bottom: 8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size: 2rem; margin-bottom: 8px;">BE-MCs Control Center</h1>
-        <p class="login-subtitle" style="margin-bottom: 0;">
-          Real-time operational view of shipments, live statuses, billing, and tracking readiness.
+        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
+        <h1 style="font-size:2rem;margin-bottom:8px;">BE-MCs Control Center</h1>
+        <p class="login-subtitle" style="margin-bottom:0;">
+          Real-time operational view of shipment visibility, tracking readiness, and finance health.
         </p>
       </div>
 
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="/shipment-registry" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 160px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Shipment Registry</a>
-        <a href="/tracking" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Tracking</a>
-        <a href="/accounting" class="secondary" style="display: inline-flex; align-items: center; justify-content: center; min-width: 120px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--accent); color: var(--accent);">Accounting</a>
-        <button id="logout-btn" class="btn-primary" style="min-width: 110px;">Logout</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Shipment Registry</a>
+        <a href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Tracking</a>
+        <a href="/accounting" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Accounting</a>
+        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Current User</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Current User</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin: 0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
         <div>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin: 0;"><strong>Session:</strong> Active</p>
+          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p style="margin:0;"><strong>Session:</strong> Active</p>
         </div>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px;margin-bottom:16px;">
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Shipments</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Shipments</p>
         <div id="card-total-shipments" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Active Shipments</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Active Shipments</p>
         <div id="card-active-shipments" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Delivered Shipments</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Delivered Shipments</p>
         <div id="card-delivered-shipments" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Invoices</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Invoices</p>
         <div id="card-total-invoices" class="stat-value">0</div>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+    <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:14px;margin-bottom:16px;">
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Billed</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
         <div id="card-total-billed" class="stat-value">0.00</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Total Paid</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
         <div id="card-total-paid" class="stat-value">0.00</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Outstanding</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
         <div id="card-outstanding" class="stat-value">0.00</div>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;">
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px;margin-bottom:16px;">
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Tracking Configured</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Tracking Configured</p>
         <div id="card-tracking-configured" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Tracking Missing</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Tracking Missing</p>
         <div id="card-tracking-missing" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Live Status Available</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Live Status Available</p>
         <div id="card-live-status-ready" class="stat-value">0</div>
       </div>
 
       <div class="stat-card">
-        <p class="login-subtitle" style="margin-bottom: 6px;">Ready for Sync</p>
+        <p class="login-subtitle" style="margin-bottom:6px;">Ready for Sync</p>
         <div id="card-ready-for-sync" class="stat-value">0</div>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Quick Links</h2>
-      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
-        <a href="/shipment-registry" class="card" style="text-decoration: none; color: inherit;">
-          <h3 style="margin-bottom: 8px;">Shipment Registry</h3>
-          <p style="margin: 0;">Register shipments and configure tracking identifiers.</p>
-        </a>
+    <div class="page-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <h2 style="margin-bottom:6px;">Operational Alerts</h2>
+          <p class="login-subtitle" style="margin-bottom:0;">Monitoring alerts based on shipment visibility and finance exposure.</p>
+        </div>
+        <button id="refresh-dashboard-btn" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh</button>
+      </div>
 
-        <a href="/tracking" class="card" style="text-decoration: none; color: inherit;">
-          <h3 style="margin-bottom: 8px;">Tracking Center</h3>
-          <p style="margin: 0;">Run sync, monitor live status, and manage milestone visibility.</p>
-        </a>
+      <div id="alert-grid" style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px;">
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Missing Tracking Identity</p>
+          <div id="alert-missing-tracking" class="stat-value">0</div>
+        </div>
 
-        <a href="/accounting" class="card" style="text-decoration: none; color: inherit;">
-          <h3 style="margin-bottom: 8px;">Accounting</h3>
-          <p style="margin: 0;">Create invoices, record payments, and review balances.</p>
-        </a>
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Configured, No Live Events</p>
+          <div id="alert-no-live-events" class="stat-value">0</div>
+        </div>
 
-        <a href="/system-health" class="card" style="text-decoration: none; color: inherit;">
-          <h3 style="margin-bottom: 8px;">System Health</h3>
-          <p style="margin: 0;">Check application, database, and operational status.</p>
-        </a>
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Outstanding Finance</p>
+          <div id="alert-outstanding-finance" class="stat-value">0</div>
+        </div>
+
+        <div class="stat-card">
+          <p class="login-subtitle" style="margin-bottom:6px;">Closed / Completed</p>
+          <div id="alert-closed-completed" class="stat-value">0</div>
+        </div>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Recent Tracking Events</h2>
+        <h2 style="margin-bottom:12px;">Shipments Missing Tracking Identity</h2>
+        <div id="shipments-missing-tracking">
+          <p>Loading shipments...</p>
+        </div>
+      </div>
+
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Configured But No Live Events</h2>
+        <div id="shipments-no-live-events">
+          <p>Loading shipments...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Shipments With Outstanding Balances</h2>
+      <div id="shipments-outstanding-finance">
+        <p>Loading finance alerts...</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="page-card">
+        <h2 style="margin-bottom:12px;">Recent Tracking Events</h2>
         <div id="recent-tracking">
           <p>Loading recent tracking events...</p>
         </div>
       </div>
 
       <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Recent Invoices</h2>
+        <h2 style="margin-bottom:12px;">Recent Invoices</h2>
         <div id="recent-invoices">
           <p>Loading recent invoices...</p>
         </div>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom: 16px;">
-      <h2 style="margin-bottom: 12px;">Recent Payments</h2>
+    <div class="page-card" style="margin-bottom:16px;">
+      <h2 style="margin-bottom:12px;">Recent Payments</h2>
       <div id="recent-payments">
         <p>Loading recent payments...</p>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-      <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Shipments Ready for Tracking Sync</h2>
-        <div id="shipments-ready-sync">
-          <p>Loading shipments...</p>
-        </div>
-      </div>
-
-      <div class="page-card">
-        <h2 style="margin-bottom: 12px;">Shipments Missing Tracking Setup</h2>
-        <div id="shipments-missing-tracking">
-          <p>Loading shipments...</p>
-        </div>
-      </div>
-    </div>
-
     <div class="page-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
-        <div>
-          <h2 style="margin-bottom: 6px;">Live Shipment Status Snapshot</h2>
-          <p class="login-subtitle" style="margin-bottom: 0;">Current visibility overview from registered shipments.</p>
-        </div>
-        <button id="refresh-dashboard-btn" class="secondary" style="min-width: 120px; border: 1px solid var(--accent); color: var(--accent); background: transparent;">Refresh</button>
-      </div>
+      <h2 style="margin-bottom:12px;">Quick Links</h2>
+      <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:12px;">
+        <a href="/shipment-registry" class="card" style="text-decoration:none;color:inherit;">
+          <h3 style="margin-bottom:8px;">Shipment Registry</h3>
+          <p style="margin:0;">Create shipments and prepare provider sync.</p>
+        </a>
 
-      <div id="live-status-snapshot">
-        <p>Loading live shipment statuses...</p>
+        <a href="/tracking" class="card" style="text-decoration:none;color:inherit;">
+          <h3 style="margin-bottom:8px;">Tracking Center</h3>
+          <p style="margin:0;">Review live status, sync logs, and timelines.</p>
+        </a>
+
+        <a href="/accounting" class="card" style="text-decoration:none;color:inherit;">
+          <h3 style="margin-bottom:8px;">Accounting</h3>
+          <p style="margin:0;">Manage invoices, balances, and payments.</p>
+        </a>
+
+        <a href="/system-health" class="card" style="text-decoration:none;color:inherit;">
+          <h3 style="margin-bottom:8px;">System Health</h3>
+          <p style="margin:0;">Check backend, DB, and automation readiness.</p>
+        </a>
       </div>
     </div>
   </div>
@@ -182,6 +207,7 @@
   <script>
     let currentUser = null;
     let shipmentsCache = [];
+    let invoicesCache = [];
 
     function escapeHtml(value) {
       return String(value || "")
@@ -233,7 +259,7 @@
         setText("user-role", currentUser.role || "-");
         setText("user-status", "Authenticated");
         return true;
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
         return false;
       }
@@ -258,12 +284,11 @@
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="card" style="margin-bottom: 12px;">
+        <div class="card" style="margin-bottom:12px;">
           <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(event.reference_number || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(event.client_name || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
           <p style="margin:0;"><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
         </div>
       `).join("");
@@ -278,13 +303,12 @@
       }
 
       target.innerHTML = invoices.map((invoice) => `
-        <div class="card" style="margin-bottom: 12px;">
+        <div class="card" style="margin-bottom:12px;">
           <p style="margin:0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(invoice.reference_number || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
-          <p style="margin:0;"><strong>Created:</strong> ${formatDateTime(invoice.created_at)}</p>
+          <p style="margin:0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
         </div>
       `).join("");
     }
@@ -298,72 +322,74 @@
       }
 
       target.innerHTML = payments.map((payment) => `
-        <div class="card" style="margin-bottom: 12px;">
+        <div class="card" style="margin-bottom:12px;">
           <p style="margin:0 0 6px 0;"><strong>Invoice No:</strong> ${escapeHtml(payment.invoice_number || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(payment.reference_number || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(payment.client_name || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
           <p style="margin:0 0 6px 0;"><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Reference Text:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
           <p style="margin:0;"><strong>Created:</strong> ${formatDateTime(payment.created_at)}</p>
         </div>
       `).join("");
     }
 
     async function loadDashboardSummary() {
-      const trackingTarget = document.getElementById("recent-tracking");
-      const invoiceTarget = document.getElementById("recent-invoices");
-      const paymentTarget = document.getElementById("recent-payments");
-
       try {
         const response = await fetch("/api/dashboard-summary");
 
-        if (!response.ok) {
-          trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          return;
-        }
+        if (!response.ok) return null;
 
         const data = await response.json();
-
-        if (!data.success) {
-          trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-          return;
-        }
+        if (!data.success) return null;
 
         renderSummaryCards(data.summary || {});
         renderRecentTracking(data.recent_tracking || []);
         renderRecentInvoices(data.recent_invoices || []);
         renderRecentPayments(data.recent_payments || []);
-      } catch (error) {
-        trackingTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-        invoiceTarget.innerHTML = "<p>Could not load dashboard data.</p>";
-        paymentTarget.innerHTML = "<p>Could not load dashboard data.</p>";
+
+        return data.summary || {};
+      } catch (_error) {
+        return null;
       }
     }
 
     async function loadShipments() {
       try {
         const response = await fetch("/api/shipments");
-
         if (!response.ok) {
           shipmentsCache = [];
           return;
         }
 
         const data = await response.json();
-
         if (!data.success || !Array.isArray(data.shipments)) {
           shipmentsCache = [];
           return;
         }
 
         shipmentsCache = data.shipments || [];
-      } catch (error) {
+      } catch (_error) {
         shipmentsCache = [];
+      }
+    }
+
+    async function loadInvoices() {
+      try {
+        const response = await fetch("/api/invoices");
+        if (!response.ok) {
+          invoicesCache = [];
+          return;
+        }
+
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.invoices)) {
+          invoicesCache = [];
+          return;
+        }
+
+        invoicesCache = data.invoices || [];
+      } catch (_error) {
+        invoicesCache = [];
       }
     }
 
@@ -377,26 +403,17 @@
       setText("card-tracking-missing", String(missing.length));
       setText("card-live-status-ready", String(liveReady.length));
       setText("card-ready-for-sync", String(readyForSync.length));
-    }
 
-    function renderShipmentsReadyForSync() {
-      const target = document.getElementById("shipments-ready-sync");
-      const items = shipmentsCache.filter((s) => Boolean(s.tracking_provider || s.bill_of_lading || s.container_number || s.booking_number));
+      setText("alert-missing-tracking", String(missing.length));
 
-      if (!items.length) {
-        target.innerHTML = "<p>No shipments are configured for tracking sync yet.</p>";
-        return;
-      }
+      const configuredNoLive = configured.filter((s) => !s.current_tracking_status && !s.current_tracking_time);
+      setText("alert-no-live-events", String(configuredNoLive.length));
 
-      target.innerHTML = items.slice(0, 10).map((shipment) => `
-        <div class="card" style="margin-bottom: 12px;">
-          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
-          <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Tracking ID:</strong> ${escapeHtml(shipment.container_number || shipment.bill_of_lading || shipment.booking_number || "-")}</p>
-          <p style="margin:0;"><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
-        </div>
-      `).join("");
+      const outstandingFinance = invoicesCache.filter((i) => Number(i.balance || 0) > 0);
+      setText("alert-outstanding-finance", String(outstandingFinance.length));
+
+      const closedCompleted = shipmentsCache.filter((s) => ["closed", "completed"].includes(String(s.status || "").toLowerCase()));
+      setText("alert-closed-completed", String(closedCompleted.length));
     }
 
     function renderShipmentsMissingTracking() {
@@ -404,93 +421,81 @@
       const items = shipmentsCache.filter((s) => !s.tracking_provider && !s.bill_of_lading && !s.container_number && !s.booking_number);
 
       if (!items.length) {
-        target.innerHTML = "<p>All listed shipments have tracking configuration.</p>";
+        target.innerHTML = "<p>All listed shipments have tracking identity.</p>";
         return;
       }
 
       target.innerHTML = items.slice(0, 10).map((shipment) => `
-        <div class="card" style="margin-bottom: 12px;">
+        <div class="card" style="margin-bottom:12px;">
           <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
           <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
           <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
-          <p style="margin:0;"><strong>Action:</strong> Add provider / BL / container / booking in Shipment Registry.</p>
+          <p style="margin:0;"><strong>Action:</strong> Add BL, container, or booking number.</p>
         </div>
       `).join("");
     }
 
-    async function renderLiveStatusSnapshot() {
-      const target = document.getElementById("live-status-snapshot");
+    function renderShipmentsNoLiveEvents() {
+      const target = document.getElementById("shipments-no-live-events");
+      const items = shipmentsCache.filter((s) =>
+        (s.tracking_provider || s.bill_of_lading || s.container_number || s.booking_number) &&
+        !s.current_tracking_status &&
+        !s.current_tracking_time
+      );
 
-      if (!shipmentsCache.length) {
-        target.innerHTML = "<p>No shipments found.</p>";
+      if (!items.length) {
+        target.innerHTML = "<p>All configured shipments show tracking visibility or initial status.</p>";
         return;
       }
 
-      const topShipments = shipmentsCache.slice(0, 8);
+      target.innerHTML = items.slice(0, 10).map((shipment) => `
+        <div class="card" style="margin-bottom:12px;">
+          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
+          <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+          <p style="margin:0 0 6px 0;"><strong>Tracking ID:</strong> ${escapeHtml(shipment.container_number || shipment.bill_of_lading || shipment.booking_number || "-")}</p>
+          <p style="margin:0;"><strong>Action:</strong> Open detail and run sync.</p>
+        </div>
+      `).join("");
+    }
 
-      try {
-        const results = await Promise.all(
-          topShipments.map(async (shipment) => {
-            try {
-              const response = await fetch(`/api/shipments/${shipment.id}/live-status`);
-              if (!response.ok) {
-                return {
-                  shipment,
-                  live_status: null
-                };
-              }
+    function renderOutstandingFinance() {
+      const target = document.getElementById("shipments-outstanding-finance");
+      const items = invoicesCache.filter((i) => Number(i.balance || 0) > 0);
 
-              const data = await response.json();
-              return {
-                shipment,
-                live_status: data.live_status || null
-              };
-            } catch (error) {
-              return {
-                shipment,
-                live_status: null
-              };
-            }
-          })
-        );
+      if (!items.length) {
+        target.innerHTML = "<p>No outstanding finance exposure found.</p>";
+        return;
+      }
 
-        target.innerHTML = results.map(({ shipment, live_status }) => `
-          <div class="card" style="margin-bottom: 12px;">
-            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
-              <div>
-                <p style="margin:0 0 6px 0;"><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
-                <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
-              </div>
-              <div>
-                <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
-                <p style="margin:0;"><strong>Configured:</strong> ${(shipment.tracking_provider || shipment.container_number || shipment.bill_of_lading || shipment.booking_number) ? "Yes" : "No"}</p>
-              </div>
+      target.innerHTML = items.slice(0, 12).map((invoice) => `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Invoice:</strong> ${escapeHtml(invoice.invoice_number || "-")}</p>
+              <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(invoice.reference_number || "-")}</p>
+              <p style="margin:0;"><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
-
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
-              <div>
-                <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml((live_status && live_status.current_status) || shipment.current_tracking_status || shipment.status || "-")}</p>
-                <p style="margin:0;"><strong>Status Time:</strong> ${formatDateTime((live_status && live_status.current_status_time) || shipment.current_tracking_time)}</p>
-              </div>
-              <div>
-                <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${escapeHtml((live_status && live_status.latest_event && live_status.latest_event.event_status) || "-")}</p>
-                <p style="margin:0;"><strong>Source:</strong> ${escapeHtml((live_status && live_status.latest_event && live_status.latest_event.source_name) || "-")}</p>
-              </div>
+            <div>
+              <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)}</p>
+              <p style="margin:0 0 6px 0;"><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
+              <p style="margin:0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
             </div>
           </div>
-        `).join("");
-      } catch (error) {
-        target.innerHTML = "<p>Could not load live shipment statuses.</p>";
-      }
+        </div>
+      `).join("");
     }
 
     async function refreshAllDashboardData() {
-      await loadDashboardSummary();
-      await loadShipments();
+      await Promise.all([
+        loadDashboardSummary(),
+        loadShipments(),
+        loadInvoices()
+      ]);
+
       renderTrackingReadinessCards();
-      renderShipmentsReadyForSync();
       renderShipmentsMissingTracking();
-      await renderLiveStatusSnapshot();
+      renderShipmentsNoLiveEvents();
+      renderOutstandingFinance();
     }
 
     document.getElementById("refresh-dashboard-btn").addEventListener("click", async function () {
@@ -502,7 +507,7 @@
         const response = await fetch("/logout", { method: "POST" });
         const data = await response.json();
         window.location.href = data.redirect || "/login";
-      } catch (error) {
+      } catch (_error) {
         window.location.href = "/login";
       }
     });

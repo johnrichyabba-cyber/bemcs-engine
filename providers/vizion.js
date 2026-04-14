@@ -1,31 +1,75 @@
-const crypto = require("crypto");
+"use strict";
 
-const VIZION_BASE_URL = "https://api.vizionapi.com";
+/**
+ * Vizion provider wrapper
+ *
+ * Supported capabilities:
+ * - createReference()
+ * - listReferenceUpdates()
+ * - getReference()
+ * - deactivateReference()
+ * - normalizeUpdatesPayload()
+ *
+ * Env vars:
+ * - VIZION_API_KEY
+ * - VIZION_API_BASE_URL   (optional, defaults to prod)
+ * - APP_BASE_URL          (optional, used for callback_url)
+ * - VIZION_WEBHOOK_SECRET (optional, appended to callback URL as query param)
+ */
 
-function getHeaders() {
-  const apiKey = process.env.VIZION_API_KEY;
-  if (!apiKey) {
-    throw new Error("VIZION_API_KEY is missing.");
-  }
+const DEFAULT_BASE_URL = "https://prod.vizionapi.com";
+
+function getConfig() {
+  const apiKey = String(process.env.VIZION_API_KEY || "").trim();
+  const baseUrl = String(process.env.VIZION_API_BASE_URL || DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
+  const appBaseUrl = String(process.env.APP_BASE_URL || "").trim().replace(/\/+$/, "");
+  const webhookSecret = String(process.env.VIZION_WEBHOOK_SECRET || "").trim();
 
   return {
-    "Content-Type": "application/json",
-    "X-API-Key": apiKey
+    apiKey,
+    baseUrl,
+    appBaseUrl,
+    webhookSecret
   };
 }
 
-async function vizionFetch(path, options = {}) {
-  const response = await fetch(`${VIZION_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...(options.headers || {})
-    }
-  });
+function assertConfigured() {
+  const { apiKey } = getConfig();
 
+  if (!apiKey) {
+    throw new Error("VIZION_API_KEY is missing. Set it in your environment before using live provider tracking.");
+  }
+}
+
+function buildHeaders(extra = {}) {
+  const { apiKey } = getConfig();
+
+  return {
+    "Content-Type": "application/json",
+    "X-API-Key": apiKey,
+    ...extra
+  };
+}
+
+async function request(method, endpoint, body) {
+  assertConfigured();
+
+  const { baseUrl } = getConfig();
+  const url = `${baseUrl}${endpoint}`;
+
+  const options = {
+    method,
+    headers: buildHeaders()
+  };
+
+  if (body !== undefined) {
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, options);
   const text = await response.text();
-  let data = null;
 
+  let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch (_error) {
@@ -34,151 +78,243 @@ async function vizionFetch(path, options = {}) {
 
   if (!response.ok) {
     const message =
-      (data && (data.message || data.error || data.detail)) ||
+      data?.message ||
+      data?.error ||
+      data?.raw ||
       `Vizion request failed with status ${response.status}`;
-    const err = new Error(message);
-    err.status = response.status;
-    err.payload = data;
-    throw err;
+    throw new Error(message);
   }
 
   return data;
 }
 
-function buildCallbackUrl(shipmentId) {
-  const baseUrl = String(process.env.APP_BASE_URL || "").trim();
-  const secret = String(process.env.VIZION_WEBHOOK_SECRET || "").trim();
+function buildCallbackUrl() {
+  const { appBaseUrl, webhookSecret } = getConfig();
 
-  if (!baseUrl) {
-    throw new Error("APP_BASE_URL is missing.");
+  if (!appBaseUrl) return undefined;
+
+  const url = new URL(`${appBaseUrl}/api/webhooks/vizion`);
+  if (webhookSecret) {
+    url.searchParams.set("secret", webhookSecret);
   }
 
-  if (!secret) {
-    throw new Error("VIZION_WEBHOOK_SECRET is missing.");
-  }
-
-  const normalizedBase = baseUrl.replace(/\/+$/, "");
-  return `${normalizedBase}/webhooks/vizion/${shipmentId}?token=${encodeURIComponent(secret)}`;
+  return url.toString();
 }
 
-function decideReferenceInput(source) {
-  const containerId = String(source.container_number || "").trim();
-  const billOfLading = String(source.bill_of_lading || "").trim();
-  const bookingNumber = String(source.booking_number || "").trim();
-  const carrierCode = String(source.carrier_code || "").trim();
+function chooseReferenceBody(payload = {}) {
+  const providerName = String(payload.provider_name || "vizion").trim().toLowerCase();
+  const carrierCode = String(payload.carrier_code || "").trim() || undefined;
+  const billOfLading = String(payload.bill_of_lading || "").trim() || undefined;
+  const containerNumber =
+    String(payload.container_id || payload.container_number || "").trim() || undefined;
+  const bookingNumber = String(payload.booking_number || "").trim() || undefined;
+  const callbackUrl =
+    String(payload.callback_url || "").trim() || buildCallbackUrl() || undefined;
 
-  if (containerId) {
-    return {
-      container_id: containerId,
-      carrier_code: carrierCode || undefined
-    };
+  const body = {};
+
+  if (containerNumber) {
+    body.container_id = containerNumber;
   }
 
   if (billOfLading) {
-    return {
-      bill_of_lading: billOfLading,
-      carrier_code: carrierCode || undefined
-    };
+    body.bill_of_lading = billOfLading;
   }
 
   if (bookingNumber) {
-    return {
-      booking_number: bookingNumber,
-      carrier_code: carrierCode || undefined
-    };
+    body.booking_number = bookingNumber;
   }
 
-  throw new Error("No valid Vizion tracking identifier found. Add container number, bill of lading, or booking number.");
-}
+  if (carrierCode) {
+    body.carrier_code = carrierCode;
+  }
 
-async function createReference({ shipmentId, source }) {
-  const body = {
-    ...decideReferenceInput(source),
-    callback_url: buildCallbackUrl(shipmentId)
-  };
+  if (callbackUrl) {
+    body.callback_url = callbackUrl;
+  }
 
-  const response = await vizionFetch("/references", {
-    method: "POST",
-    body: JSON.stringify(body)
-  });
+  if (!body.container_id && !body.bill_of_lading && !body.booking_number) {
+    throw new Error("Vizion createReference requires one of: container_number, bill_of_lading, or booking_number.");
+  }
 
   return {
-    request_body: body,
-    response_body: response
+    provider_name: providerName,
+    body
   };
 }
 
-async function listReferenceUpdates(referenceId) {
-  if (!referenceId) {
-    throw new Error("referenceId is required.");
-  }
+function normalizeCreateResponse(data) {
+  if (!data) return null;
 
-  const response = await vizionFetch(`/references/${encodeURIComponent(referenceId)}/updates`, {
-    method: "GET"
-  });
-
-  return response;
+  return {
+    id: data.id || data.reference_id || data.uuid || null,
+    referenceId: data.reference_id || data.id || data.uuid || null,
+    reference_id: data.reference_id || data.id || data.uuid || null,
+    status:
+      data.last_update_status ||
+      data.status ||
+      data.provider_status ||
+      "registered",
+    raw: data
+  };
 }
 
-function normalizeEvent(update) {
-  const eventName =
-    update.standardized_event ||
-    update.standardized_milestone ||
-    update.milestone ||
-    update.event_name ||
-    update.status ||
-    "Tracking Update";
+async function createReference(payload = {}) {
+  const { body } = chooseReferenceBody(payload);
+  const data = await request("POST", "/references", body);
+  return normalizeCreateResponse(data);
+}
 
-  const locationName =
-    update.location_name ||
-    update.location?.name ||
-    update.location?.city ||
-    update.location?.port_name ||
-    update.location?.unlocode ||
-    "Unknown";
+async function getReference(referenceIdInput) {
+  const referenceId =
+    String(
+      referenceIdInput?.reference_id ||
+      referenceIdInput?.external_reference_id ||
+      referenceIdInput?.referenceId ||
+      referenceIdInput?.id ||
+      referenceIdInput ||
+      ""
+    ).trim();
+
+  if (!referenceId) {
+    throw new Error("Vizion getReference requires a reference id.");
+  }
+
+  const data = await request("GET", `/references/${encodeURIComponent(referenceId)}`);
+  return data;
+}
+
+async function listReferenceUpdates(referenceIdInput) {
+  const referenceId =
+    String(
+      referenceIdInput?.reference_id ||
+      referenceIdInput?.external_reference_id ||
+      referenceIdInput?.referenceId ||
+      referenceIdInput?.id ||
+      referenceIdInput ||
+      ""
+    ).trim();
+
+  if (!referenceId) {
+    throw new Error("Vizion listReferenceUpdates requires a reference id.");
+  }
+
+  const data = await request(
+    "GET",
+    `/references/${encodeURIComponent(referenceId)}/updates`
+  );
+
+  return data;
+}
+
+async function deactivateReference(referenceIdInput) {
+  const referenceId =
+    String(
+      referenceIdInput?.reference_id ||
+      referenceIdInput?.external_reference_id ||
+      referenceIdInput?.referenceId ||
+      referenceIdInput?.id ||
+      referenceIdInput ||
+      ""
+    ).trim();
+
+  if (!referenceId) {
+    throw new Error("Vizion deactivateReference requires a reference id.");
+  }
+
+  return request("DELETE", `/references/${encodeURIComponent(referenceId)}`);
+}
+
+function readNested(obj, paths = []) {
+  for (const path of paths) {
+    const value = path.split(".").reduce((acc, key) => acc?.[key], obj);
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+  return null;
+}
+
+function toArrayPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.updates)) return payload.updates;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (payload?.update) return [payload.update];
+  return [];
+}
+
+function normalizeMilestone(update = {}) {
+  const eventStatus =
+    readNested(update, [
+      "event_status",
+      "status",
+      "milestone_name",
+      "milestone.name",
+      "milestone",
+      "description",
+      "title",
+      "message"
+    ]) || "Provider Update";
 
   const eventTime =
-    update.event_time ||
-    update.occurred_at ||
-    update.timestamp ||
-    update.created_at ||
-    new Date().toISOString();
+    readNested(update, [
+      "event_time",
+      "timestamp",
+      "created_at",
+      "occurred_at",
+      "event_at",
+      "time",
+      "date",
+      "milestone_time",
+      "milestone.timestamp"
+    ]) || new Date().toISOString();
 
-  const remarksParts = [];
+  const locationName =
+    readNested(update, [
+      "location_name",
+      "location.name",
+      "location",
+      "port_name",
+      "port",
+      "city",
+      "place"
+    ]) || null;
 
-  if (update.description) remarksParts.push(update.description);
-  if (update.mode) remarksParts.push(`Mode: ${update.mode}`);
-  if (update.vessel_name) remarksParts.push(`Vessel: ${update.vessel_name}`);
-  if (update.voyage_number) remarksParts.push(`Voyage: ${update.voyage_number}`);
+  const remarks =
+    readNested(update, [
+      "remarks",
+      "details",
+      "description",
+      "message",
+      "event_description"
+    ]) || null;
+
+  const sourceName =
+    readNested(update, [
+      "source_name",
+      "provider_name"
+    ]) || "vizion";
 
   return {
-    external_event_id:
-      update.update_id ||
-      update.event_id ||
-      crypto.createHash("sha256").update(JSON.stringify(update)).digest("hex"),
-    source_status: eventName,
-    event_status: eventName,
-    location_name: locationName,
-    remarks: remarksParts.join(" | "),
+    event_status: String(eventStatus),
     event_time: eventTime,
-    raw_payload: update
+    location_name: locationName ? String(locationName) : null,
+    remarks: remarks ? String(remarks) : null,
+    source_name: String(sourceName)
   };
 }
 
 function normalizeUpdatesPayload(payload) {
-  const updates = Array.isArray(payload)
-    ? payload
-    : Array.isArray(payload?.updates)
-      ? payload.updates
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : [];
-
-  return updates.map(normalizeEvent);
+  const updates = toArrayPayload(payload);
+  return updates.map(normalizeMilestone);
 }
 
 module.exports = {
   createReference,
+  getReference,
   listReferenceUpdates,
+  deactivateReference,
   normalizeUpdatesPayload
 };

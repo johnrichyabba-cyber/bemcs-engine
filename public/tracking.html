@@ -111,7 +111,9 @@
             Current shipment visibility from the internal file and synchronized tracking workflow.
           </p>
         </div>
+
         <div class="topbar-actions">
+          <button id="refresh-live-btn" class="btn-outline" type="button" style="display:none;">Refresh Live</button>
           <button id="transfer-btn" class="btn-primary" type="button" style="display:none;">Transfer to Registry (Front Desk)</button>
           <a id="open-detail-btn" href="/shipment-registry" class="btn-outline" style="display:none;">Open Shipment Detail</a>
         </div>
@@ -135,7 +137,6 @@
 
   <script>
     let currentUser = null;
-    let shipmentsCache = [];
     let selectedMode = "container";
     let lastLookup = null;
     let matchedShipment = null;
@@ -228,11 +229,7 @@
       const grid = document.getElementById("mode-grid");
 
       grid.innerHTML = modes.map((mode) => `
-        <button
-          class="mode-card ${mode.code === selectedMode ? "mode-card-active" : ""}"
-          data-mode="${mode.code}"
-          type="button"
-        >
+        <button class="mode-card ${mode.code === selectedMode ? "mode-card-active" : ""}" data-mode="${mode.code}" type="button">
           <div class="mode-card-top">
             <div class="mode-badge">${escapeHtml(mode.title)}</div>
           </div>
@@ -250,60 +247,6 @@
       });
     }
 
-    function classifyTrackingNumber(mode, number) {
-      const value = String(number || "").trim().toUpperCase();
-
-      const patterns = {
-        container: /^[A-Z]{4}\d{6,7}$/,
-        air_cargo: /^\d{3}-?\d{8}$/,
-        post_ems: /^[A-Z]{2}\d{9}[A-Z]{2}$/
-      };
-
-      let valid = true;
-      let hint = "Accepted for manual review.";
-
-      if (mode === "container") {
-        valid = patterns.container.test(value);
-        hint = valid
-          ? "Container format looks correct and is ready for intake review."
-          : "Container format usually requires 4 letters followed by 6 or 7 digits.";
-      }
-
-      if (mode === "air_cargo") {
-        valid = patterns.air_cargo.test(value.replace(/\s+/g, ""));
-        hint = valid
-          ? "Air cargo format looks correct."
-          : "Air cargo reference usually appears as 3 digits followed by 8 digits.";
-      }
-
-      if (mode === "post_ems") {
-        valid = patterns.post_ems.test(value);
-        hint = valid
-          ? "Postal / EMS format looks correct."
-          : "Postal / EMS format usually appears as 2 letters + 9 digits + 2 letters.";
-      }
-
-      if (mode === "bill_of_lading") {
-        valid = value.length >= 6;
-        hint = valid
-          ? "Bill of Lading reference accepted."
-          : "Bill of Lading value looks too short for operational lookup.";
-      }
-
-      if (mode === "express") {
-        valid = value.length >= 6;
-        hint = valid
-          ? "Express reference accepted."
-          : "Express tracking reference looks too short.";
-      }
-
-      return {
-        normalized: value,
-        valid,
-        hint
-      };
-    }
-
     function renderLookupResult(result) {
       const target = document.getElementById("lookup-result");
 
@@ -317,39 +260,22 @@
           <p><strong>Mode:</strong> ${escapeHtml(result.mode)}</p>
           <p><strong>Tracking Number:</strong> ${escapeHtml(result.number)}</p>
           <p><strong>Validation:</strong> ${result.valid ? "Valid format" : "Needs review"}</p>
-          <p><strong>Assessment:</strong> ${escapeHtml(result.hint)}</p>
+          <p><strong>Assessment:</strong> ${escapeHtml(result.hint || "-")}</p>
         </div>
       `;
-    }
-
-    function findExistingShipment(mode, number) {
-      const value = String(number || "").trim().toUpperCase();
-
-      return shipmentsCache.find((shipment) => {
-        const reference = String(shipment.reference_number || "").trim().toUpperCase();
-        const bl = String(shipment.bill_of_lading || "").trim().toUpperCase();
-        const container = String(shipment.container_number || "").trim().toUpperCase();
-        const booking = String(shipment.booking_number || "").trim().toUpperCase();
-
-        if (mode === "container") return container === value;
-        if (mode === "bill_of_lading") return bl === value;
-        if (mode === "express") return reference === value || booking === value;
-        if (mode === "air_cargo") return reference === value;
-        if (mode === "post_ems") return reference === value;
-
-        return reference === value || bl === value || container === value || booking === value;
-      }) || null;
     }
 
     function renderExistingShipmentMatch(shipment) {
       const target = document.getElementById("existing-match-result");
       const transferBtn = document.getElementById("transfer-btn");
       const openDetailBtn = document.getElementById("open-detail-btn");
+      const refreshBtn = document.getElementById("refresh-live-btn");
 
       if (!shipment) {
         matchedShipment = null;
         transferBtn.style.display = "inline-flex";
         openDetailBtn.style.display = "none";
+        refreshBtn.style.display = "none";
 
         target.innerHTML = `
           <div class="data-card">
@@ -364,6 +290,7 @@
       matchedShipment = shipment;
       transferBtn.style.display = "none";
       openDetailBtn.style.display = "inline-flex";
+      refreshBtn.style.display = "inline-flex";
       openDetailBtn.href = `/registry-detail?id=${shipment.id}`;
 
       target.innerHTML = `
@@ -418,17 +345,19 @@
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="timeline-card">
+        <div class="timeline-card" style="margin-bottom:12px;">
           <div class="timeline-row">
             <div>
               <p><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
               <p><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
             </div>
+
             <div>
               <p><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
               <p><strong>Source:</strong> ${escapeHtml(event.source_name || "-")}</p>
             </div>
           </div>
+
           <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
         </div>
       `).join("");
@@ -437,12 +366,14 @@
     async function loadCurrentUser() {
       try {
         const response = await fetch("/api/me");
+
         if (!response.ok) {
           window.location.href = "/login";
           return false;
         }
 
         const data = await response.json();
+
         if (!data.success || !data.user) {
           window.location.href = "/login";
           return false;
@@ -459,53 +390,6 @@
       }
     }
 
-    async function loadShipments() {
-      try {
-        const response = await fetch("/api/shipments");
-        if (!response.ok) {
-          shipmentsCache = [];
-          return;
-        }
-
-        const data = await response.json();
-        if (!data.success || !Array.isArray(data.shipments)) {
-          shipmentsCache = [];
-          return;
-        }
-
-        shipmentsCache = data.shipments || [];
-      } catch (_error) {
-        shipmentsCache = [];
-      }
-    }
-
-    async function loadLiveContextForShipment(shipmentId) {
-      try {
-        const [liveRes, eventsRes] = await Promise.all([
-          fetch(`/api/shipments/${shipmentId}/live-status`),
-          fetch(`/api/tracking-events?shipment_id=${shipmentId}`)
-        ]);
-
-        const liveData = liveRes.ok ? await liveRes.json() : { live_status: null };
-        const eventsData = eventsRes.ok ? await eventsRes.json() : { tracking_events: [] };
-
-        renderLiveStatus(liveData.live_status || null);
-        renderTimeline(eventsData.tracking_events || []);
-      } catch (_error) {
-        renderLiveStatus(null);
-        renderTimeline([]);
-      }
-    }
-
-    function transferToRegistry() {
-      if (!lastLookup) return;
-
-      const mode = encodeURIComponent(lastLookup.mode);
-      const number = encodeURIComponent(lastLookup.number);
-
-      window.location.href = `/shipment-registry?transfer_mode=${mode}&transfer_number=${number}`;
-    }
-
     async function runLookup() {
       clearMessage();
 
@@ -517,35 +401,83 @@
         return;
       }
 
-      selectedMode = mode;
-      renderModes();
+      try {
+        selectedMode = mode;
+        renderModes();
 
-      const classified = classifyTrackingNumber(mode, number);
-      lastLookup = {
-        mode,
-        number: classified.normalized,
-        valid: classified.valid,
-        hint: classified.hint
-      };
+        const response = await fetch("/api/customs-live/lookup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ mode, number })
+        });
 
-      renderLookupResult(lastLookup);
+        const data = await response.json();
 
-      const shipment = findExistingShipment(mode, classified.normalized);
-      renderExistingShipmentMatch(shipment);
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Lookup failed.");
+        }
 
-      if (shipment) {
-        showMessage("Existing shipment found. Loading live tracking context...", "success");
-        await loadLiveContextForShipment(shipment.id);
-      } else {
-        showMessage(
-          classified.valid
-            ? "No internal shipment found. Ready to transfer to Front Desk Registry."
-            : "Format needs review, but you can still transfer to Front Desk Registry.",
-          classified.valid ? "info" : "error"
-        );
-        renderLiveStatus(null);
-        renderTimeline([]);
+        lastLookup = data.lookup || null;
+        renderLookupResult(data.lookup || null);
+
+        if (data.matched && data.shipment) {
+          renderExistingShipmentMatch(data.shipment);
+          renderLiveStatus(data.live_status || null);
+          renderTimeline(data.timeline || []);
+          showMessage("Existing shipment found. Live tracking context loaded.", "success");
+        } else {
+          renderExistingShipmentMatch(null);
+          renderLiveStatus(null);
+          renderTimeline([]);
+          showMessage(
+            data.lookup?.valid
+              ? "No internal shipment found. Ready to transfer to Front Desk Registry."
+              : "Format needs review, but you can still transfer to Front Desk Registry.",
+            data.lookup?.valid ? "info" : "error"
+          );
+        }
+      } catch (error) {
+        showMessage(error.message || "Lookup failed.", "error");
       }
+    }
+
+    async function refreshLive() {
+      if (!matchedShipment?.id) return;
+
+      showMessage("Refreshing live shipment data from provider...", "info");
+
+      try {
+        const response = await fetch(`/api/shipments/${matchedShipment.id}/live-refresh`, {
+          method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not refresh live shipment data.");
+        }
+
+        renderLiveStatus(data.live_status || null);
+
+        const updatesRes = await fetch(`/api/shipments/${matchedShipment.id}/live-updates`);
+        const updatesData = await updatesRes.json();
+
+        renderTimeline(updatesData.timeline || []);
+        showMessage("Live shipment data refreshed successfully.", "success");
+      } catch (error) {
+        showMessage(error.message || "Could not refresh live shipment data.", "error");
+      }
+    }
+
+    function transferToRegistry() {
+      if (!lastLookup) return;
+
+      const mode = encodeURIComponent(lastLookup.mode);
+      const number = encodeURIComponent(lastLookup.number);
+
+      window.location.href = `/shipment-registry?transfer_mode=${mode}&transfer_number=${number}`;
     }
 
     document.getElementById("tracking_mode").addEventListener("change", function () {
@@ -562,6 +494,7 @@
       }
     });
 
+    document.getElementById("refresh-live-btn").addEventListener("click", refreshLive);
     document.getElementById("transfer-btn").addEventListener("click", transferToRegistry);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
@@ -580,7 +513,6 @@
       const ok = await loadCurrentUser();
       if (!ok) return;
 
-      await loadShipments();
       renderModes();
       document.getElementById("tracking_mode").value = selectedMode;
     }

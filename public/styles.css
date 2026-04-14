@@ -1,25 +1,27 @@
 :root {
   --bg: #071226;
   --bg-soft: #0b1830;
-  --panel: #0d1b34;
-  --panel-2: rgba(255, 255, 255, 0.03);
+  --panel: rgba(13, 27, 52, 0.88);
+  --panel-2: rgba(255, 255, 255, 0.04);
   --text: #f5f7fb;
   --muted: #b9c2d0;
-  --line: rgba(255, 255, 255, 0.10);
+  --line: rgba(255, 255, 255, 0.12);
   --accent: #e3bf5a;
   --accent-2: #f0d588;
   --danger: #f87171;
   --success: #86efac;
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.30);
-  --input-bg: #cfd7e6;
+  --input-bg: rgba(227, 233, 244, 0.94);
   --input-text: #0b1220;
+  --bg-overlay: rgba(4, 10, 22, 0.76);
+  --bg-image-opacity: 0.18;
 }
 
 :root[data-theme="light"] {
-  --bg: #f4f7fb;
-  --bg-soft: #ffffff;
-  --panel: #ffffff;
-  --panel-2: #f8fafc;
+  --bg: #eef3f9;
+  --bg-soft: #f7f9fc;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-2: rgba(15, 23, 42, 0.03);
   --text: #0f172a;
   --muted: #5b6472;
   --line: rgba(15, 23, 42, 0.10);
@@ -28,8 +30,10 @@
   --danger: #dc2626;
   --success: #16a34a;
   --shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
-  --input-bg: #ffffff;
+  --input-bg: rgba(255, 255, 255, 0.96);
   --input-text: #0f172a;
+  --bg-overlay: rgba(244, 247, 252, 0.72);
+  --bg-image-opacity: 0.10;
 }
 
 * {
@@ -41,13 +45,54 @@ html, body {
   padding: 0;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
   background:
     radial-gradient(circle at top left, rgba(227, 191, 90, 0.10), transparent 24%),
     linear-gradient(180deg, var(--bg-soft), var(--bg));
   color: var(--text);
-  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
   min-height: 100vh;
+  position: relative;
+}
+
+.engine-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.engine-bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: var(--bg-image-opacity);
+  filter: saturate(0.95) contrast(1.02) blur(1px);
+  transform: scale(1.02);
+  transition: background-image 0.8s ease, opacity 0.4s ease;
+}
+
+.engine-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(227, 191, 90, 0.08), transparent 22%),
+    linear-gradient(180deg, var(--bg-overlay), var(--bg-overlay));
+}
+
+.page-shell,
+.topbar,
+.panel,
+.page-card {
+  position: relative;
+  z-index: 1;
 }
 
 a {
@@ -128,6 +173,8 @@ h1, h2, h3, p {
   padding: 22px;
   box-shadow: var(--shadow);
   margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .card,

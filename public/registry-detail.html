@@ -7,103 +7,110 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1180px; margin: 0 auto;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+  <div class="page-shell">
+    <div class="topbar">
       <div>
-        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size:2rem;margin-bottom:8px;">Shipment Registry Detail</h1>
-        <p class="login-subtitle" style="margin-bottom:0;">
-          Integrated shipment workspace for tracking, provider sync, finance, and documents.
+        <div class="brand-kicker">MarineTraffic Group Limited</div>
+        <h1 class="page-title">Shipment Registry Detail</h1>
+        <p class="page-subtitle">
+          Integrated shipment workspace for tracking, provider sync, finance, and document control.
         </p>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:180px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Back to Shipment Registry</a>
-        <a id="tracking-page-link" href="/tracking" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:140px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Open Tracking</a>
-        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
+      <div class="topbar-actions">
+        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <a href="/shipment-registry" class="btn-outline">Back to Shipment Registry</a>
+        <a id="tracking-page-link" href="/tracking" class="btn-outline">Open Tracking</a>
+        <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Current User</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    <section class="panel">
+      <h2 class="section-title">Current User</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin:0;"><strong>Page:</strong> Shipment Registry Detail</p>
+        <div class="info-card">
+          <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p><strong>Page:</strong> Shipment Registry Detail</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <section class="panel">
+      <div class="section-head">
         <div>
-          <h2 style="margin-bottom:6px;">Live Controls</h2>
-          <p class="login-subtitle" style="margin-bottom:0;">
-            Refresh shipment visibility and run provider synchronization.
+          <h2 class="section-title">Live Controls</h2>
+          <p class="section-subtitle">
+            Refresh shipment visibility and run provider synchronization when operational updates are needed.
           </p>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button id="refresh-live-btn" class="secondary" style="min-width:140px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Refresh Live Data</button>
-          <button id="sync-now-btn" class="btn-primary" style="min-width:140px;">Sync Now</button>
+        <div class="topbar-actions">
+          <button id="refresh-live-btn" class="btn-outline" type="button">Refresh Live Data</button>
+          <button id="sync-now-btn" class="btn-primary" type="button">Sync Now</button>
         </div>
       </div>
 
-      <div id="sync-message" style="margin-top:14px;"></div>
-    </div>
+      <div id="sync-message" class="message-box"></div>
+    </section>
 
-    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px;">
-      <div class="page-card">
-        <h2 style="margin-bottom:12px;">Current Live Status</h2>
+    <div class="two-col-grid">
+      <section class="panel">
+        <h2 class="section-title">Current Live Status</h2>
         <div id="live-status-box">
-          <p>Loading live status...</p>
+          <p class="empty-state">Loading live status...</p>
         </div>
-      </div>
+      </section>
 
-      <div class="page-card">
-        <h2 style="margin-bottom:12px;">Tracking Source</h2>
+      <section class="panel">
+        <h2 class="section-title">Tracking Source</h2>
         <div id="tracking-source-box">
-          <p>Loading tracking source...</p>
+          <p class="empty-state">Loading tracking source...</p>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Shipment Information</h2>
+    <section class="panel">
+      <h2 class="section-title">Shipment Information</h2>
       <div id="shipment-info">
-        <p>Loading shipment detail...</p>
+        <p class="empty-state">Loading shipment detail...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Financial Summary</h2>
+    <section class="panel">
+      <h2 class="section-title">Financial Summary</h2>
       <div id="financial-summary">
-        <p>Loading financial summary...</p>
+        <p class="empty-state">Loading financial summary...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Shipment Timeline</h2>
+    <section class="panel">
+      <h2 class="section-title">Shipment Timeline</h2>
+      <p class="section-subtitle">
+        Operational movement history, customs-relevant milestones, and provider-synced progress.
+      </p>
       <div id="tracking-events">
-        <p>Loading tracking timeline...</p>
+        <p class="empty-state">Loading tracking timeline...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Invoices & Payments</h2>
+    <section class="panel">
+      <h2 class="section-title">Invoices & Payments</h2>
       <div id="invoices-section">
-        <p>Loading invoices...</p>
+        <p class="empty-state">Loading invoices...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Shipment Documents</h2>
+    <section class="panel">
+      <h2 class="section-title">Shipment Documents</h2>
+      <p class="section-subtitle">
+        Maintain operational file references, BL copies, permits, customs support documents, and internal records.
+      </p>
 
-      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px;margin-bottom:14px;">
+      <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px;">
         <div>
           <label for="doc-name">Document Name</label>
           <input id="doc-name" type="text" placeholder="e.g. BL Copy" />
@@ -138,25 +145,25 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button id="save-document-btn" class="btn-primary" style="min-width:160px;">Save Document</button>
+      <div class="topbar-actions" style="margin-bottom: 14px;">
+        <button id="save-document-btn" class="btn-primary" type="button">Save Document</button>
       </div>
 
-      <div id="document-message" style="margin-top:14px;"></div>
+      <div id="document-message" class="message-box"></div>
 
       <hr />
 
       <div id="documents-list">
-        <p>Loading documents...</p>
+        <p class="empty-state">Loading documents...</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card">
-      <h2 style="margin-bottom:12px;">Sync Logs</h2>
+    <section class="panel">
+      <h2 class="section-title">Sync Logs</h2>
       <div id="sync-logs-list">
-        <p>Loading sync logs...</p>
+        <p class="empty-state">Loading sync logs...</p>
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
@@ -194,17 +201,37 @@
 
     function showBoxMessage(targetId, message, type = "info") {
       const target = document.getElementById(targetId);
-      const colorMap = {
-        success: "#86efac",
-        error: "#fca5a5",
-        info: "#cbd5e1"
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
       };
 
-      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearBoxMessage(targetId) {
       document.getElementById(targetId).innerHTML = "";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+
+      const btn = document.getElementById("theme-toggle-btn");
+      if (btn) {
+        btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+      applyTheme(savedTheme);
+
+      document.getElementById("theme-toggle-btn").addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
     }
 
     async function loadCurrentUser() {
@@ -233,38 +260,38 @@
       const target = document.getElementById("shipment-info");
 
       if (!shipment) {
-        target.innerHTML = "<p>Shipment detail not found.</p>";
+        target.innerHTML = '<p class="empty-state">Shipment detail not found.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>ID:</strong> ${shipment.id}</p>
-            <p style="margin:0 0 6px 0;"><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
-            <p style="margin:0 0 6px 0;"><strong>Reference Number:</strong> ${escapeHtml(shipment.reference_number)}</p>
-            <p style="margin:0;"><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line)}</p>
+        <div class="info-grid">
+          <div class="data-card">
+            <p><strong>ID:</strong> ${shipment.id}</p>
+            <p><strong>Client Name:</strong> ${escapeHtml(shipment.client_name)}</p>
+            <p><strong>Reference Number:</strong> ${escapeHtml(shipment.reference_number)}</p>
+            <p><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line)}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Cargo Description:</strong> ${escapeHtml(shipment.cargo_description)}</p>
-            <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Current Tracking Status:</strong> ${escapeHtml(shipment.current_tracking_status || "-")}</p>
-            <p style="margin:0;"><strong>Current Tracking Time:</strong> ${formatDateTime(shipment.current_tracking_time)}</p>
+          <div class="data-card">
+            <p><strong>Cargo Description:</strong> ${escapeHtml(shipment.cargo_description)}</p>
+            <p><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
+            <p><strong>Current Tracking Status:</strong> ${escapeHtml(shipment.current_tracking_status || "-")}</p>
+            <p><strong>Current Tracking Time:</strong> ${formatDateTime(shipment.current_tracking_time)}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Origin Port:</strong> ${escapeHtml(shipment.origin_port || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Destination Port:</strong> ${escapeHtml(shipment.destination_port || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Port of Loading:</strong> ${escapeHtml(shipment.port_of_loading || "-")}</p>
-            <p style="margin:0;"><strong>Port of Discharge:</strong> ${escapeHtml(shipment.port_of_discharge || "-")}</p>
+          <div class="data-card">
+            <p><strong>Origin Port:</strong> ${escapeHtml(shipment.origin_port || "-")}</p>
+            <p><strong>Destination Port:</strong> ${escapeHtml(shipment.destination_port || "-")}</p>
+            <p><strong>Port of Loading:</strong> ${escapeHtml(shipment.port_of_loading || "-")}</p>
+            <p><strong>Port of Discharge:</strong> ${escapeHtml(shipment.port_of_discharge || "-")}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Final Destination:</strong> ${escapeHtml(shipment.final_destination || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Tracking Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Created By:</strong> ${escapeHtml(shipment.created_by || "-")}</p>
-            <p style="margin:0;"><strong>Created At:</strong> ${formatDateTime(shipment.created_at)}</p>
+          <div class="data-card">
+            <p><strong>Final Destination:</strong> ${escapeHtml(shipment.final_destination || "-")}</p>
+            <p><strong>Tracking Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+            <p><strong>Created By:</strong> ${escapeHtml(shipment.created_by || "-")}</p>
+            <p><strong>Created At:</strong> ${formatDateTime(shipment.created_at)}</p>
           </div>
         </div>
       `;
@@ -274,12 +301,12 @@
       const target = document.getElementById("financial-summary");
 
       if (!summary) {
-        target.innerHTML = "<p>No financial summary available.</p>";
+        target.innerHTML = '<p class="empty-state">No financial summary available.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
+        <div class="info-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
           <div class="stat-card">
             <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
             <div class="stat-value">${formatMoney(summary.total_billed)}</div>
@@ -302,28 +329,28 @@
       const target = document.getElementById("live-status-box");
 
       if (!live) {
-        target.innerHTML = "<p>No live status available.</p>";
+        target.innerHTML = '<p class="empty-state">No live status available.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
-            <p style="margin:0;"><strong>Status Time:</strong> ${formatDateTime(live.current_status_time)}</p>
+        <div class="info-grid">
+          <div class="data-card">
+            <p><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
+            <p><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
+            <p><strong>Status Time:</strong> ${formatDateTime(live.current_status_time)}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Tracking Enabled:</strong> ${live.tracking_enabled ? "Yes" : "No"}</p>
-            <p style="margin:0 0 6px 0;"><strong>Latest Sync:</strong> ${live.latest_sync ? escapeHtml(live.latest_sync.sync_status || "-") : "-"}</p>
-            <p style="margin:0;"><strong>Sync Time:</strong> ${live.latest_sync ? formatDateTime(live.latest_sync.created_at) : "-"}</p>
+          <div class="data-card">
+            <p><strong>Tracking Enabled:</strong> ${live.tracking_enabled ? "Yes" : "No"}</p>
+            <p><strong>Latest Sync:</strong> ${live.latest_sync ? escapeHtml(live.latest_sync.sync_status || "-") : "-"}</p>
+            <p><strong>Sync Time:</strong> ${live.latest_sync ? formatDateTime(live.latest_sync.created_at) : "-"}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
-            <p style="margin:0 0 6px 0;"><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
-            <p style="margin:0;"><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "manual") : "-"}</p>
+          <div class="data-card">
+            <p><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
+            <p><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
+            <p><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "manual") : "-"}</p>
           </div>
         </div>
       `;
@@ -333,28 +360,28 @@
       const target = document.getElementById("tracking-source-box");
 
       if (!source) {
-        target.innerHTML = "<p>No tracking source configured for this shipment yet.</p>";
+        target.innerHTML = '<p class="empty-state">No tracking source configured for this shipment yet.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(source.provider_name || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Carrier Code:</strong> ${escapeHtml(source.carrier_code || "-")}</p>
-            <p style="margin:0;"><strong>Tracking Mode:</strong> ${escapeHtml(source.tracking_mode || "-")}</p>
+        <div class="info-grid">
+          <div class="data-card">
+            <p><strong>Provider:</strong> ${escapeHtml(source.provider_name || "-")}</p>
+            <p><strong>Carrier Code:</strong> ${escapeHtml(source.carrier_code || "-")}</p>
+            <p><strong>Tracking Mode:</strong> ${escapeHtml(source.tracking_mode || "-")}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>BL:</strong> ${escapeHtml(source.bill_of_lading || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Container:</strong> ${escapeHtml(source.container_number || "-")}</p>
-            <p style="margin:0;"><strong>Booking:</strong> ${escapeHtml(source.booking_number || "-")}</p>
+          <div class="data-card">
+            <p><strong>BL:</strong> ${escapeHtml(source.bill_of_lading || "-")}</p>
+            <p><strong>Container:</strong> ${escapeHtml(source.container_number || "-")}</p>
+            <p><strong>Booking:</strong> ${escapeHtml(source.booking_number || "-")}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Reference ID:</strong> ${escapeHtml(source.external_reference_id || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Provider Status:</strong> ${escapeHtml(source.provider_status || "-")}</p>
-            <p style="margin:0;"><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
+          <div class="data-card">
+            <p><strong>Reference ID:</strong> ${escapeHtml(source.external_reference_id || "-")}</p>
+            <p><strong>Provider Status:</strong> ${escapeHtml(source.provider_status || "-")}</p>
+            <p><strong>Last Synced:</strong> ${formatDateTime(source.last_synced_at)}</p>
           </div>
         </div>
       `;
@@ -364,31 +391,25 @@
       const target = document.getElementById("tracking-events");
 
       if (!events || !events.length) {
-        target.innerHTML = "<p>No tracking events found.</p>";
+        target.innerHTML = '<p class="empty-state">No tracking events found.</p>';
         return;
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="card" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
-              <p style="margin:0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
+              <p><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
+              <p><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
             </div>
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Event Time:</strong> ${formatDateTime(event.event_time)}</p>
-              <p style="margin:0;"><strong>Source:</strong> ${escapeHtml(event.source_name || "manual")}</p>
+              <p><strong>Event Time:</strong> ${formatDateTime(event.event_time)}</p>
+              <p><strong>Source:</strong> ${escapeHtml(event.source_name || "manual")}</p>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;">
-            <div>
-              <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
-            </div>
-            <div>
-              <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
-            </div>
-          </div>
+          <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+          <p><strong>Created By:</strong> ${escapeHtml(event.created_by || "-")}</p>
         </div>
       `).join("");
     }
@@ -397,48 +418,48 @@
       const target = document.getElementById("invoices-section");
 
       if (!invoices || !invoices.length) {
-        target.innerHTML = "<p>No invoices found for this shipment.</p>";
+        target.innerHTML = '<p class="empty-state">No invoices found for this shipment.</p>';
         return;
       }
 
       target.innerHTML = invoices.map((invoice) => `
         <div class="card" style="margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+          <div class="timeline-row" style="margin-bottom:10px;">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
-              <p style="margin:0;"><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
+              <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+              <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
             </div>
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
-              <p style="margin:0;"><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-bottom:10px;">
-            <div>
-              <p style="margin:0 0 6px 0;"><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
-              <p style="margin:0;"><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
-            </div>
-            <div>
-              <p style="margin:0 0 6px 0;"><strong>Created At:</strong> ${formatDateTime(invoice.created_at)}</p>
-              <p style="margin:0;"><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+              <p><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
+              <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
             </div>
           </div>
 
-          <div style="padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+          <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom:10px;">
+            <div class="data-card">
+              <p><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
+              <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+            </div>
+            <div class="data-card">
+              <p><strong>Created At:</strong> ${formatDateTime(invoice.created_at)}</p>
+              <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
+            </div>
+          </div>
+
+          <div style="padding-top:10px;border-top:1px solid var(--line);">
             <h3 style="margin-bottom:10px;">Payments</h3>
             ${
               invoice.payments && invoice.payments.length
                 ? invoice.payments.map((payment) => `
-                  <div class="card" style="margin-bottom:10px;background:rgba(255,255,255,0.02);">
-                    <p style="margin:0 0 6px 0;"><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
-                    <p style="margin:0 0 6px 0;"><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
-                    <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
-                    <p style="margin:0 0 6px 0;"><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
-                    <p style="margin:0;"><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
+                  <div class="timeline-card" style="margin-bottom:10px;">
+                    <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+                    <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+                    <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+                    <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+                    <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
                   </div>
                 `).join("")
-                : "<p>No payments recorded.</p>"
+                : "<p class='empty-state'>No payments recorded.</p>"
             }
           </div>
         </div>
@@ -449,21 +470,21 @@
       const target = document.getElementById("documents-list");
 
       if (!documents || !documents.length) {
-        target.innerHTML = "<p>No documents uploaded for this shipment yet.</p>";
+        target.innerHTML = '<p class="empty-state">No documents uploaded for this shipment yet.</p>';
         return;
       }
 
       const canDelete = currentUser && (currentUser.role === "admin" || currentUser.role === "operations");
 
       target.innerHTML = documents.map((doc) => `
-        <div class="card" style="margin-bottom:12px;">
-          <p style="margin:0 0 6px 0;"><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
-          <p style="margin:0 0 6px 0;"><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
-          <p style="margin:0 0 6px 0;"><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
-          <p style="margin:0 0 6px 0;"><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
-          <p style="margin:0 0 8px 0;"><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
-          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="secondary" style="min-width:120px;border:1px solid var(--accent);color:var(--accent);background:transparent;">Delete</button>` : ""}
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <p><strong>Name:</strong> ${escapeHtml(doc.document_name)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
+          <p><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
+          <p><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
+          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
+          <p><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
+          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="btn-outline" type="button" style="margin-top:8px;">Delete</button>` : ""}
         </div>
       `).join("");
     }
@@ -472,23 +493,23 @@
       const target = document.getElementById("sync-logs-list");
 
       if (!logs || !logs.length) {
-        target.innerHTML = "<p>No sync logs found for this shipment.</p>";
+        target.innerHTML = '<p class="empty-state">No sync logs found for this shipment.</p>';
         return;
       }
 
       target.innerHTML = logs.map((log) => `
-        <div class="card" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
-              <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
+              <p><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
+              <p><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
             </div>
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Synced By:</strong> ${escapeHtml(log.synced_by || "-")}</p>
-              <p style="margin:0;"><strong>Time:</strong> ${formatDateTime(log.created_at)}</p>
+              <p><strong>Synced By:</strong> ${escapeHtml(log.synced_by || "-")}</p>
+              <p><strong>Time:</strong> ${formatDateTime(log.created_at)}</p>
             </div>
           </div>
-          <p style="margin:0;"><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
+          <p><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
         </div>
       `).join("");
     }
@@ -497,7 +518,7 @@
       const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
 
       if (!response.ok) {
-        document.getElementById("documents-list").innerHTML = "<p>Could not load shipment documents.</p>";
+        document.getElementById("documents-list").innerHTML = '<p class="empty-state">Could not load shipment documents.</p>';
         return;
       }
 
@@ -571,7 +592,7 @@
       const response = await fetch(`/api/shipments/${currentShipmentId}/live-status`);
 
       if (!response.ok) {
-        document.getElementById("live-status-box").innerHTML = "<p>Could not load live status.</p>";
+        document.getElementById("live-status-box").innerHTML = '<p class="empty-state">Could not load live status.</p>';
         return;
       }
 
@@ -583,7 +604,7 @@
       const response = await fetch(`/api/shipments/${currentShipmentId}/tracking-source`);
 
       if (!response.ok) {
-        document.getElementById("tracking-source-box").innerHTML = "<p>Could not load tracking source.</p>";
+        document.getElementById("tracking-source-box").innerHTML = '<p class="empty-state">Could not load tracking source.</p>';
         return;
       }
 
@@ -595,7 +616,7 @@
       const response = await fetch(`/api/shipments/${currentShipmentId}/sync-logs`);
 
       if (!response.ok) {
-        document.getElementById("sync-logs-list").innerHTML = "<p>Could not load sync logs.</p>";
+        document.getElementById("sync-logs-list").innerHTML = '<p class="empty-state">Could not load sync logs.</p>';
         return;
       }
 
@@ -607,10 +628,10 @@
       const response = await fetch(`/api/shipments/${currentShipmentId}/full-detail`);
 
       if (!response.ok) {
-        document.getElementById("shipment-info").innerHTML = "<p>Could not load shipment detail.</p>";
-        document.getElementById("financial-summary").innerHTML = "<p>Could not load financial summary.</p>";
-        document.getElementById("tracking-events").innerHTML = "<p>Could not load tracking events.</p>";
-        document.getElementById("invoices-section").innerHTML = "<p>Could not load invoices.</p>";
+        document.getElementById("shipment-info").innerHTML = '<p class="empty-state">Could not load shipment detail.</p>';
+        document.getElementById("financial-summary").innerHTML = '<p class="empty-state">Could not load financial summary.</p>';
+        document.getElementById("tracking-events").innerHTML = '<p class="empty-state">Could not load tracking events.</p>';
+        document.getElementById("invoices-section").innerHTML = '<p class="empty-state">Could not load invoices.</p>';
         return;
       }
 
@@ -675,6 +696,8 @@
     });
 
     async function initPage() {
+      initTheme();
+
       currentShipmentId = getShipmentIdFromQuery();
 
       if (!currentShipmentId) {

@@ -7,51 +7,62 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body style="padding: 24px;">
-  <div style="max-width: 1180px; margin: 0 auto;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+  <div class="page-shell">
+    <div class="topbar">
       <div>
-        <div class="login-brand" style="margin-bottom:8px;">MarineTraffic Group Limited</div>
-        <h1 style="font-size:2rem;margin-bottom:8px;">Customs Live</h1>
-        <p class="login-subtitle" style="margin-bottom:0;">
-          Start from the tracking number, classify the shipment, review existing live status, then transfer to Front Desk Registry when needed.
+        <div class="brand-kicker">MarineTraffic Group Limited</div>
+        <h1 class="page-title">Customs Live</h1>
+        <p class="page-subtitle">
+          Operational intake workspace for shipment lookup, customs visibility, and Front Desk transfer.
         </p>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/dashboard" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Dashboard</a>
-        <a href="/shipment-registry" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Front Desk Registry</a>
-        <button id="logout-btn" class="btn-primary" style="min-width:110px;">Logout</button>
+      <div class="topbar-actions">
+        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <a href="/dashboard" class="btn-outline">Dashboard</a>
+        <a href="/shipment-registry" class="btn-outline">Front Desk Registry</a>
+        <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Current User</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Username:</strong> <span id="user-username">Loading...</span></p>
-          <p style="margin:0;"><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+    <section class="panel">
+      <h2 class="section-title">Current User</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
-        <div>
-          <p style="margin:0 0 8px 0;"><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p style="margin:0;"><strong>Workspace:</strong> Customs Live Intake</p>
+        <div class="info-card">
+          <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p><strong>Workspace:</strong> Customs Live Intake</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Tracking Channels</h2>
-      <p class="login-subtitle" style="margin-bottom:16px;">
-        Choose a mode first, then enter the tracking number or reference.
-      </p>
-
-      <div id="mode-grid" style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:12px;">
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Tracking Channels</h2>
+          <p class="section-subtitle">
+            Select the shipment type first, then enter the available tracking number or reference.
+          </p>
+        </div>
       </div>
-    </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <h2 style="margin-bottom:12px;">Lookup Panel</h2>
+      <div id="mode-grid" class="mode-grid"></div>
+    </section>
 
-      <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:14px;align-items:end;">
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Lookup Panel</h2>
+          <p class="section-subtitle">
+            Start with the tracking number, identify the shipment type, review internal visibility, and transfer unmatched cases to Registry for formal file opening.
+          </p>
+        </div>
+      </div>
+
+      <div class="lookup-grid">
         <div>
           <label for="tracking_mode">Tracking Mode</label>
           <select id="tracking_mode">
@@ -68,55 +79,58 @@
           <input id="tracking_number" type="text" placeholder="Enter tracking number..." />
         </div>
 
-        <div>
-          <button id="lookup-btn" class="btn-primary" style="min-width:140px;">Track Now</button>
+        <div class="lookup-action">
+          <button id="lookup-btn" class="btn-primary" type="button">Track Now</button>
         </div>
       </div>
 
-      <div id="lookup-message" style="margin-top:14px;"></div>
-    </div>
+      <div id="lookup-message" class="message-box" style="margin-top: 14px;"></div>
+    </section>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-      <div class="page-card">
-        <h2 style="margin-bottom:12px;">Lookup Result</h2>
+    <div class="two-col-grid">
+      <section class="panel">
+        <h2 class="section-title">Lookup Result</h2>
         <div id="lookup-result">
-          <p>No lookup performed yet.</p>
+          <p class="empty-state">No lookup performed yet.</p>
         </div>
-      </div>
+      </section>
 
-      <div class="page-card">
-        <h2 style="margin-bottom:12px;">Existing Shipment Match</h2>
+      <section class="panel">
+        <h2 class="section-title">Existing Shipment Match</h2>
         <div id="existing-match-result">
-          <p>No internal shipment match checked yet.</p>
+          <p class="empty-state">No internal shipment match checked yet.</p>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="page-card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+    <section class="panel">
+      <div class="section-head">
         <div>
-          <h2 style="margin-bottom:6px;">Live Status</h2>
-          <p class="login-subtitle" style="margin-bottom:0;">
-            If the number already belongs to a recorded shipment, its live status will appear here.
+          <h2 class="section-title">Live Status</h2>
+          <p class="section-subtitle">
+            Current shipment visibility from the internal file and synchronized tracking workflow.
           </p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button id="transfer-btn" class="btn-primary" style="min-width:210px;display:none;">Transfer to Registry (Front Desk)</button>
-          <a id="open-detail-btn" href="/shipment-registry" class="secondary" style="display:none;align-items:center;justify-content:center;min-width:160px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);">Open Shipment Detail</a>
+        <div class="topbar-actions">
+          <button id="transfer-btn" class="btn-primary" type="button" style="display:none;">Transfer to Registry (Front Desk)</button>
+          <a id="open-detail-btn" href="/shipment-registry" class="btn-outline" style="display:none;">Open Shipment Detail</a>
         </div>
       </div>
 
       <div id="live-status-box">
-        <p>No live status available yet.</p>
+        <p class="empty-state">No live status available yet.</p>
       </div>
-    </div>
+    </section>
 
-    <div class="page-card">
-      <h2 style="margin-bottom:12px;">Shipment Timeline</h2>
+    <section class="panel">
+      <h2 class="section-title">Shipment Timeline</h2>
+      <p class="section-subtitle">
+        Operational movement history, customs-relevant milestones, and shipment progress updates.
+      </p>
       <div id="timeline-box">
-        <p>No timeline loaded yet.</p>
+        <p class="empty-state">No timeline loaded yet.</p>
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
@@ -131,31 +145,31 @@
         code: "express",
         title: "Express",
         subtitle: "Courier parcels",
-        hint: "DHL / UPS / FedEx style references"
+        hint: "Use courier tracking references for fast parcel flows."
       },
       {
         code: "air_cargo",
         title: "Air Cargo",
         subtitle: "Airway bill flow",
-        hint: "3 + 8 digits / AWB style"
+        hint: "Use airway bill or air cargo reference numbers."
       },
       {
         code: "post_ems",
         title: "Post / EMS",
         subtitle: "Postal items",
-        hint: "2 letters + 9 digits + 2 letters"
+        hint: "Use EMS or postal tracking references."
       },
       {
         code: "container",
         title: "Container",
         subtitle: "Ocean equipment",
-        hint: "4 letters + 6 or 7 digits"
+        hint: "Use the full container number for ocean visibility."
       },
       {
         code: "bill_of_lading",
         title: "Bill of Lading",
-        subtitle: "Ocean shipment ref",
-        hint: "BL / BOL document number"
+        subtitle: "Ocean shipment reference",
+        hint: "Use Bill of Lading / B/L reference for shipment intake."
       }
     ];
 
@@ -177,17 +191,37 @@
 
     function showMessage(message, type = "info") {
       const target = document.getElementById("lookup-message");
-      const colorMap = {
-        success: "#86efac",
-        error: "#fca5a5",
-        info: "#cbd5e1"
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
       };
 
-      target.innerHTML = `<div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:${colorMap[type] || "#cbd5e1"};">${escapeHtml(message)}</div>`;
+      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearMessage() {
       document.getElementById("lookup-message").innerHTML = "";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+
+      const btn = document.getElementById("theme-toggle-btn");
+      if (btn) {
+        btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+      applyTheme(savedTheme);
+
+      document.getElementById("theme-toggle-btn").addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
     }
 
     function renderModes() {
@@ -195,22 +229,19 @@
 
       grid.innerHTML = modes.map((mode) => `
         <button
-          class="card tracking-mode-card"
+          class="mode-card ${mode.code === selectedMode ? "mode-card-active" : ""}"
           data-mode="${mode.code}"
-          style="
-            text-align:left;
-            cursor:pointer;
-            border:1px solid ${mode.code === selectedMode ? "var(--accent)" : "rgba(255,255,255,0.08)"};
-            background:${mode.code === selectedMode ? "rgba(232, 193, 76, 0.10)" : "rgba(255,255,255,0.02)"};
-          "
+          type="button"
         >
-          <h3 style="margin-bottom:8px;">${escapeHtml(mode.title)}</h3>
-          <p style="margin:0 0 8px 0;">${escapeHtml(mode.subtitle)}</p>
-          <p class="login-subtitle" style="margin:0;">${escapeHtml(mode.hint)}</p>
+          <div class="mode-card-top">
+            <div class="mode-badge">${escapeHtml(mode.title)}</div>
+          </div>
+          <h3>${escapeHtml(mode.subtitle)}</h3>
+          <p>${escapeHtml(mode.hint)}</p>
         </button>
       `).join("");
 
-      document.querySelectorAll(".tracking-mode-card").forEach((btn) => {
+      document.querySelectorAll(".mode-card").forEach((btn) => {
         btn.addEventListener("click", function () {
           selectedMode = this.dataset.mode;
           document.getElementById("tracking_mode").value = selectedMode;
@@ -234,36 +265,36 @@
       if (mode === "container") {
         valid = patterns.container.test(value);
         hint = valid
-          ? "Container format looks correct."
-          : "Container format should usually be 4 letters + 6 or 7 digits.";
+          ? "Container format looks correct and is ready for intake review."
+          : "Container format usually requires 4 letters followed by 6 or 7 digits.";
       }
 
       if (mode === "air_cargo") {
         valid = patterns.air_cargo.test(value.replace(/\s+/g, ""));
         hint = valid
-          ? "Air cargo / AWB format looks correct."
-          : "Air cargo usually looks like 3 digits + 8 digits.";
+          ? "Air cargo format looks correct."
+          : "Air cargo reference usually appears as 3 digits followed by 8 digits.";
       }
 
       if (mode === "post_ems") {
         valid = patterns.post_ems.test(value);
         hint = valid
           ? "Postal / EMS format looks correct."
-          : "Postal / EMS usually looks like 2 letters + 9 digits + 2 letters.";
+          : "Postal / EMS format usually appears as 2 letters + 9 digits + 2 letters.";
       }
 
       if (mode === "bill_of_lading") {
         valid = value.length >= 6;
         hint = valid
-          ? "Bill of Lading number accepted."
-          : "Bill of Lading should be at least 6 characters for practical lookup.";
+          ? "Bill of Lading reference accepted."
+          : "Bill of Lading value looks too short for operational lookup.";
       }
 
       if (mode === "express") {
         valid = value.length >= 6;
         hint = valid
           ? "Express reference accepted."
-          : "Express tracking number looks too short.";
+          : "Express tracking reference looks too short.";
       }
 
       return {
@@ -277,16 +308,16 @@
       const target = document.getElementById("lookup-result");
 
       if (!result) {
-        target.innerHTML = "<p>No lookup performed yet.</p>";
+        target.innerHTML = '<p class="empty-state">No lookup performed yet.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div class="card">
-          <p style="margin:0 0 6px 0;"><strong>Mode:</strong> ${escapeHtml(result.mode)}</p>
-          <p style="margin:0 0 6px 0;"><strong>Tracking Number:</strong> ${escapeHtml(result.number)}</p>
-          <p style="margin:0 0 6px 0;"><strong>Validation:</strong> ${result.valid ? "Valid format" : "Needs review"}</p>
-          <p style="margin:0;"><strong>Hint:</strong> ${escapeHtml(result.hint)}</p>
+        <div class="data-card">
+          <p><strong>Mode:</strong> ${escapeHtml(result.mode)}</p>
+          <p><strong>Tracking Number:</strong> ${escapeHtml(result.number)}</p>
+          <p><strong>Validation:</strong> ${result.valid ? "Valid format" : "Needs review"}</p>
+          <p><strong>Assessment:</strong> ${escapeHtml(result.hint)}</p>
         </div>
       `;
     }
@@ -321,10 +352,10 @@
         openDetailBtn.style.display = "none";
 
         target.innerHTML = `
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Status:</strong> No existing internal shipment found.</p>
-            <p style="margin:0 0 6px 0;"><strong>Next Action:</strong> Transfer this lookup to Front Desk Registry.</p>
-            <p style="margin:0;"><strong>Purpose:</strong> Open and record a new shipment file before provider sync.</p>
+          <div class="data-card">
+            <p><strong>Match Status:</strong> No existing internal shipment file found.</p>
+            <p><strong>Next Step:</strong> Transfer this case to Front Desk Registry for formal file opening.</p>
+            <p><strong>Operational Note:</strong> No internal shipment file was found for this tracking reference. Transfer this case to Front Desk Registry to open and record a new shipment file.</p>
           </div>
         `;
         return;
@@ -336,12 +367,13 @@
       openDetailBtn.href = `/registry-detail?id=${shipment.id}`;
 
       target.innerHTML = `
-        <div class="card">
-          <p style="margin:0 0 6px 0;"><strong>Shipment Found:</strong> Yes</p>
-          <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(shipment.reference_number || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
-          <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
-          <p style="margin:0;"><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+        <div class="data-card">
+          <p><strong>Shipment Found:</strong> Yes</p>
+          <p><strong>Reference:</strong> ${escapeHtml(shipment.reference_number || "-")}</p>
+          <p><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+          <p><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
+          <p><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
+          <p><strong>Operational Note:</strong> This tracking number is already linked to an internal shipment file. Review live status and continue from the shipment detail workspace.</p>
         </div>
       `;
     }
@@ -350,28 +382,28 @@
       const target = document.getElementById("live-status-box");
 
       if (!live) {
-        target.innerHTML = "<p>No live status available yet for this lookup.</p>";
+        target.innerHTML = '<p class="empty-state">No live status available yet for this lookup.</p>';
         return;
       }
 
       target.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
-            <p style="margin:0 0 6px 0;"><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
-            <p style="margin:0;"><strong>Status Time:</strong> ${formatDateTime(live.current_status_time)}</p>
+        <div class="info-grid">
+          <div class="data-card">
+            <p><strong>Reference:</strong> ${escapeHtml(live.reference_number || "-")}</p>
+            <p><strong>Current Status:</strong> ${escapeHtml(live.current_status || "-")}</p>
+            <p><strong>Status Time:</strong> ${formatDateTime(live.current_status_time)}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Tracking Enabled:</strong> ${live.tracking_enabled ? "Yes" : "No"}</p>
-            <p style="margin:0 0 6px 0;"><strong>Latest Sync:</strong> ${live.latest_sync ? escapeHtml(live.latest_sync.sync_status || "-") : "-"}</p>
-            <p style="margin:0;"><strong>Sync Time:</strong> ${live.latest_sync ? formatDateTime(live.latest_sync.created_at) : "-"}</p>
+          <div class="data-card">
+            <p><strong>Tracking Enabled:</strong> ${live.tracking_enabled ? "Yes" : "No"}</p>
+            <p><strong>Latest Sync:</strong> ${live.latest_sync ? escapeHtml(live.latest_sync.sync_status || "-") : "-"}</p>
+            <p><strong>Sync Time:</strong> ${live.latest_sync ? formatDateTime(live.latest_sync.created_at) : "-"}</p>
           </div>
 
-          <div class="card">
-            <p style="margin:0 0 6px 0;"><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
-            <p style="margin:0 0 6px 0;"><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
-            <p style="margin:0;"><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "-") : "-"}</p>
+          <div class="data-card">
+            <p><strong>Latest Event:</strong> ${live.latest_event ? escapeHtml(live.latest_event.event_status || "-") : "-"}</p>
+            <p><strong>Location:</strong> ${live.latest_event ? escapeHtml(live.latest_event.location_name || "-") : "-"}</p>
+            <p><strong>Source:</strong> ${live.latest_event ? escapeHtml(live.latest_event.source_name || "-") : "-"}</p>
           </div>
         </div>
       `;
@@ -381,23 +413,23 @@
       const target = document.getElementById("timeline-box");
 
       if (!events || !events.length) {
-        target.innerHTML = "<p>No timeline loaded yet.</p>";
+        target.innerHTML = '<p class="empty-state">No timeline loaded yet.</p>';
         return;
       }
 
       target.innerHTML = events.map((event) => `
-        <div class="card" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="timeline-card">
+          <div class="timeline-row">
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
-              <p style="margin:0;"><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
+              <p><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
+              <p><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
             </div>
             <div>
-              <p style="margin:0 0 6px 0;"><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
-              <p style="margin:0;"><strong>Source:</strong> ${escapeHtml(event.source_name || "-")}</p>
+              <p><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
+              <p><strong>Source:</strong> ${escapeHtml(event.source_name || "-")}</p>
             </div>
           </div>
-          <p style="margin:0;"><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+          <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
         </div>
       `).join("");
     }
@@ -507,7 +539,7 @@
       } else {
         showMessage(
           classified.valid
-            ? "No existing shipment found. Ready to transfer to Front Desk Registry."
+            ? "No internal shipment found. Ready to transfer to Front Desk Registry."
             : "Format needs review, but you can still transfer to Front Desk Registry.",
           classified.valid ? "info" : "error"
         );
@@ -543,6 +575,8 @@
     });
 
     async function initPage() {
+      initTheme();
+
       const ok = await loadCurrentUser();
       if (!ok) return;
 

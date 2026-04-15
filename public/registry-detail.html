@@ -32,6 +32,7 @@
           <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
           <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
+
         <div class="info-card">
           <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
           <p><strong>Page:</strong> Shipment Registry Detail</p>
@@ -200,14 +201,14 @@
     }
 
     function showBoxMessage(targetId, message, type = "info") {
-      const target = document.getElementById(targetId);
       const classMap = {
         success: "msg-success",
         error: "msg-error",
         info: "msg-info"
       };
 
-      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      document.getElementById(targetId).innerHTML =
+        `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearBoxMessage(targetId) {
@@ -235,25 +236,30 @@
     }
 
     async function loadCurrentUser() {
-      const response = await fetch("/api/me");
+      try {
+        const response = await fetch("/api/me");
 
-      if (!response.ok) {
+        if (!response.ok) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        currentUser = data.user;
+        document.getElementById("user-username").textContent = data.user.username || "-";
+        document.getElementById("user-role").textContent = data.user.role || "-";
+        document.getElementById("user-status").textContent = "Authenticated";
+        return true;
+      } catch (_error) {
         window.location.href = "/login";
         return false;
       }
-
-      const data = await response.json();
-
-      if (!data.success || !data.user) {
-        window.location.href = "/login";
-        return false;
-      }
-
-      currentUser = data.user;
-      document.getElementById("user-username").textContent = data.user.username || "-";
-      document.getElementById("user-role").textContent = data.user.role || "-";
-      document.getElementById("user-status").textContent = "Authenticated";
-      return true;
     }
 
     function renderShipmentInfo(shipment) {
@@ -402,6 +408,7 @@
               <p><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
               <p><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
             </div>
+
             <div>
               <p><strong>Event Time:</strong> ${formatDateTime(event.event_time)}</p>
               <p><strong>Source:</strong> ${escapeHtml(event.source_name || "manual")}</p>
@@ -429,6 +436,7 @@
               <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
               <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
             </div>
+
             <div>
               <p><strong>Amount:</strong> ${formatMoney(invoice.amount)} ${escapeHtml(invoice.currency || "")}</p>
               <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
@@ -440,6 +448,7 @@
               <p><strong>Paid Amount:</strong> ${formatMoney(invoice.paid_amount)}</p>
               <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
             </div>
+
             <div class="data-card">
               <p><strong>Created At:</strong> ${formatDateTime(invoice.created_at)}</p>
               <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
@@ -451,14 +460,14 @@
             ${
               invoice.payments && invoice.payments.length
                 ? invoice.payments.map((payment) => `
-                  <div class="timeline-card" style="margin-bottom:10px;">
-                    <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
-                    <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
-                    <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
-                    <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
-                    <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
-                  </div>
-                `).join("")
+                    <div class="timeline-card" style="margin-bottom:10px;">
+                      <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+                      <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+                      <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+                      <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+                      <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
+                    </div>
+                  `).join("")
                 : "<p class='empty-state'>No payments recorded.</p>"
             }
           </div>
@@ -482,9 +491,13 @@
           <p><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
           <p><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
           <p><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
-          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
+          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || doc.uploaded_by || "-")}</p>
           <p><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
-          ${canDelete ? `<button onclick="deleteDocument(${doc.id})" class="btn-outline" type="button" style="margin-top:8px;">Delete</button>` : ""}
+          ${
+            canDelete
+              ? `<button onclick="deleteDocument(${doc.id})" class="btn-outline" type="button" style="margin-top:8px;">Delete</button>`
+              : ""
+          }
         </div>
       `).join("");
     }
@@ -504,26 +517,34 @@
               <p><strong>Provider:</strong> ${escapeHtml(log.provider_name || "-")}</p>
               <p><strong>Status:</strong> ${escapeHtml(log.sync_status || "-")}</p>
             </div>
+
             <div>
               <p><strong>Synced By:</strong> ${escapeHtml(log.synced_by || "-")}</p>
               <p><strong>Time:</strong> ${formatDateTime(log.created_at)}</p>
             </div>
           </div>
+
           <p><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
         </div>
       `).join("");
     }
 
     async function loadShipmentDocuments() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
+      try {
+        const response = await fetch(`/api/shipments/${currentShipmentId}/documents`);
 
-      if (!response.ok) {
-        document.getElementById("documents-list").innerHTML = '<p class="empty-state">Could not load shipment documents.</p>';
-        return;
+        if (!response.ok) {
+          document.getElementById("documents-list").innerHTML =
+            '<p class="empty-state">Could not load shipment documents.</p>';
+          return;
+        }
+
+        const data = await response.json();
+        renderDocuments(data.documents || []);
+      } catch (_error) {
+        document.getElementById("documents-list").innerHTML =
+          '<p class="empty-state">Could not load shipment documents.</p>';
       }
-
-      const data = await response.json();
-      renderDocuments(data.documents || []);
     }
 
     async function saveDocument() {
@@ -539,117 +560,95 @@
         return;
       }
 
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shipment_id: currentShipmentId,
-          document_name: documentName,
-          document_category: documentCategory,
-          document_url: documentUrl,
-          notes
-        })
-      });
+      try {
+        const response = await fetch("/api/documents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            shipment_id: currentShipmentId,
+            document_name: documentName,
+            document_category: documentCategory,
+            document_url: documentUrl,
+            notes
+          })
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        showBoxMessage("document-message", data.error || "Could not save document.", "error");
-        return;
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not save document.");
+        }
+
+        document.getElementById("doc-name").value = "";
+        document.getElementById("doc-category").value = "";
+        document.getElementById("doc-url").value = "";
+        document.getElementById("doc-notes").value = "";
+
+        await loadShipmentDocuments();
+        showBoxMessage("document-message", "Document saved successfully.", "success");
+      } catch (error) {
+        showBoxMessage("document-message", error.message || "Could not save document.", "error");
       }
-
-      document.getElementById("doc-name").value = "";
-      document.getElementById("doc-category").value = "";
-      document.getElementById("doc-url").value = "";
-      document.getElementById("doc-notes").value = "";
-
-      await loadShipmentDocuments();
-      showBoxMessage("document-message", "Document saved successfully.", "success");
     }
 
     async function deleteDocument(documentId) {
       const ok = confirm("Delete this document?");
       if (!ok) return;
 
-      const response = await fetch(`/api/documents/${documentId}`, {
-        method: "DELETE"
-      });
+      try {
+        const response = await fetch(`/api/documents/${documentId}`, {
+          method: "DELETE"
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        showBoxMessage("document-message", data.error || "Could not delete document.", "error");
-        return;
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not delete document.");
+        }
+
+        await loadShipmentDocuments();
+        showBoxMessage("document-message", "Document deleted successfully.", "success");
+      } catch (error) {
+        showBoxMessage("document-message", error.message || "Could not delete document.", "error");
       }
-
-      await loadShipmentDocuments();
-      showBoxMessage("document-message", "Document deleted successfully.", "success");
     }
 
     window.deleteDocument = deleteDocument;
 
-    async function loadLiveStatus() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/live-status`);
-
-      if (!response.ok) {
-        document.getElementById("live-status-box").innerHTML = '<p class="empty-state">Could not load live status.</p>';
-        return;
-      }
-
-      const data = await response.json();
-      renderLiveStatus(data.live_status || null);
-    }
-
-    async function loadTrackingSource() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/tracking-source`);
-
-      if (!response.ok) {
-        document.getElementById("tracking-source-box").innerHTML = '<p class="empty-state">Could not load tracking source.</p>';
-        return;
-      }
-
-      const data = await response.json();
-      renderTrackingSource(data.tracking_source || null);
-    }
-
-    async function loadSyncLogs() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/sync-logs`);
-
-      if (!response.ok) {
-        document.getElementById("sync-logs-list").innerHTML = '<p class="empty-state">Could not load sync logs.</p>';
-        return;
-      }
-
-      const data = await response.json();
-      renderSyncLogs(data.sync_logs || []);
-    }
-
-    async function loadShipmentFullDetail() {
-      const response = await fetch(`/api/shipments/${currentShipmentId}/full-detail`);
-
-      if (!response.ok) {
-        document.getElementById("shipment-info").innerHTML = '<p class="empty-state">Could not load shipment detail.</p>';
-        document.getElementById("financial-summary").innerHTML = '<p class="empty-state">Could not load financial summary.</p>';
-        document.getElementById("tracking-events").innerHTML = '<p class="empty-state">Could not load tracking events.</p>';
-        document.getElementById("invoices-section").innerHTML = '<p class="empty-state">Could not load invoices.</p>';
-        return;
-      }
-
-      const data = await response.json();
-
-      renderShipmentInfo(data.shipment);
-      renderFinancialSummary(data.financial_summary);
-      renderTrackingEvents(data.tracking_events || []);
-      renderInvoices(data.invoices || []);
-      renderDocuments(data.documents || []);
-      renderLiveStatus(data.live_status || null);
-    }
-
     async function loadAllContext() {
       document.getElementById("tracking-page-link").href = `/tracking?shipment_id=${currentShipmentId}`;
-      await loadShipmentFullDetail();
-      await loadTrackingSource();
-      await loadSyncLogs();
+
+      try {
+        const [detailRes, sourceRes, syncRes] = await Promise.all([
+          fetch(`/api/shipments/${currentShipmentId}/full-detail`),
+          fetch(`/api/shipments/${currentShipmentId}/tracking-source`),
+          fetch(`/api/shipments/${currentShipmentId}/sync-logs`)
+        ]);
+
+        if (!detailRes.ok) {
+          document.getElementById("shipment-info").innerHTML =
+            '<p class="empty-state">Could not load shipment detail.</p>';
+          return;
+        }
+
+        const detailData = await detailRes.json();
+        const sourceData = sourceRes.ok ? await sourceRes.json() : { tracking_source: null };
+        const syncData = syncRes.ok ? await syncRes.json() : { sync_logs: [] };
+
+        renderShipmentInfo(detailData.shipment);
+        renderFinancialSummary(detailData.financial_summary);
+        renderTrackingEvents(detailData.tracking_events || []);
+        renderInvoices(detailData.invoices || []);
+        renderDocuments(detailData.documents || []);
+        renderLiveStatus(detailData.live_status || null);
+        renderTrackingSource(sourceData.tracking_source || detailData.tracking_source || null);
+        renderSyncLogs(syncData.sync_logs || detailData.sync_logs || []);
+      } catch (_error) {
+        document.getElementById("shipment-info").innerHTML =
+          '<p class="empty-state">Could not load shipment detail.</p>';
+      }
     }
 
     async function runSyncNow() {
@@ -657,7 +656,7 @@
       showBoxMessage("sync-message", "Running tracking sync...", "info");
 
       try {
-        const response = await fetch(`/api/shipments/${currentShipmentId}/sync-tracking`, {
+        const response = await fetch(`/api/shipments/${currentShipmentId}/live-refresh`, {
           method: "POST"
         });
 
@@ -667,7 +666,12 @@
           throw new Error(data.error || "Could not sync shipment tracking.");
         }
 
-        showBoxMessage("sync-message", `Tracking sync completed successfully. Latest status: ${data.sync.latest_status || "-"}`, "success");
+        showBoxMessage(
+          "sync-message",
+          `Tracking sync completed successfully. Latest status: ${data.live_status?.current_status || "-"}`,
+          "success"
+        );
+
         await loadAllContext();
       } catch (error) {
         showBoxMessage("sync-message", error.message || "Could not sync shipment tracking.", "error");
@@ -677,7 +681,9 @@
     async function refreshLiveData() {
       clearBoxMessage("sync-message");
       showBoxMessage("sync-message", "Refreshing live shipment data...", "info");
+
       await loadAllContext();
+
       showBoxMessage("sync-message", "Live shipment data refreshed.", "success");
     }
 

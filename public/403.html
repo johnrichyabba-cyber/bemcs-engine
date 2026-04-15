@@ -2,12 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>403 Forbidden</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Access Denied</title>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="font-family: sans-serif; padding: 40px; text-align: center;">
-  <h1>403 - Access Denied</h1>
-  <p>You do not have permission to access this page.</p>
-  <p><a href="/dashboard">Return to Dashboard</a></p>
+<body style="padding:24px;">
+
+  <div class="page-shell">
+
+    <div class="panel" style="text-align:center; max-width:700px; margin:0 auto;">
+
+      <div class="brand-kicker">BE-MCs Security</div>
+
+      <h1 class="page-title" style="color:var(--danger);">
+        403 - Access Denied
+      </h1>
+
+      <p class="page-subtitle" style="margin-bottom:20px;">
+        You do not have permission to access this page or perform this action.
+        Please contact your system administrator if you believe this is an error.
+      </p>
+
+      <div class="info-grid" style="grid-template-columns:1fr;">
+        <div class="info-card">
+          <p><strong>Possible reasons:</strong></p>
+          <p>- Your role does not allow access</p>
+          <p>- Session expired or invalid</p>
+          <p>- Restricted module access</p>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <a href="/dashboard" class="btn-primary">Back to Dashboard</a>
+        <a href="/login" class="btn-outline">Login Again</a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+    }
+
+    const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+    applyTheme(savedTheme);
+  </script>
+
 </body>
 </html>

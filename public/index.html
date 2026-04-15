@@ -1,35 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=/login" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BE-MCs</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="padding: 24px;">
-  <div class="page-shell" style="max-width: 900px;">
-    <section class="panel" style="text-align: center; min-height: 60vh; display: flex; flex-direction: column; justify-content: center;">
-      <div class="brand-kicker" style="margin-bottom: 10px;">MarineTraffic Group Limited</div>
-      <h1 class="page-title" style="margin-bottom: 10px;">BE-MCs</h1>
-      <p class="page-subtitle" style="max-width: 620px; margin: 0 auto 18px auto;">
-        Redirecting to secure access...
-      </p>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
 
-      <div class="topbar-actions" style="justify-content: center;">
-        <a href="/login" class="btn-primary">Go to Login</a>
-        <a href="/dashboard" class="btn-outline">Open Dashboard</a>
-      </div>
-    </section>
+  <div class="panel" style="text-align:center; max-width:500px;">
+
+    <div class="brand-kicker">MarineTraffic Group Limited</div>
+
+    <h1 class="page-title">BE-MCs</h1>
+
+    <p class="page-subtitle" style="margin-bottom:20px;">
+      Initializing system...
+    </p>
+
+    <div id="status-msg" class="msg-info">
+      Checking session...
+    </div>
+
   </div>
 
   <script>
-    const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
-    document.documentElement.setAttribute("data-theme", savedTheme);
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+    }
 
-    setTimeout(() => {
-      window.location.replace("/login");
-    }, 150);
+    const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+    applyTheme(savedTheme);
+
+    async function checkSession() {
+      try {
+        const response = await fetch("/api/me");
+
+        if (!response.ok) {
+          window.location.href = "/login";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          document.getElementById("status-msg").innerText = "Session active. Redirecting...";
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 500);
+        } else {
+          window.location.href = "/login";
+        }
+
+      } catch (error) {
+        document.getElementById("status-msg").innerText = "Connection error. Redirecting...";
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1000);
+      }
+    }
+
+    checkSession();
   </script>
+
 </body>
 </html>

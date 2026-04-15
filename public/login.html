@@ -6,84 +6,73 @@
   <title>BE-MCs Login</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body style="padding: 24px;">
-  <div class="page-shell" style="max-width: 1220px;">
-    <div class="topbar" style="margin-bottom: 28px;">
-      <div>
+<body class="login-body">
+  <div class="login-shell">
+    <div class="login-left">
+      <div class="login-brand-wrap">
         <div class="brand-kicker">MarineTraffic Group Limited</div>
-        <h1 class="page-title" style="margin-bottom: 6px;">BE-MCs</h1>
-        <p class="page-subtitle">Bandari Salama</p>
-      </div>
+        <h1 class="login-title">BE-MCs</h1>
+        <p class="login-tagline">Bandari Salama</p>
+        <p class="login-subtitle">
+          Customs, shipment registry, operational finance, and live tracking control center.
+        </p>
 
-      <div class="topbar-actions">
-        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <div class="login-feature-list">
+          <div class="login-feature-card">
+            <h3>Customs Live</h3>
+            <p>Track shipment status from external sources before registry intake.</p>
+          </div>
+
+          <div class="login-feature-card">
+            <h3>Shipment Registry</h3>
+            <p>Open operational files and maintain shipment records with tracking identity.</p>
+          </div>
+
+          <div class="login-feature-card">
+            <h3>Operational Finance</h3>
+            <p>Manage invoices, payments, balances, and printable receipts.</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="two-col-grid" style="align-items: stretch;">
-      <section class="panel" style="min-height: 540px; display: flex; flex-direction: column; justify-content: center;">
-        <div class="mode-badge" style="width: fit-content; margin-bottom: 14px;">Port Operations Engine</div>
-        <h2 style="font-size: 2rem; margin-bottom: 12px;">Integrated operations for shipment visibility, customs coordination, and finance control.</h2>
-        <p class="section-subtitle" style="font-size: 1.02rem; margin-bottom: 22px;">
-          Manage shipment intake, customs live lookup, provider tracking, billing, and operational file movement from a single controlled workspace.
-        </p>
-
-        <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px;">
-          <div class="data-card">
-            <h3 style="margin-bottom: 8px;">Customs Live</h3>
-            <p style="margin: 0;">Start from a tracking reference, review shipment visibility, and transfer unmatched cases to Front Desk Registry.</p>
+    <div class="login-right">
+      <div class="login-card">
+        <div class="login-card-top">
+          <div>
+            <div class="brand-kicker">Secure Access</div>
+            <h2 class="section-title" style="margin-bottom: 6px;">Sign In</h2>
+            <p class="section-subtitle">
+              Enter your credentials to access the BE-MCs engine.
+            </p>
           </div>
 
-          <div class="data-card">
-            <h3 style="margin-bottom: 8px;">Shipment Registry</h3>
-            <p style="margin: 0;">Open shipment files, capture tracking identity, and prepare provider synchronization.</p>
-          </div>
-
-          <div class="data-card">
-            <h3 style="margin-bottom: 8px;">Operational Finance</h3>
-            <p style="margin: 0;">Link invoices and payments directly to shipment files and monitor outstanding balances.</p>
-          </div>
-
-          <div class="data-card">
-            <h3 style="margin-bottom: 8px;">System Health</h3>
-            <p style="margin: 0;">Monitor application status, database availability, and tracking readiness across active shipments.</p>
-          </div>
+          <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
         </div>
-      </section>
 
-      <section class="panel" style="min-height: 540px; display: flex; flex-direction: column; justify-content: center;">
-        <div style="max-width: 460px; margin: 0 auto; width: 100%;">
-          <div class="brand-kicker" style="margin-bottom: 10px;">Secure Access</div>
-          <h2 class="section-title" style="font-size: 1.8rem; margin-bottom: 10px;">Sign in to continue</h2>
-          <p class="section-subtitle" style="margin-bottom: 20px;">
-            Use your assigned account to access the BE-MCs operational workspace.
-          </p>
-
-          <form id="login-form" style="display: grid; gap: 14px;">
-            <div>
-              <label for="username">Username</label>
-              <input id="username" name="username" type="text" placeholder="Enter username" required />
-            </div>
-
-            <div>
-              <label for="password">Password</label>
-              <input id="password" name="password" type="password" placeholder="Enter password" required />
-            </div>
-
-            <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
-          </form>
-
-          <div id="login-message" class="message-box" style="margin-top: 14px;"></div>
-
-          <div class="card" style="margin-top: 18px;">
-            <p style="margin: 0 0 8px 0;"><strong>Demo Accounts</strong></p>
-            <p style="margin: 0 0 6px 0;">admin / 1234</p>
-            <p style="margin: 0 0 6px 0;">operations / 1234</p>
-            <p style="margin: 0 0 6px 0;">accounts / 1234</p>
-            <p style="margin: 0;">customs / 1234</p>
+        <form id="login-form" class="login-form">
+          <div>
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
           </div>
+
+          <div>
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input id="password" name="password" type="password" autocomplete="current-password" required />
+              <button id="toggle-password-btn" class="password-toggle-btn" type="button">Show</button>
+            </div>
+          </div>
+
+          <button id="login-btn" class="btn-primary login-submit-btn" type="submit">Login</button>
+        </form>
+
+        <div id="login-message" class="message-box" style="margin-top:14px;"></div>
+
+        <div class="login-footer-note">
+          <p><strong>Access note:</strong> After login, users can change their own password from the dashboard.</p>
         </div>
-      </section>
+      </div>
     </div>
   </div>
 
@@ -98,14 +87,18 @@
     }
 
     function showMessage(message, type = "info") {
-      const target = document.getElementById("login-message");
       const classMap = {
         success: "msg-success",
         error: "msg-error",
         info: "msg-info"
       };
 
-      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      document.getElementById("login-message").innerHTML =
+        `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+    }
+
+    function clearMessage() {
+      document.getElementById("login-message").innerHTML = "";
     }
 
     function applyTheme(theme) {
@@ -128,24 +121,43 @@
       });
     }
 
-    document.getElementById("login-form").addEventListener("submit", async function (event) {
+    function initPasswordToggle() {
+      const passwordInput = document.getElementById("password");
+      const toggleBtn = document.getElementById("toggle-password-btn");
+
+      toggleBtn.addEventListener("click", function () {
+        const isPassword = passwordInput.type === "password";
+        passwordInput.type = isPassword ? "text" : "password";
+        toggleBtn.textContent = isPassword ? "Hide" : "Show";
+      });
+    }
+
+    async function submitLogin(event) {
       event.preventDefault();
+      clearMessage();
 
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
+      const loginBtn = document.getElementById("login-btn");
 
       if (!username || !password) {
         showMessage("Username and password are required.", "error");
         return;
       }
 
-      showMessage("Signing in...", "info");
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Signing in...";
 
       try {
         const response = await fetch("/login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username,
+            password
+          })
         });
 
         const data = await response.json();
@@ -154,14 +166,24 @@
           throw new Error(data.error || "Login failed.");
         }
 
-        showMessage("Login successful. Redirecting...", "success");
+        showMessage("Login successful. Opening dashboard...", "success");
+
         window.location.href = data.redirect || "/dashboard";
       } catch (error) {
         showMessage(error.message || "Login failed.", "error");
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
       }
-    });
+    }
 
-    initTheme();
+    function initPage() {
+      initTheme();
+      initPasswordToggle();
+      document.getElementById("login-form").addEventListener("submit", submitLogin);
+    }
+
+    initPage();
   </script>
 </body>
 </html>

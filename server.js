@@ -155,23 +155,6 @@ async function requireAuth(req, res, next) {
   }
 }
 
-async function requireAdmin(req, res, next) {
-  try {
-    const session = await getSession(req);
-    if (!session) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-    if (session.role !== "admin") {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-    req.user = session;
-    next();
-  } catch (error) {
-    console.error("Admin middleware error:", error.message);
-    return res.status(500).json({ success: false, error: "Authorization failed" });
-  }
-}
-
 function allowRoles(...roles) {
   return async (req, res, next) => {
     try {
@@ -526,6 +509,76 @@ app.get("/api/me", requireAuth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
+app.post("/api/change-password", requireAuth, async (req, res) => {
+  const currentPassword = String(req.body.current_password || "").trim();
+  const newPassword = String(req.body.new_password || "").trim();
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      error: "Current password and new password are required."
+    });
+  }
+
+  if (newPassword.length < 4) {
+    return res.status(400).json({
+      success: false,
+      error: "New password must have at least 4 characters."
+    });
+  }
+
+  try {
+    const userResult = await pool.query(
+      "SELECT id, username, password, role FROM users WHERE id = $1 LIMIT 1",
+      [req.user.id]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found."
+      });
+    }
+
+    const user = userResult.rows[0];
+    const passwordOk = await bcrypt.compare(currentPassword, user.password);
+
+    if (!passwordOk) {
+      return res.status(400).json({
+        success: false,
+        error: "Current password is incorrect."
+      });
+    }
+
+    const newHashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      "UPDATE users SET password = $1 WHERE id = $2",
+      [newHashedPassword, user.id]
+    );
+
+    await writeAuditLog({
+      actorUsername: user.username,
+      actorRole: user.role,
+      actionType: "CHANGE_PASSWORD",
+      entityType: "USER",
+      entityId: user.id,
+      details: "User changed own password."
+    });
+
+    return res.json({
+      success: true,
+      message: "Password changed successfully."
+    });
+  } catch (error) {
+    console.error("Change password error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not change password."
+    });
+  }
+});
+
 app.get("/api/dashboard-summary", requireAuth, async (_req, res) => {
   try {
     const shipmentsResult = await pool.query(`
@@ -547,7 +600,7 @@ app.get("/api/dashboard-summary", requireAuth, async (_req, res) => {
     `);
 
     const trackingResult = await pool.query(`
-      SELECT te.id, te.event_status, te.location_name, te.remarks, te.event_time, te.source_name, s.reference_number, s.client_name
+      SELECT te.id, te.shipment_id, te.event_status, te.location_name, te.remarks, te.event_time, te.source_name, s.reference_number, s.client_name
       FROM tracking_events te
       JOIN shipments s ON s.id = te.shipment_id
       ORDER BY te.event_time DESC, te.created_at DESC
@@ -1090,7 +1143,7 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 

@@ -5,22 +5,20 @@ const path = require("path");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
+
 const { attachCustomsLiveRoutes } = require("./providers/customs-live");
+const { attachMultiSourceTrackingRoutes } = require("./providers/multi-source-tracking");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
 const SESSION_COOKIE = "bemcs_session";
@@ -120,9 +118,8 @@ async function getSession(req) {
   if (!result.rows.length) return null;
 
   const session = result.rows[0];
-  const now = new Date();
 
-  if (new Date(session.expires_at) < now) {
+  if (new Date(session.expires_at) < new Date()) {
     await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
     return null;
   }
@@ -149,10 +146,7 @@ async function destroySession(req) {
 async function requireAuth(req, res, next) {
   try {
     const session = await getSession(req);
-    if (!session) {
-      return res.redirect("/login");
-    }
-
+    if (!session) return res.redirect("/login");
     req.user = session;
     next();
   } catch (error) {
@@ -164,29 +158,17 @@ async function requireAuth(req, res, next) {
 async function requireAdmin(req, res, next) {
   try {
     const session = await getSession(req);
-
     if (!session) {
-      return res.status(401).json({
-        success: false,
-        error: "Unauthorized"
-      });
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-
     if (session.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Forbidden"
-      });
+      return res.status(403).json({ success: false, error: "Forbidden" });
     }
-
     req.user = session;
     next();
   } catch (error) {
     console.error("Admin middleware error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Authorization failed"
-    });
+    return res.status(500).json({ success: false, error: "Authorization failed" });
   }
 }
 
@@ -194,15 +176,8 @@ function allowRoles(...roles) {
   return async (req, res, next) => {
     try {
       const session = await getSession(req);
-
-      if (!session) {
-        return res.redirect("/login");
-      }
-
-      if (!roles.includes(session.role)) {
-        return res.redirect("/403");
-      }
-
+      if (!session) return res.redirect("/login");
+      if (!roles.includes(session.role)) return res.redirect("/403");
       req.user = session;
       next();
     } catch (error) {
@@ -216,53 +191,36 @@ function apiAllowRoles(...roles) {
   return async (req, res, next) => {
     try {
       const session = await getSession(req);
-
       if (!session) {
-        return res.status(401).json({
-          success: false,
-          error: "Unauthorized"
-        });
+        return res.status(401).json({ success: false, error: "Unauthorized" });
       }
-
       if (!roles.includes(session.role)) {
-        return res.status(403).json({
-          success: false,
-          error: "Forbidden"
-        });
+        return res.status(403).json({ success: false, error: "Forbidden" });
       }
-
       req.user = session;
       next();
     } catch (error) {
       console.error("API role middleware error:", error.message);
-      return res.status(500).json({
-        success: false,
-        error: "Authorization failed"
-      });
+      return res.status(500).json({ success: false, error: "Authorization failed" });
     }
   };
 }
 
 async function ensureColumn(tableName, columnName, definition) {
-  await pool.query(
-    `
+  await pool.query(`
     DO $$
     BEGIN
       IF NOT EXISTS (
         SELECT 1
         FROM information_schema.columns
-        WHERE table_name = '${tableName}'
-          AND column_name = '${columnName}'
+        WHERE table_name = '${tableName}' AND column_name = '${columnName}'
       ) THEN
         EXECUTE 'ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}';
       END IF;
-    END
-    $$;
-    `
-  );
+    END $$;
+  `);
 }
 
-// Initialize database
 async function initDb() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is missing.");
@@ -447,21 +405,15 @@ async function initDb() {
     }
   }
 
-  await pool.query(`
-    DELETE FROM sessions
-    WHERE expires_at < NOW()
-  `);
-
+  await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   console.log("PostgreSQL initialized successfully.");
 }
 
-// Auth routes
 app.get("/", async (req, res) => {
   try {
     const session = await getSession(req);
-    if (session) return res.redirect("/dashboard");
-    return res.redirect("/login");
-  } catch (_error) {
+    return res.redirect(session ? "/dashboard" : "/login");
+  } catch {
     return res.redirect("/login");
   }
 });
@@ -471,13 +423,13 @@ app.get("/login", async (req, res) => {
     const session = await getSession(req);
     if (session) return res.redirect("/dashboard");
     return res.sendFile(path.join(__dirname, "public", "login.html"));
-  } catch (_error) {
+  } catch {
     return res.sendFile(path.join(__dirname, "public", "login.html"));
   }
 });
 
-app.get("/403", requireAuth, (req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "403.html"));
+app.get("/403", requireAuth, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "403.html"));
 });
 
 app.post("/login", async (req, res) => {
@@ -490,7 +442,7 @@ app.post("/login", async (req, res) => {
       [username]
     );
 
-    if (result.rows.length === 0) {
+    if (!result.rows.length) {
       return res.status(401).json({
         success: false,
         error: "Invalid username or password."
@@ -563,77 +515,18 @@ app.post("/logout", async (req, res) => {
       `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
     );
 
-    return res.json({
-      success: true,
-      redirect: "/login"
-    });
+    return res.json({ success: true, redirect: "/login" });
   } catch (error) {
     console.error("Logout error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Logout failed"
-    });
+    return res.status(500).json({ success: false, error: "Logout failed" });
   }
 });
 
 app.get("/api/me", requireAuth, (req, res) => {
-  return res.json({
-    success: true,
-    user: req.user
-  });
+  res.json({ success: true, user: req.user });
 });
 
-app.post("/api/users", requireAdmin, async (req, res) => {
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "").trim();
-  const role = String(req.body.role || "operations").trim();
-
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      error: "Username and password are required."
-    });
-  }
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      "INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role",
-      [username, hashedPassword, role]
-    );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "CREATE_USER",
-      entityType: "USER",
-      entityId: result.rows[0].id,
-      details: `Created user ${result.rows[0].username} with role ${result.rows[0].role}.`
-    });
-
-    return res.status(201).json({
-      success: true,
-      user: result.rows[0]
-    });
-  } catch (error) {
-    if (error.code === "23505") {
-      return res.status(409).json({
-        success: false,
-        error: "Username already exists."
-      });
-    }
-
-    console.error("Create user error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not create user."
-    });
-  }
-});
-
-// Dashboard summary API
-app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
+app.get("/api/dashboard-summary", requireAuth, async (_req, res) => {
   try {
     const shipmentsResult = await pool.query(`
       SELECT
@@ -644,28 +537,17 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
     `);
 
     const invoicesResult = await pool.query(`
-      SELECT
-        COUNT(*)::int AS total_invoices,
-        COALESCE(SUM(amount), 0) AS total_billed
+      SELECT COUNT(*)::int AS total_invoices, COALESCE(SUM(amount), 0) AS total_billed
       FROM invoices
     `);
 
     const paidResult = await pool.query(`
-      SELECT
-        COALESCE(SUM(amount), 0) AS total_paid
+      SELECT COALESCE(SUM(amount), 0) AS total_paid
       FROM payments
     `);
 
     const trackingResult = await pool.query(`
-      SELECT
-        te.id,
-        te.event_status,
-        te.location_name,
-        te.remarks,
-        te.event_time,
-        te.source_name,
-        s.reference_number,
-        s.client_name
+      SELECT te.id, te.event_status, te.location_name, te.remarks, te.event_time, te.source_name, s.reference_number, s.client_name
       FROM tracking_events te
       JOIN shipments s ON s.id = te.shipment_id
       ORDER BY te.event_time DESC, te.created_at DESC
@@ -673,15 +555,7 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
     `);
 
     const recentInvoicesResult = await pool.query(`
-      SELECT
-        i.id,
-        i.invoice_number,
-        i.charge_type,
-        i.amount,
-        i.currency,
-        s.reference_number,
-        s.client_name,
-        i.created_at
+      SELECT i.id, i.invoice_number, i.charge_type, i.amount, i.currency, s.reference_number, s.client_name, i.created_at
       FROM invoices i
       JOIN shipments s ON s.id = i.shipment_id
       ORDER BY i.created_at DESC
@@ -689,15 +563,7 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
     `);
 
     const recentPaymentsResult = await pool.query(`
-      SELECT
-        p.id,
-        p.amount,
-        p.payment_method,
-        p.reference_text,
-        p.created_at,
-        i.invoice_number,
-        s.reference_number,
-        s.client_name
+      SELECT p.id, p.amount, p.payment_method, p.reference_text, p.created_at, i.invoice_number, s.reference_number, s.client_name
       FROM payments p
       JOIN invoices i ON i.id = p.invoice_id
       JOIN shipments s ON s.id = i.shipment_id
@@ -708,10 +574,8 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
     const shipments = shipmentsResult.rows[0] || {};
     const invoices = invoicesResult.rows[0] || {};
     const paid = paidResult.rows[0] || {};
-
     const totalBilled = toMoney(invoices.total_billed);
     const totalPaid = toMoney(paid.total_paid);
-    const outstanding = totalBilled - totalPaid;
 
     return res.json({
       success: true,
@@ -722,7 +586,7 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
         total_invoices: Number(invoices.total_invoices || 0),
         total_billed: totalBilled,
         total_paid: totalPaid,
-        outstanding
+        outstanding: totalBilled - totalPaid
       },
       recent_tracking: trackingResult.rows,
       recent_invoices: recentInvoicesResult.rows.map((row) => ({
@@ -743,99 +607,14 @@ app.get("/api/dashboard-summary", requireAuth, async (req, res) => {
   }
 });
 
-// Audit log APIs
-app.get("/api/audit-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (_req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT
-        id,
-        actor_username,
-        actor_role,
-        action_type,
-        entity_type,
-        entity_id,
-        shipment_id,
-        details,
-        created_at
-      FROM audit_logs
-      ORDER BY created_at DESC
-      LIMIT 100
-    `);
-
-    return res.json({
-      success: true,
-      logs: result.rows
-    });
-  } catch (error) {
-    console.error("Audit logs error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not fetch audit logs."
-    });
-  }
-});
-
-app.get("/api/shipments/:id/audit-logs", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
-  const shipmentId = Number(req.params.id);
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT
-        id,
-        actor_username,
-        actor_role,
-        action_type,
-        entity_type,
-        entity_id,
-        shipment_id,
-        details,
-        created_at
-      FROM audit_logs
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC
-      `,
-      [shipmentId]
-    );
-
-    return res.json({
-      success: true,
-      logs: result.rows
-    });
-  } catch (error) {
-    console.error("Shipment audit logs error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not fetch shipment audit logs."
-    });
-  }
-});
-
-// Shipment APIs
 app.get("/api/shipments", apiAllowRoles("admin", "operations", "accounts", "customs"), async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT
-        id,
-        client_name,
-        reference_number,
-        shipping_line,
-        cargo_description,
-        status,
-        origin_port,
-        destination_port,
-        tracking_provider,
-        carrier_code,
-        bill_of_lading,
-        container_number,
-        booking_number,
-        port_of_loading,
-        port_of_discharge,
-        final_destination,
-        current_tracking_status,
-        current_tracking_time,
-        created_by,
-        created_at
+        id, client_name, reference_number, shipping_line, cargo_description, status,
+        origin_port, destination_port, tracking_provider, carrier_code, bill_of_lading,
+        container_number, booking_number, port_of_loading, port_of_discharge,
+        final_destination, current_tracking_status, current_tracking_time, created_by, created_at
       FROM shipments
       ORDER BY created_at DESC
     `);
@@ -853,306 +632,26 @@ app.get("/api/shipments", apiAllowRoles("admin", "operations", "accounts", "cust
   }
 });
 
-app.get("/api/shipments/:id", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
-  const id = Number(req.params.id);
-
-  try {
-    const shipmentResult = await pool.query(
-      `
-      SELECT
-        id,
-        client_name,
-        reference_number,
-        shipping_line,
-        cargo_description,
-        status,
-        origin_port,
-        destination_port,
-        tracking_provider,
-        carrier_code,
-        bill_of_lading,
-        container_number,
-        booking_number,
-        port_of_loading,
-        port_of_discharge,
-        final_destination,
-        current_tracking_status,
-        current_tracking_time,
-        created_by,
-        created_at
-      FROM shipments
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [id]
-    );
-
-    if (!shipmentResult.rows.length) {
-      return res.status(404).json({
-        success: false,
-        error: "Shipment not found."
-      });
-    }
-
-    const trackingResult = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        source_name,
-        created_by,
-        created_at
-      FROM tracking_events
-      WHERE shipment_id = $1
-      ORDER BY event_time DESC, created_at DESC
-      `,
-      [id]
-    );
-
-    return res.json({
-      success: true,
-      shipment: shipmentResult.rows[0],
-      tracking_events: trackingResult.rows
-    });
-  } catch (error) {
-    console.error("Get shipment error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not fetch shipment."
-    });
-  }
-});
-
-app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
-  const shipmentId = Number(req.params.id);
-
-  try {
-    const shipmentResult = await pool.query(
-      `
-      SELECT
-        id,
-        client_name,
-        reference_number,
-        shipping_line,
-        cargo_description,
-        status,
-        origin_port,
-        destination_port,
-        tracking_provider,
-        carrier_code,
-        bill_of_lading,
-        container_number,
-        booking_number,
-        port_of_loading,
-        port_of_discharge,
-        final_destination,
-        current_tracking_status,
-        current_tracking_time,
-        created_by,
-        created_at
-      FROM shipments
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [shipmentId]
-    );
-
-    if (!shipmentResult.rows.length) {
-      return res.status(404).json({
-        success: false,
-        error: "Shipment not found."
-      });
-    }
-
-    const trackingResult = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        source_name,
-        created_by,
-        created_at
-      FROM tracking_events
-      WHERE shipment_id = $1
-      ORDER BY event_time DESC, created_at DESC
-      `,
-      [shipmentId]
-    );
-
-    const invoicesResult = await pool.query(
-      `
-      SELECT
-        i.id,
-        i.shipment_id,
-        i.invoice_number,
-        i.charge_type,
-        i.amount,
-        i.currency,
-        i.notes,
-        i.created_by,
-        i.created_at,
-        COALESCE(SUM(p.amount), 0) AS paid_amount
-      FROM invoices i
-      LEFT JOIN payments p ON p.invoice_id = i.id
-      WHERE i.shipment_id = $1
-      GROUP BY
-        i.id, i.shipment_id, i.invoice_number, i.charge_type,
-        i.amount, i.currency, i.notes, i.created_by, i.created_at
-      ORDER BY i.created_at DESC
-      `,
-      [shipmentId]
-    );
-
-    const documentsResult = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        document_name,
-        document_category,
-        document_url,
-        notes,
-        uploaded_by,
-        created_at
-      FROM shipment_documents
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC
-      `,
-      [shipmentId]
-    );
-
-    const trackingSourceResult = await pool.query(
-      `
-      SELECT *
-      FROM tracking_sources
-      WHERE shipment_id = $1
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [shipmentId]
-    );
-
-    const syncLogsResult = await pool.query(
-      `
-      SELECT *
-      FROM sync_logs
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC, id DESC
-      LIMIT 20
-      `,
-      [shipmentId]
-    );
-
-    const latestEvent = trackingResult.rows[0] || null;
-
-    const invoiceIds = invoicesResult.rows.map((row) => row.id);
-    let payments = [];
-
-    if (invoiceIds.length) {
-      const paymentsResult = await pool.query(
-        `
-        SELECT
-          id,
-          invoice_id,
-          amount,
-          payment_method,
-          reference_text,
-          notes,
-          created_by,
-          created_at
-        FROM payments
-        WHERE invoice_id = ANY($1::int[])
-        ORDER BY created_at DESC
-        `,
-        [invoiceIds]
-      );
-
-      payments = paymentsResult.rows.map((p) => ({
-        ...p,
-        amount: toMoney(p.amount)
-      }));
-    }
-
-    const invoices = invoicesResult.rows.map((row) => {
-      const amount = toMoney(row.amount);
-      const paid = toMoney(row.paid_amount);
-      return {
-        ...row,
-        amount,
-        paid_amount: paid,
-        balance: amount - paid,
-        payments: payments.filter((p) => p.invoice_id === row.id)
-      };
-    });
-
-    const totalBilled = invoices.reduce((sum, item) => sum + toMoney(item.amount), 0);
-    const totalPaid = invoices.reduce((sum, item) => sum + toMoney(item.paid_amount), 0);
-    const outstanding = totalBilled - totalPaid;
-
-    return res.json({
-      success: true,
-      shipment: shipmentResult.rows[0],
-      tracking_events: trackingResult.rows,
-      invoices,
-      documents: documentsResult.rows,
-      tracking_source: trackingSourceResult.rows[0] || null,
-      sync_logs: syncLogsResult.rows || [],
-      live_status: {
-        shipment_id: shipmentId,
-        reference_number: shipmentResult.rows[0].reference_number,
-        current_status: shipmentResult.rows[0].current_tracking_status || shipmentResult.rows[0].status || null,
-        current_status_time: shipmentResult.rows[0].current_tracking_time || null,
-        tracking_enabled: Boolean(
-          shipmentResult.rows[0].tracking_provider ||
-          shipmentResult.rows[0].bill_of_lading ||
-          shipmentResult.rows[0].container_number ||
-          shipmentResult.rows[0].booking_number
-        ),
-        tracking_source: trackingSourceResult.rows[0] || null,
-        latest_sync: syncLogsResult.rows[0] || null,
-        latest_event: latestEvent
-      },
-      financial_summary: {
-        total_billed: totalBilled,
-        total_paid: totalPaid,
-        outstanding
-      }
-    });
-  } catch (error) {
-    console.error("Full shipment detail error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not fetch integrated shipment detail."
-    });
-  }
-});
-
 app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res) => {
-  const clientName = String(req.body.client_name || "").trim();
-  const referenceNumber = String(req.body.reference_number || "").trim();
-  const shippingLine = String(req.body.shipping_line || "").trim();
-  const cargoDescription = String(req.body.cargo_description || "").trim();
-  const status = String(req.body.status || "Pending").trim();
-  const originPort = String(req.body.origin_port || "").trim();
-  const destinationPort = String(req.body.destination_port || "").trim();
-  const trackingProvider = String(req.body.tracking_provider || "").trim();
-  const carrierCode = String(req.body.carrier_code || "").trim();
-  const billOfLading = String(req.body.bill_of_lading || "").trim();
-  const containerNumber = String(req.body.container_number || "").trim();
-  const bookingNumber = String(req.body.booking_number || "").trim();
-  const portOfLoading = String(req.body.port_of_loading || "").trim();
-  const portOfDischarge = String(req.body.port_of_discharge || "").trim();
-  const finalDestination = String(req.body.final_destination || "").trim();
+  const payload = {
+    client_name: String(req.body.client_name || "").trim(),
+    reference_number: String(req.body.reference_number || "").trim(),
+    shipping_line: String(req.body.shipping_line || "").trim(),
+    cargo_description: String(req.body.cargo_description || "").trim(),
+    status: String(req.body.status || "Pending").trim(),
+    origin_port: String(req.body.origin_port || "").trim(),
+    destination_port: String(req.body.destination_port || "").trim(),
+    tracking_provider: String(req.body.tracking_provider || "").trim(),
+    carrier_code: String(req.body.carrier_code || "").trim(),
+    bill_of_lading: String(req.body.bill_of_lading || "").trim(),
+    container_number: String(req.body.container_number || "").trim(),
+    booking_number: String(req.body.booking_number || "").trim(),
+    port_of_loading: String(req.body.port_of_loading || "").trim(),
+    port_of_discharge: String(req.body.port_of_discharge || "").trim(),
+    final_destination: String(req.body.final_destination || "").trim()
+  };
 
-  if (!clientName || !referenceNumber || !shippingLine || !cargoDescription) {
+  if (!payload.client_name || !payload.reference_number || !payload.shipping_line || !payload.cargo_description) {
     return res.status(400).json({
       success: false,
       error: "Client name, reference number, shipping line, and cargo description are required."
@@ -1163,55 +662,33 @@ app.post("/api/shipments", apiAllowRoles("admin", "operations"), async (req, res
     const result = await pool.query(
       `
       INSERT INTO shipments (
-        client_name,
-        reference_number,
-        shipping_line,
-        cargo_description,
-        status,
-        origin_port,
-        destination_port,
-        tracking_provider,
-        carrier_code,
-        bill_of_lading,
-        container_number,
-        booking_number,
-        port_of_loading,
-        port_of_discharge,
-        final_destination,
-        created_by
+        client_name, reference_number, shipping_line, cargo_description, status,
+        origin_port, destination_port, tracking_provider, carrier_code, bill_of_lading,
+        container_number, booking_number, port_of_loading, port_of_discharge,
+        final_destination, created_by
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *
       `,
       [
-        clientName,
-        referenceNumber,
-        shippingLine,
-        cargoDescription,
-        status,
-        originPort,
-        destinationPort,
-        trackingProvider || null,
-        carrierCode || null,
-        billOfLading || null,
-        containerNumber || null,
-        bookingNumber || null,
-        portOfLoading || null,
-        portOfDischarge || null,
-        finalDestination || null,
+        payload.client_name,
+        payload.reference_number,
+        payload.shipping_line,
+        payload.cargo_description,
+        payload.status,
+        payload.origin_port || null,
+        payload.destination_port || null,
+        payload.tracking_provider || null,
+        payload.carrier_code || null,
+        payload.bill_of_lading || null,
+        payload.container_number || null,
+        payload.booking_number || null,
+        payload.port_of_loading || null,
+        payload.port_of_discharge || null,
+        payload.final_destination || null,
         req.user.username
       ]
     );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "CREATE_SHIPMENT",
-      entityType: "SHIPMENT",
-      entityId: result.rows[0].id,
-      shipmentId: result.rows[0].id,
-      details: `Created shipment ${result.rows[0].reference_number} for client ${result.rows[0].client_name}.`
-    });
 
     return res.status(201).json({
       success: true,
@@ -1252,7 +729,7 @@ app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operation
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -1273,99 +750,63 @@ app.post("/api/shipments/:id/tracking-config", apiAllowRoles("admin", "operation
           booking_number = COALESCE(NULLIF($6, ''), booking_number)
       WHERE id = $1
       `,
-      [
-        shipmentId,
-        providerName || null,
-        carrierCode || null,
-        billOfLading,
-        containerNumber,
-        bookingNumber
-      ]
+      [shipmentId, providerName || null, carrierCode || null, billOfLading, containerNumber, bookingNumber]
     );
 
     const existing = await pool.query(
-      `
-      SELECT id
-      FROM tracking_sources
-      WHERE shipment_id = $1
-      LIMIT 1
-      `,
+      "SELECT id FROM tracking_sources WHERE shipment_id = $1 LIMIT 1",
       [shipmentId]
     );
 
-    let trackingSource;
-
-    if (existing.rows.length) {
-      const updateResult = await pool.query(
-        `
-        UPDATE tracking_sources
-        SET provider_name = $2,
-            carrier_code = $3,
-            bill_of_lading = $4,
-            container_number = $5,
-            booking_number = $6,
-            tracking_mode = $7,
-            source_label = $8
-        WHERE shipment_id = $1
-        RETURNING *
-        `,
-        [
-          shipmentId,
-          providerName || null,
-          carrierCode || null,
-          billOfLading || null,
-          containerNumber || null,
-          bookingNumber || null,
-          trackingMode,
-          sourceLabel
-        ]
-      );
-
-      trackingSource = updateResult.rows[0];
-    } else {
-      const insertResult = await pool.query(
-        `
-        INSERT INTO tracking_sources (
-          shipment_id,
-          provider_name,
-          carrier_code,
-          bill_of_lading,
-          container_number,
-          booking_number,
-          tracking_mode,
-          source_label
+    const trackingSourceResult = existing.rows.length
+      ? await pool.query(
+          `
+          UPDATE tracking_sources
+          SET provider_name = $2,
+              carrier_code = $3,
+              bill_of_lading = $4,
+              container_number = $5,
+              booking_number = $6,
+              tracking_mode = $7,
+              source_label = $8
+          WHERE shipment_id = $1
+          RETURNING *
+          `,
+          [
+            shipmentId,
+            providerName || null,
+            carrierCode || null,
+            billOfLading || null,
+            containerNumber || null,
+            bookingNumber || null,
+            trackingMode,
+            sourceLabel
+          ]
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        RETURNING *
-        `,
-        [
-          shipmentId,
-          providerName || null,
-          carrierCode || null,
-          billOfLading || null,
-          containerNumber || null,
-          bookingNumber || null,
-          trackingMode,
-          sourceLabel
-        ]
-      );
-
-      trackingSource = insertResult.rows[0];
-    }
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "CONFIGURE_TRACKING_SOURCE",
-      entityType: "TRACKING_SOURCE",
-      entityId: trackingSource.id,
-      shipmentId,
-      details: `Configured tracking source ${providerName} for shipment ${shipmentCheck.rows[0].reference_number}.`
-    });
+      : await pool.query(
+          `
+          INSERT INTO tracking_sources (
+            shipment_id, provider_name, carrier_code, bill_of_lading, container_number,
+            booking_number, tracking_mode, source_label
+          )
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          RETURNING *
+          `,
+          [
+            shipmentId,
+            providerName || null,
+            carrierCode || null,
+            billOfLading || null,
+            containerNumber || null,
+            bookingNumber || null,
+            trackingMode,
+            sourceLabel
+          ]
+        );
 
     return res.json({
       success: true,
-      tracking_source: trackingSource
+      tracking_source: trackingSourceResult.rows[0]
     });
   } catch (error) {
     console.error("Tracking config error:", error.message);
@@ -1381,13 +822,7 @@ app.get("/api/shipments/:id/tracking-source", apiAllowRoles("admin", "operations
 
   try {
     const result = await pool.query(
-      `
-      SELECT *
-      FROM tracking_sources
-      WHERE shipment_id = $1
-      ORDER BY id DESC
-      LIMIT 1
-      `,
+      "SELECT * FROM tracking_sources WHERE shipment_id = $1 ORDER BY id DESC LIMIT 1",
       [shipmentId]
     );
 
@@ -1409,13 +844,7 @@ app.get("/api/shipments/:id/sync-logs", apiAllowRoles("admin", "operations", "ac
 
   try {
     const result = await pool.query(
-      `
-      SELECT *
-      FROM sync_logs
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC, id DESC
-      LIMIT 50
-      `,
+      "SELECT * FROM sync_logs WHERE shipment_id = $1 ORDER BY created_at DESC, id DESC LIMIT 50",
       [shipmentId]
     );
 
@@ -1437,7 +866,7 @@ app.get("/api/shipments/:id/live-status", apiAllowRoles("admin", "operations", "
 
   try {
     const shipmentResult = await pool.query(
-      `SELECT * FROM shipments WHERE id = $1 LIMIT 1`,
+      "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -1449,36 +878,9 @@ app.get("/api/shipments/:id/live-status", apiAllowRoles("admin", "operations", "
     }
 
     const [trackingSourceResult, latestSyncResult, latestEventResult] = await Promise.all([
-      pool.query(
-        `
-        SELECT *
-        FROM tracking_sources
-        WHERE shipment_id = $1
-        ORDER BY id DESC
-        LIMIT 1
-        `,
-        [shipmentId]
-      ),
-      pool.query(
-        `
-        SELECT *
-        FROM sync_logs
-        WHERE shipment_id = $1
-        ORDER BY created_at DESC, id DESC
-        LIMIT 1
-        `,
-        [shipmentId]
-      ),
-      pool.query(
-        `
-        SELECT *
-        FROM tracking_events
-        WHERE shipment_id = $1
-        ORDER BY event_time DESC NULLS LAST, id DESC
-        LIMIT 1
-        `,
-        [shipmentId]
-      )
+      pool.query("SELECT * FROM tracking_sources WHERE shipment_id = $1 ORDER BY id DESC LIMIT 1", [shipmentId]),
+      pool.query("SELECT * FROM sync_logs WHERE shipment_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1", [shipmentId]),
+      pool.query("SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY event_time DESC NULLS LAST, id DESC LIMIT 1", [shipmentId])
     ]);
 
     const shipment = shipmentResult.rows[0];
@@ -1510,58 +912,153 @@ app.get("/api/shipments/:id/live-status", apiAllowRoles("admin", "operations", "
   }
 });
 
-// Tracking APIs
+app.get("/api/shipments/:id/full-detail", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
+  const shipmentId = Number(req.params.id);
+
+  try {
+    const shipmentResult = await pool.query(
+      "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
+      [shipmentId]
+    );
+
+    if (!shipmentResult.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Shipment not found."
+      });
+    }
+
+    const trackingResult = await pool.query(
+      "SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY event_time DESC, created_at DESC",
+      [shipmentId]
+    );
+
+    const invoicesResult = await pool.query(`
+      SELECT
+        i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount, i.currency, i.notes, i.created_by, i.created_at,
+        COALESCE(SUM(p.amount), 0) AS paid_amount
+      FROM invoices i
+      LEFT JOIN payments p ON p.invoice_id = i.id
+      WHERE i.shipment_id = $1
+      GROUP BY i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount, i.currency, i.notes, i.created_by, i.created_at
+      ORDER BY i.created_at DESC
+    `, [shipmentId]);
+
+    const documentsResult = await pool.query(
+      "SELECT * FROM shipment_documents WHERE shipment_id = $1 ORDER BY created_at DESC",
+      [shipmentId]
+    );
+
+    const trackingSourceResult = await pool.query(
+      "SELECT * FROM tracking_sources WHERE shipment_id = $1 ORDER BY id DESC LIMIT 1",
+      [shipmentId]
+    );
+
+    const syncLogsResult = await pool.query(
+      "SELECT * FROM sync_logs WHERE shipment_id = $1 ORDER BY created_at DESC, id DESC LIMIT 20",
+      [shipmentId]
+    );
+
+    const invoiceIds = invoicesResult.rows.map((row) => row.id);
+    let payments = [];
+
+    if (invoiceIds.length) {
+      const paymentsResult = await pool.query(
+        `
+        SELECT id, invoice_id, amount, payment_method, reference_text, notes, created_by, created_at
+        FROM payments
+        WHERE invoice_id = ANY($1::int[])
+        ORDER BY created_at DESC
+        `,
+        [invoiceIds]
+      );
+
+      payments = paymentsResult.rows.map((p) => ({
+        ...p,
+        amount: toMoney(p.amount)
+      }));
+    }
+
+    const invoices = invoicesResult.rows.map((row) => {
+      const amount = toMoney(row.amount);
+      const paid = toMoney(row.paid_amount);
+
+      return {
+        ...row,
+        amount,
+        paid_amount: paid,
+        balance: amount - paid,
+        payments: payments.filter((p) => p.invoice_id === row.id)
+      };
+    });
+
+    const totalBilled = invoices.reduce((sum, item) => sum + toMoney(item.amount), 0);
+    const totalPaid = invoices.reduce((sum, item) => sum + toMoney(item.paid_amount), 0);
+    const shipment = shipmentResult.rows[0];
+    const latestEvent = trackingResult.rows[0] || null;
+
+    return res.json({
+      success: true,
+      shipment,
+      tracking_events: trackingResult.rows,
+      invoices,
+      documents: documentsResult.rows,
+      tracking_source: trackingSourceResult.rows[0] || null,
+      sync_logs: syncLogsResult.rows || [],
+      live_status: {
+        shipment_id: shipment.id,
+        reference_number: shipment.reference_number,
+        current_status: shipment.current_tracking_status || shipment.status || null,
+        current_status_time: shipment.current_tracking_time || null,
+        tracking_enabled: Boolean(
+          shipment.tracking_provider ||
+          shipment.bill_of_lading ||
+          shipment.container_number ||
+          shipment.booking_number
+        ),
+        tracking_source: trackingSourceResult.rows[0] || null,
+        latest_sync: syncLogsResult.rows[0] || null,
+        latest_event: latestEvent
+      },
+      financial_summary: {
+        total_billed: totalBilled,
+        total_paid: totalPaid,
+        outstanding: totalBilled - totalPaid
+      }
+    });
+  } catch (error) {
+    console.error("Full shipment detail error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch integrated shipment detail."
+    });
+  }
+});
+
 app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
   const shipmentId = Number(req.query.shipment_id);
 
   try {
-    if (shipmentId) {
-      const result = await pool.query(
-        `
-        SELECT
-          te.id,
-          te.shipment_id,
-          te.event_status,
-          te.location_name,
-          te.remarks,
-          te.event_time,
-          te.source_name,
-          te.created_by,
-          te.created_at,
-          s.reference_number,
-          s.client_name
-        FROM tracking_events te
-        JOIN shipments s ON s.id = te.shipment_id
-        WHERE te.shipment_id = $1
-        ORDER BY te.event_time DESC, te.created_at DESC
-        `,
-        [shipmentId]
-      );
-
-      return res.json({
-        success: true,
-        tracking_events: result.rows
-      });
-    }
-
-    const result = await pool.query(`
-      SELECT
-        te.id,
-        te.shipment_id,
-        te.event_status,
-        te.location_name,
-        te.remarks,
-        te.event_time,
-        te.source_name,
-        te.created_by,
-        te.created_at,
-        s.reference_number,
-        s.client_name
-      FROM tracking_events te
-      JOIN shipments s ON s.id = te.shipment_id
-      ORDER BY te.event_time DESC, te.created_at DESC
-      LIMIT 50
-    `);
+    const result = shipmentId
+      ? await pool.query(
+          `
+          SELECT te.*, s.reference_number, s.client_name
+          FROM tracking_events te
+          JOIN shipments s ON s.id = te.shipment_id
+          WHERE te.shipment_id = $1
+          ORDER BY te.event_time DESC, te.created_at DESC
+          `,
+          [shipmentId]
+        )
+      : await pool.query(
+          `
+          SELECT te.*, s.reference_number, s.client_name
+          FROM tracking_events te
+          JOIN shipments s ON s.id = te.shipment_id
+          ORDER BY te.event_time DESC, te.created_at DESC
+          LIMIT 50
+          `
+        );
 
     return res.json({
       success: true,
@@ -1572,42 +1069,6 @@ app.get("/api/tracking-events", apiAllowRoles("admin", "operations", "accounts",
     return res.status(500).json({
       success: false,
       error: "Could not fetch tracking events."
-    });
-  }
-});
-
-app.get("/api/shipments/:id/tracking-events", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
-  const shipmentId = Number(req.params.id);
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        source_name,
-        created_by,
-        created_at
-      FROM tracking_events
-      WHERE shipment_id = $1
-      ORDER BY event_time DESC, created_at DESC
-      `,
-      [shipmentId]
-    );
-
-    return res.json({
-      success: true,
-      tracking_events: result.rows
-    });
-  } catch (error) {
-    console.error("Shipment tracking events error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Could not fetch shipment tracking events."
     });
   }
 });
@@ -1643,13 +1104,7 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
     const result = await pool.query(
       `
       INSERT INTO tracking_events (
-        shipment_id,
-        event_status,
-        location_name,
-        remarks,
-        event_time,
-        source_name,
-        created_by
+        shipment_id, event_status, location_name, remarks, event_time, source_name, created_by
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
@@ -1660,23 +1115,11 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
     await pool.query(
       `
       UPDATE shipments
-      SET status = $1,
-          current_tracking_status = $1,
-          current_tracking_time = $2
+      SET status = $1, current_tracking_status = $1, current_tracking_time = $2
       WHERE id = $3
       `,
       [eventStatus, eventTime, shipmentId]
     );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "ADD_TRACKING_EVENT",
-      entityType: "TRACKING_EVENT",
-      entityId: result.rows[0].id,
-      shipmentId,
-      details: `Added tracking event "${eventStatus}" at "${locationName}" for shipment ${shipmentCheck.rows[0].reference_number}.`
-    });
 
     return res.status(201).json({
       success: true,
@@ -1691,40 +1134,51 @@ app.post("/api/tracking-events", apiAllowRoles("admin", "operations", "customs")
   }
 });
 
-// Accounting APIs
 app.get("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), async (_req, res) => {
   try {
-    const result = await pool.query(`
+    const invoicesResult = await pool.query(`
       SELECT
-        i.id,
-        i.shipment_id,
-        i.invoice_number,
-        i.charge_type,
-        i.amount,
-        i.currency,
-        i.notes,
-        i.created_by,
-        i.created_at,
-        s.reference_number,
-        s.client_name,
+        i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount, i.currency, i.notes, i.created_by, i.created_at,
+        s.reference_number, s.client_name,
         COALESCE(SUM(p.amount), 0) AS paid_amount
       FROM invoices i
       JOIN shipments s ON s.id = i.shipment_id
       LEFT JOIN payments p ON p.invoice_id = i.id
-      GROUP BY
-        i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount,
-        i.currency, i.notes, i.created_by, i.created_at, s.reference_number, s.client_name
+      GROUP BY i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount, i.currency, i.notes, i.created_by, i.created_at, s.reference_number, s.client_name
       ORDER BY i.created_at DESC
     `);
 
-    const invoices = result.rows.map((row) => {
+    const invoiceIds = invoicesResult.rows.map((row) => row.id);
+    let payments = [];
+
+    if (invoiceIds.length) {
+      const paymentsResult = await pool.query(
+        `
+        SELECT
+          id, invoice_id, amount, payment_method, reference_text, notes, created_by, created_at
+        FROM payments
+        WHERE invoice_id = ANY($1::int[])
+        ORDER BY created_at DESC
+        `,
+        [invoiceIds]
+      );
+
+      payments = paymentsResult.rows.map((p) => ({
+        ...p,
+        amount: toMoney(p.amount)
+      }));
+    }
+
+    const invoices = invoicesResult.rows.map((row) => {
       const amount = toMoney(row.amount);
       const paid = toMoney(row.paid_amount);
+
       return {
         ...row,
         amount,
         paid_amount: paid,
-        balance: amount - paid
+        balance: amount - paid,
+        payments: payments.filter((p) => p.invoice_id === row.id)
       };
     });
 
@@ -1741,24 +1195,15 @@ app.get("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), async
   }
 });
 
-app.get("/api/invoices/:id", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
+app.get("/api/invoices/:id/print-data", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
   const invoiceId = Number(req.params.id);
 
   try {
     const invoiceResult = await pool.query(
       `
       SELECT
-        i.id,
-        i.shipment_id,
-        i.invoice_number,
-        i.charge_type,
-        i.amount,
-        i.currency,
-        i.notes,
-        i.created_by,
-        i.created_at,
-        s.reference_number,
-        s.client_name
+        i.id, i.shipment_id, i.invoice_number, i.charge_type, i.amount, i.currency, i.notes, i.created_by, i.created_at,
+        s.reference_number, s.client_name, s.shipping_line, s.cargo_description
       FROM invoices i
       JOIN shipments s ON s.id = i.shipment_id
       WHERE i.id = $1
@@ -1776,15 +1221,7 @@ app.get("/api/invoices/:id", apiAllowRoles("admin", "accounts", "operations"), a
 
     const paymentsResult = await pool.query(
       `
-      SELECT
-        id,
-        invoice_id,
-        amount,
-        payment_method,
-        reference_text,
-        notes,
-        created_by,
-        created_at
+      SELECT id, invoice_id, amount, payment_method, reference_text, notes, created_by, created_at
       FROM payments
       WHERE invoice_id = $1
       ORDER BY created_at DESC
@@ -1799,23 +1236,22 @@ app.get("/api/invoices/:id", apiAllowRoles("admin", "accounts", "operations"), a
     }));
 
     const paid = payments.reduce((sum, p) => sum + toMoney(p.amount), 0);
-    const amount = toMoney(invoice.amount);
 
     return res.json({
       success: true,
       invoice: {
         ...invoice,
-        amount,
+        amount: toMoney(invoice.amount),
         paid_amount: paid,
-        balance: amount - paid
-      },
-      payments
+        balance: toMoney(invoice.amount) - paid,
+        payments
+      }
     });
   } catch (error) {
-    console.error("Get invoice error:", error.message);
+    console.error("Invoice print data error:", error.message);
     return res.status(500).json({
       success: false,
-      error: "Could not fetch invoice."
+      error: "Could not load invoice print data."
     });
   }
 });
@@ -1837,7 +1273,7 @@ app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), asyn
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -1851,29 +1287,13 @@ app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), asyn
     const result = await pool.query(
       `
       INSERT INTO invoices (
-        shipment_id,
-        invoice_number,
-        charge_type,
-        amount,
-        currency,
-        notes,
-        created_by
+        shipment_id, invoice_number, charge_type, amount, currency, notes, created_by
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
       `,
       [shipmentId, invoiceNumber, chargeType, amount, currency, notes, req.user.username]
     );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "CREATE_INVOICE",
-      entityType: "INVOICE",
-      entityId: result.rows[0].id,
-      shipmentId,
-      details: `Created invoice ${invoiceNumber} for shipment ${shipmentCheck.rows[0].reference_number}.`
-    });
 
     return res.status(201).json({
       success: true,
@@ -1898,6 +1318,48 @@ app.post("/api/invoices", apiAllowRoles("admin", "accounts", "operations"), asyn
   }
 });
 
+app.get("/api/payments/:id/receipt-data", apiAllowRoles("admin", "accounts", "operations"), async (req, res) => {
+  const paymentId = Number(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        p.id, p.invoice_id, p.amount, p.payment_method, p.reference_text, p.notes, p.created_by, p.created_at,
+        i.invoice_number, i.currency, i.shipment_id,
+        s.reference_number, s.client_name, s.shipping_line
+      FROM payments p
+      JOIN invoices i ON i.id = p.invoice_id
+      JOIN shipments s ON s.id = i.shipment_id
+      WHERE p.id = $1
+      LIMIT 1
+      `,
+      [paymentId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Payment not found."
+      });
+    }
+
+    return res.json({
+      success: true,
+      payment: {
+        ...result.rows[0],
+        amount: toMoney(result.rows[0].amount)
+      }
+    });
+  } catch (error) {
+    console.error("Receipt print data error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not load receipt print data."
+    });
+  }
+});
+
 app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) => {
   const invoiceId = Number(req.body.invoice_id);
   const amount = toMoney(req.body.amount);
@@ -1914,12 +1376,7 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
 
   try {
     const invoiceCheck = await pool.query(
-      `
-      SELECT i.id, i.invoice_number, i.shipment_id
-      FROM invoices i
-      WHERE i.id = $1
-      LIMIT 1
-      `,
+      "SELECT i.id FROM invoices i WHERE i.id = $1 LIMIT 1",
       [invoiceId]
     );
 
@@ -1933,28 +1390,13 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
     const result = await pool.query(
       `
       INSERT INTO payments (
-        invoice_id,
-        amount,
-        payment_method,
-        reference_text,
-        notes,
-        created_by
+        invoice_id, amount, payment_method, reference_text, notes, created_by
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
       `,
       [invoiceId, amount, paymentMethod, referenceText, notes, req.user.username]
     );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "ADD_PAYMENT",
-      entityType: "PAYMENT",
-      entityId: result.rows[0].id,
-      shipmentId: invoiceCheck.rows[0].shipment_id,
-      details: `Added payment to invoice ${invoiceCheck.rows[0].invoice_number} via ${paymentMethod}.`
-    });
 
     return res.status(201).json({
       success: true,
@@ -1972,26 +1414,12 @@ app.post("/api/payments", apiAllowRoles("admin", "accounts"), async (req, res) =
   }
 });
 
-// Document APIs
 app.get("/api/shipments/:id/documents", apiAllowRoles("admin", "operations", "accounts", "customs"), async (req, res) => {
   const shipmentId = Number(req.params.id);
 
   try {
     const result = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        document_name,
-        document_category,
-        document_url,
-        notes,
-        uploaded_by,
-        created_at
-      FROM shipment_documents
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC
-      `,
+      "SELECT * FROM shipment_documents WHERE shipment_id = $1 ORDER BY created_at DESC",
       [shipmentId]
     );
 
@@ -2024,7 +1452,7 @@ app.post("/api/documents", apiAllowRoles("admin", "operations", "accounts", "cus
 
   try {
     const shipmentCheck = await pool.query(
-      "SELECT id, reference_number FROM shipments WHERE id = $1 LIMIT 1",
+      "SELECT id FROM shipments WHERE id = $1 LIMIT 1",
       [shipmentId]
     );
 
@@ -2038,35 +1466,13 @@ app.post("/api/documents", apiAllowRoles("admin", "operations", "accounts", "cus
     const result = await pool.query(
       `
       INSERT INTO shipment_documents (
-        shipment_id,
-        document_name,
-        document_category,
-        document_url,
-        notes,
-        uploaded_by
+        shipment_id, document_name, document_category, document_url, notes, uploaded_by
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
       `,
-      [
-        shipmentId,
-        documentName,
-        documentCategory,
-        documentUrl,
-        notes,
-        req.user.username
-      ]
+      [shipmentId, documentName, documentCategory, documentUrl, notes, req.user.username]
     );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "ADD_DOCUMENT",
-      entityType: "SHIPMENT_DOCUMENT",
-      entityId: result.rows[0].id,
-      shipmentId,
-      details: `Added document "${documentName}" (${documentCategory}) to shipment ${shipmentCheck.rows[0].reference_number}.`
-    });
 
     return res.status(201).json({
       success: true,
@@ -2086,16 +1492,7 @@ app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (re
 
   try {
     const existing = await pool.query(
-      `
-      SELECT
-        id,
-        shipment_id,
-        document_name,
-        document_category
-      FROM shipment_documents
-      WHERE id = $1
-      LIMIT 1
-      `,
+      "SELECT id FROM shipment_documents WHERE id = $1 LIMIT 1",
       [documentId]
     );
 
@@ -2106,22 +1503,7 @@ app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (re
       });
     }
 
-    const doc = existing.rows[0];
-
-    await pool.query(
-      "DELETE FROM shipment_documents WHERE id = $1",
-      [documentId]
-    );
-
-    await writeAuditLog({
-      actorUsername: req.user.username,
-      actorRole: req.user.role,
-      actionType: "DELETE_DOCUMENT",
-      entityType: "SHIPMENT_DOCUMENT",
-      entityId: documentId,
-      shipmentId: doc.shipment_id,
-      details: `Deleted document "${doc.document_name}" (${doc.document_category}).`
-    });
+    await pool.query("DELETE FROM shipment_documents WHERE id = $1", [documentId]);
 
     return res.json({
       success: true,
@@ -2136,40 +1518,34 @@ app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (re
   }
 });
 
-// Protected pages
-app.get("/dashboard", requireAuth, (req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+app.get("/dashboard", requireAuth, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-app.get("/index.html", requireAuth, (req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-app.get("/about", allowRoles("admin"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "about.html"));
+app.get("/index.html", requireAuth, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
 app.get("/tracking", allowRoles("admin", "operations", "customs", "accounts"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "tracking.html"));
+  res.sendFile(path.join(__dirname, "public", "tracking.html"));
 });
 
 app.get("/shipment-registry", allowRoles("admin", "operations", "accounts", "customs"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "shipment-registry.html"));
+  res.sendFile(path.join(__dirname, "public", "shipment-registry.html"));
 });
 
 app.get("/registry-detail", allowRoles("admin", "operations", "accounts", "customs"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
+  res.sendFile(path.join(__dirname, "public", "registry-detail.html"));
 });
 
 app.get("/accounting", allowRoles("admin", "accounts", "operations"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "accounting.html"));
+  res.sendFile(path.join(__dirname, "public", "accounting.html"));
 });
 
 app.get("/system-health", allowRoles("admin", "customs", "operations", "accounts"), (_req, res) => {
-  return res.sendFile(path.join(__dirname, "public", "system-health.html"));
+  res.sendFile(path.join(__dirname, "public", "system-health.html"));
 });
 
-// Health
 app.get("/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -2186,18 +1562,17 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-// Attach Customs Live / external provider routes
-attachCustomsLiveRoutes({
-  app,
-  pool,
-  requireAuth
+attachCustomsLiveRoutes({ app, pool, requireAuth });
+attachMultiSourceTrackingRoutes({ app, requireAuth });
+
+app.post("/api/shipments/:id/sync-tracking", requireAuth, async (req, res) => {
+  req.url = `/api/shipments/${req.params.id}/live-refresh`;
+  return app._router.handle(req, res, () => {});
 });
 
-// Start server
 async function startServer() {
   try {
     await initDb();
-
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

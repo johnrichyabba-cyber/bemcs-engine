@@ -104,6 +104,23 @@
     </div>
 
     <section class="panel">
+      <h2 class="section-title">Best External Source</h2>
+      <div id="best-source-box">
+        <p class="empty-state">No external source selected yet.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Checked Sources</h2>
+      <p class="section-subtitle">
+        All sources checked for this tracking reference, including result quality and event count.
+      </p>
+      <div id="checked-sources-box">
+        <p class="empty-state">No sources checked yet.</p>
+      </div>
+    </section>
+
+    <section class="panel">
       <div class="section-head">
         <div>
           <h2 class="section-title">External Source Preview</h2>
@@ -158,36 +175,11 @@
     let externalPreviewCache = null;
 
     const modes = [
-      {
-        code: "express",
-        title: "Express",
-        subtitle: "Courier parcels",
-        hint: "Use courier tracking references for fast parcel flows."
-      },
-      {
-        code: "air_cargo",
-        title: "Air Cargo",
-        subtitle: "Airway bill flow",
-        hint: "Use airway bill or air cargo reference numbers."
-      },
-      {
-        code: "post_ems",
-        title: "Post / EMS",
-        subtitle: "Postal items",
-        hint: "Use EMS or postal tracking references."
-      },
-      {
-        code: "container",
-        title: "Container",
-        subtitle: "Ocean equipment",
-        hint: "Use the full container number for ocean visibility."
-      },
-      {
-        code: "bill_of_lading",
-        title: "Bill of Lading",
-        subtitle: "Ocean shipment reference",
-        hint: "Use Bill of Lading / B/L reference for shipment intake."
-      }
+      { code: "express", title: "Express", subtitle: "Courier parcels", hint: "Use courier tracking references for fast parcel flows." },
+      { code: "air_cargo", title: "Air Cargo", subtitle: "Airway bill flow", hint: "Use airway bill or air cargo reference numbers." },
+      { code: "post_ems", title: "Post / EMS", subtitle: "Postal items", hint: "Use EMS or postal tracking references." },
+      { code: "container", title: "Container", subtitle: "Ocean equipment", hint: "Use the full container number for ocean visibility." },
+      { code: "bill_of_lading", title: "Bill of Lading", subtitle: "Ocean shipment reference", hint: "Use Bill of Lading / B/L reference for shipment intake." }
     ];
 
     function escapeHtml(value) {
@@ -319,6 +311,59 @@
           <p><strong>Operational Note:</strong> This shipment is already registered internally. Open detail or refresh live tracking for the latest synchronized updates.</p>
         </div>
       `;
+    }
+
+    function renderBestSource(preview) {
+      const target = document.getElementById("best-source-box");
+
+      const best = preview?.best_source || null;
+      if (!best) {
+        target.innerHTML = '<p class="empty-state">No best source determined yet.</p>';
+        return;
+      }
+
+      target.innerHTML = `
+        <div class="info-grid">
+          <div class="data-card">
+            <p><strong>Source Name:</strong> ${escapeHtml(best.source_name || "-")}</p>
+            <p><strong>Status:</strong> ${escapeHtml(best.preview_status || "-")}</p>
+            <p><strong>Provider Reference:</strong> ${escapeHtml(best.provider_reference_id || "-")}</p>
+          </div>
+
+          <div class="data-card">
+            <p><strong>Message:</strong> ${escapeHtml(best.message || "-")}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCheckedSources(preview) {
+      const target = document.getElementById("checked-sources-box");
+      const sources = Array.isArray(preview?.checked_sources) ? preview.checked_sources : [];
+
+      if (!sources.length) {
+        target.innerHTML = '<p class="empty-state">No sources checked yet.</p>';
+        return;
+      }
+
+      target.innerHTML = sources.map((source) => `
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
+            <div>
+              <p><strong>Source:</strong> ${escapeHtml(source.source_name || "-")}</p>
+              <p><strong>Supported:</strong> ${source.supported ? "Yes" : "No"}</p>
+            </div>
+
+            <div>
+              <p><strong>Status:</strong> ${escapeHtml(source.preview_status || "-")}</p>
+              <p><strong>Events:</strong> ${escapeHtml(String(source.events_count || 0))}</p>
+            </div>
+          </div>
+
+          <p><strong>Provider Ref:</strong> ${escapeHtml(source.provider_reference_id || "-")}</p>
+          <p><strong>Message:</strong> ${escapeHtml(source.message || "-")}</p>
+        </div>
+      `).join("");
     }
 
     function renderExternalPreview(preview) {
@@ -508,12 +553,16 @@
 
         if (data.matched && data.shipment) {
           renderExistingShipmentMatch(data.shipment);
-          renderExternalPreview(data.external_preview || null);
+          renderBestSource(null);
+          renderCheckedSources(null);
+          renderExternalPreview(null);
           renderLiveStatus(data.live_status || null);
-          renderTimeline(data.timeline || [], data.external_preview || null);
+          renderTimeline(data.timeline || [], null);
           showMessage("Internal shipment found. Live status loaded successfully.", "success");
         } else {
           renderExistingShipmentMatch(null);
+          renderBestSource(data.external_preview || null);
+          renderCheckedSources(data.external_preview || null);
           renderExternalPreview(data.external_preview || null);
           renderLiveStatus(null);
           renderTimeline([], data.external_preview || null);

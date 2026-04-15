@@ -647,6 +647,10 @@
         `;
 
         const win = window.open("", "_blank");
+        if (!win) {
+          alert("Popup blocked. Allow popups, then try again.");
+          return;
+        }
         win.document.open();
         win.document.write(html);
         win.document.close();
@@ -724,6 +728,10 @@
         `;
 
         const win = window.open("", "_blank");
+        if (!win) {
+          alert("Popup blocked. Allow popups, then try again.");
+          return;
+        }
         win.document.open();
         win.document.write(html);
         win.document.close();
@@ -735,8 +743,26 @@
     window.printInvoicePdf = printInvoicePdf;
     window.printReceiptPdf = printReceiptPdf;
 
+    function renderPaymentCard(payment) {
+      return `
+        <div class="timeline-card" style="margin-bottom:10px;">
+          <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+          <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+          <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+          <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+          <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
+          <div class="topbar-actions" style="margin-top:10px;">
+            <button class="btn-outline" type="button" onclick="printReceiptPdf(${payment.id})">Print Receipt PDF</button>
+          </div>
+        </div>
+      `;
+    }
+
     function renderInvoiceBlock(invoice) {
       const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
+      const paymentsHtml = payments.length
+        ? payments.map(renderPaymentCard).join("")
+        : "<p class='empty-state'>No confirmed payments recorded.</p>";
 
       return `
         <div class="card" style="margin-bottom:14px;">
@@ -780,22 +806,7 @@
 
           <div style="padding-top:10px;border-top:1px solid var(--line);margin-top:10px;">
             <h3 style="margin-bottom:10px;">Payments</h3>
-            ${
-              payments.length
-                ? payments.map((payment) => `
-                    <div class="timeline-card" style="margin-bottom:10px;">
-                      <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
-                      <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
-                      <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
-                      <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
-                      <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
-                      <div class="topbar-actions" style="margin-top:10px;">
-                        <button class="btn-outline" type="button" onclick="printReceiptPdf(${payment.id})">Print Receipt PDF</button>
-                      </div>
-                    </div>
-                  `).join("")
-                : "<p class='empty-state'>No confirmed payments recorded.</p>"
-            }
+            ${paymentsHtml}
           </div>
         </div>
       `;

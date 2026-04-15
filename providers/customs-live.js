@@ -1,35 +1,14 @@
 "use strict";
 
-const crypto = require("crypto");
 const {
   createReference,
   listReferenceUpdates,
   normalizeUpdatesPayload
 } = require("./vizion");
 
-/**
- * Customs Live backend module
- *
- * What this file does:
- * 1. Accepts tracking lookups from Customs Live UI
- * 2. Searches existing internal shipment files
- * 3. Creates or refreshes provider tracking references for registered shipments
- * 4. Normalizes provider updates into engine tracking events
- * 5. Feeds live shipment status back to the UI
- *
- * Expected dependencies from server.js:
- * - app: Express app instance
- * - pool: pg Pool instance
- * - requireAuth: auth middleware
- *
- * Usage from server.js:
- * const { attachCustomsLiveRoutes } = require("./providers/customs-live");
- * attachCustomsLiveRoutes({ app, pool, requireAuth });
- */
-
-function escapeLikeValue(value) {
-  return String(value || "").replace(/[%_]/g, "\\$&");
-}
+const {
+  runMultiSourceTrackingLookup
+} = require("./multi-source-tracking");
 
 function normalizeLookupInput(mode, number) {
   const normalizedMode = String(mode || "").trim().toLowerCase();
@@ -122,78 +101,62 @@ async function findInternalShipmentMatch(pool, mode, number) {
 }
 
 async function getTrackingSourceByShipmentId(pool, shipmentId) {
-  try {
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM tracking_sources
-      WHERE shipment_id = $1
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [shipmentId]
-    );
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM tracking_sources
+    WHERE shipment_id = $1
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
 
-    return result.rows[0] || null;
-  } catch (_error) {
-    return null;
-  }
+  return result.rows[0] || null;
 }
 
 async function getLatestSyncLogByShipmentId(pool, shipmentId) {
-  try {
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM sync_logs
-      WHERE shipment_id = $1
-      ORDER BY created_at DESC, id DESC
-      LIMIT 1
-      `,
-      [shipmentId]
-    );
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM sync_logs
+    WHERE shipment_id = $1
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
 
-    return result.rows[0] || null;
-  } catch (_error) {
-    return null;
-  }
+  return result.rows[0] || null;
 }
 
 async function getLatestTrackingEventByShipmentId(pool, shipmentId) {
-  try {
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM tracking_events
-      WHERE shipment_id = $1
-      ORDER BY event_time DESC NULLS LAST, id DESC
-      LIMIT 1
-      `,
-      [shipmentId]
-    );
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM tracking_events
+    WHERE shipment_id = $1
+    ORDER BY event_time DESC NULLS LAST, id DESC
+    LIMIT 1
+    `,
+    [shipmentId]
+  );
 
-    return result.rows[0] || null;
-  } catch (_error) {
-    return null;
-  }
+  return result.rows[0] || null;
 }
 
 async function getTrackingEventsByShipmentId(pool, shipmentId) {
-  try {
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM tracking_events
-      WHERE shipment_id = $1
-      ORDER BY event_time DESC NULLS LAST, id DESC
-      `,
-      [shipmentId]
-    );
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM tracking_events
+    WHERE shipment_id = $1
+    ORDER BY event_time DESC NULLS LAST, id DESC
+    `,
+    [shipmentId]
+  );
 
-    return result.rows || [];
-  } catch (_error) {
-    return [];
-  }
+  return result.rows || [];
 }
 
 async function buildLiveStatus(pool, shipment) {
@@ -223,10 +186,8 @@ async function buildLiveStatus(pool, shipment) {
 }
 
 function chooseTrackingIdentity(shipment) {
-  const providerName = String(shipment.tracking_provider || "vizion").trim().toLowerCase();
-
   return {
-    provider_name: providerName,
+    provider_name: String(shipment.tracking_provider || "vizion").trim().toLowerCase(),
     carrier_code: shipment.carrier_code || null,
     bill_of_lading: shipment.bill_of_lading || null,
     container_number: shipment.container_number || null,
@@ -234,29 +195,14 @@ function chooseTrackingIdentity(shipment) {
   };
 }
 
-function buildProviderCreatePayload(shipment) {
-  const identity = chooseTrackingIdentity(shipment);
-
-  return {
-    provider_name: identity.provider_name,
-    carrier_code: identity.carrier_code || undefined,
-    bill_of_lading: identity.bill_of_lading || undefined,
-    container_number: identity.container_number || undefined,
-    booking_number: identity.booking_number || undefined,
-    source_label: "Customs Live Primary Source"
-  };
-}
-
 async function upsertTrackingSource(pool, shipment, providerReference) {
   const identity = chooseTrackingIdentity(shipment);
-
   const existing = await getTrackingSourceByShipmentId(pool, shipment.id);
 
   const externalReferenceId =
     providerReference?.referenceId ||
     providerReference?.reference_id ||
     providerReference?.id ||
-    providerReference?.uuid ||
     null;
 
   const providerStatus =
@@ -296,13 +242,6 @@ async function upsertTrackingSource(pool, shipment, providerReference) {
 
     return {
       ...existing,
-      provider_name: identity.provider_name,
-      carrier_code: identity.carrier_code,
-      bill_of_lading: identity.bill_of_lading,
-      container_number: identity.container_number,
-      booking_number: identity.booking_number,
-      tracking_mode: "polling",
-      source_label: "Primary Tracking Source",
       external_reference_id: externalReferenceId,
       provider_status: providerStatus
     };
@@ -343,55 +282,35 @@ async function upsertTrackingSource(pool, shipment, providerReference) {
   return insertResult.rows[0];
 }
 
-function toEventHash(shipmentId, event) {
-  const raw = [
-    shipmentId,
-    event.event_status || "",
-    event.location_name || "",
-    event.event_time || "",
-    event.source_name || ""
-  ].join("|");
-
-  return crypto.createHash("sha1").update(raw).digest("hex");
-}
-
 function normalizeSingleUpdate(update, shipment) {
-  const eventStatus =
-    update.event_status ||
-    update.status ||
-    update.milestone ||
-    update.description ||
-    update.title ||
-    "Provider Update";
-
-  const locationName =
-    update.location_name ||
-    update.location ||
-    update.place ||
-    update.city ||
-    update.port ||
-    null;
-
-  const eventTime =
-    update.event_time ||
-    update.timestamp ||
-    update.time ||
-    update.date ||
-    new Date().toISOString();
-
-  const remarks =
-    update.remarks ||
-    update.message ||
-    update.details ||
-    update.description ||
-    null;
-
   return {
     shipment_id: shipment.id,
-    event_status: eventStatus,
-    location_name: locationName,
-    event_time: eventTime,
-    remarks,
+    event_status:
+      update.event_status ||
+      update.status ||
+      update.milestone ||
+      update.description ||
+      update.title ||
+      "Provider Update",
+    location_name:
+      update.location_name ||
+      update.location ||
+      update.place ||
+      update.city ||
+      update.port ||
+      null,
+    event_time:
+      update.event_time ||
+      update.timestamp ||
+      update.time ||
+      update.date ||
+      new Date().toISOString(),
+    remarks:
+      update.remarks ||
+      update.message ||
+      update.details ||
+      update.description ||
+      null,
     source_name: shipment.tracking_provider || "vizion",
     created_by: "system"
   };
@@ -403,43 +322,28 @@ async function insertTrackingEventsIfMissing(pool, shipment, rawUpdates) {
 
   for (const rawUpdate of updates) {
     const event = normalizeSingleUpdate(rawUpdate, shipment);
-    const dedupeHash = toEventHash(shipment.id, event);
 
-    let exists = false;
+    const check = await pool.query(
+      `
+      SELECT id
+      FROM tracking_events
+      WHERE shipment_id = $1
+        AND COALESCE(event_status, '') = COALESCE($2, '')
+        AND COALESCE(location_name, '') = COALESCE($3, '')
+        AND COALESCE(CAST(event_time AS TEXT), '') = COALESCE($4, '')
+        AND COALESCE(source_name, '') = COALESCE($5, '')
+      LIMIT 1
+      `,
+      [
+        shipment.id,
+        event.event_status,
+        event.location_name,
+        event.event_time,
+        event.source_name
+      ]
+    );
 
-    try {
-      const check = await pool.query(
-        `
-        SELECT id
-        FROM tracking_events
-        WHERE shipment_id = $1
-          AND md5(
-            COALESCE(event_status, '') || '|' ||
-            COALESCE(location_name, '') || '|' ||
-            COALESCE(CAST(event_time AS TEXT), '') || '|' ||
-            COALESCE(source_name, '')
-          ) = md5($2)
-        LIMIT 1
-        `,
-        [
-          shipment.id,
-          [
-            event.event_status || "",
-            event.location_name || "",
-            event.event_time || "",
-            event.source_name || ""
-          ].join("|")
-        ]
-      );
-
-      exists = check.rowCount > 0;
-    } catch (_error) {
-      exists = false;
-    }
-
-    if (exists) {
-      continue;
-    }
+    if (check.rowCount > 0) continue;
 
     const insertResult = await pool.query(
       `
@@ -523,8 +427,14 @@ async function ensureProviderReference(pool, shipment) {
     return trackingSource;
   }
 
-  const providerPayload = buildProviderCreatePayload(shipment);
-  const providerReference = await createReference(providerPayload);
+  const providerReference = await createReference({
+    provider_name: shipment.tracking_provider || "vizion",
+    carrier_code: shipment.carrier_code || undefined,
+    bill_of_lading: shipment.bill_of_lading || undefined,
+    container_number: shipment.container_number || undefined,
+    booking_number: shipment.booking_number || undefined
+  });
+
   trackingSource = await upsertTrackingSource(pool, shipment, providerReference);
 
   await insertSyncLog(pool, shipment.id, {
@@ -544,15 +454,12 @@ async function syncShipmentFromProvider(pool, shipment) {
     throw new Error("External provider reference is missing after registration.");
   }
 
-  const providerPayload = {
-    reference_id: trackingSource.external_reference_id,
-    external_reference_id: trackingSource.external_reference_id
-  };
+  const updatesPayload = await listReferenceUpdates({
+    reference_id: trackingSource.external_reference_id
+  });
 
-  const updatesPayload = await listReferenceUpdates(providerPayload);
   const normalizedUpdates = normalizeUpdatesPayload(updatesPayload) || [];
   const insertedEvents = await insertTrackingEventsIfMissing(pool, shipment, normalizedUpdates);
-
   const allEvents = await getTrackingEventsByShipmentId(pool, shipment.id);
   const latestEvent = allEvents[0] || null;
 
@@ -576,13 +483,12 @@ async function syncShipmentFromProvider(pool, shipment) {
   });
 
   const shipmentResult = await pool.query(
-    `SELECT * FROM shipments WHERE id = $1 LIMIT 1`,
+    "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
     [shipment.id]
   );
-  const updatedShipment = shipmentResult.rows[0] || shipment;
 
   return {
-    shipment: updatedShipment,
+    shipment: shipmentResult.rows[0] || shipment,
     tracking_source: await getTrackingSourceByShipmentId(pool, shipment.id),
     latest_event: latestEvent,
     inserted_events: insertedEvents,
@@ -591,43 +497,86 @@ async function syncShipmentFromProvider(pool, shipment) {
   };
 }
 
-async function tryPassiveExternalPreview(pool, lookup) {
-  /**
-   * Safe preview behavior:
-   * - We do NOT force provider registration for every random number at lookup stage.
-   * - We only return a structured intake preview.
-   * - External provider sync becomes authoritative once the shipment is formally registered.
-   *
-   * This keeps Customs Live operational and avoids uncontrolled provider subscriptions.
-   */
+function buildExternalPreviewFromMultiSource(multiSourceResult, lookup) {
+  if (!multiSourceResult) {
+    return {
+      supported: false,
+      preview_status: "no_result",
+      message: "No external source result returned.",
+      provider_reference_id: null,
+      events: [],
+      checked_sources: [],
+      best_source: null,
+      requested_mode: lookup?.mode || null,
+      tracking_number: lookup?.number || null
+    };
+  }
 
   return {
-    mode: lookup.mode,
-    number: lookup.number,
-    valid: lookup.valid,
-    hint: lookup.hint,
-    external_preview_supported: ["container", "bill_of_lading"].includes(lookup.mode),
-    preview_status: "intake_only",
-    message:
-      "External provider sync is activated after the shipment file is formally registered in Front Desk Registry."
+    supported: Boolean(multiSourceResult.best_source),
+    preview_status: multiSourceResult.best_source?.preview_status || "no_result",
+    message: multiSourceResult.best_source?.message || "No external source result returned.",
+    provider_reference_id: multiSourceResult.best_source?.provider_reference_id || null,
+    events: Array.isArray(multiSourceResult.events) ? multiSourceResult.events : [],
+    checked_sources: Array.isArray(multiSourceResult.checked_sources) ? multiSourceResult.checked_sources : [],
+    best_source: multiSourceResult.best_source || null,
+    requested_mode: multiSourceResult.requested_mode || lookup?.mode || null,
+    tracking_number: multiSourceResult.tracking_number || lookup?.number || null
   };
 }
 
-function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
-  if (!app || !pool || !requireAuth) {
-    throw new Error("attachCustomsLiveRoutes requires app, pool, and requireAuth.");
+async function runExternalPreviewFromMultiSource(lookup) {
+  if (!lookup?.mode || !lookup?.number) {
+    return {
+      supported: false,
+      preview_status: "invalid_input",
+      message: "Mode and tracking number are required for external preview.",
+      provider_reference_id: null,
+      events: [],
+      checked_sources: [],
+      best_source: null,
+      requested_mode: lookup?.mode || null,
+      tracking_number: lookup?.number || null
+    };
   }
 
-  /**
-   * POST /api/customs-live/lookup
-   * body: { mode, number }
-   *
-   * Returns:
-   * - normalized lookup result
-   * - internal shipment match (if found)
-   * - passive external preview info
-   * - live status/timeline if shipment is already registered
-   */
+  if (!lookup.valid) {
+    return {
+      supported: false,
+      preview_status: "invalid_reference",
+      message: "Reference format needs review before external preview.",
+      provider_reference_id: null,
+      events: [],
+      checked_sources: [],
+      best_source: null,
+      requested_mode: lookup.mode,
+      tracking_number: lookup.number
+    };
+  }
+
+  try {
+    const multiSourceResult = await runMultiSourceTrackingLookup({
+      mode: lookup.mode,
+      trackingNumber: lookup.number
+    });
+
+    return buildExternalPreviewFromMultiSource(multiSourceResult, lookup);
+  } catch (error) {
+    return {
+      supported: false,
+      preview_status: "preview_failed",
+      message: error.message || "External multi-source preview failed.",
+      provider_reference_id: null,
+      events: [],
+      checked_sources: [],
+      best_source: null,
+      requested_mode: lookup.mode,
+      tracking_number: lookup.number
+    };
+  }
+}
+
+function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
   app.post("/api/customs-live/lookup", requireAuth, async (req, res) => {
     try {
       const { mode, number } = req.body || {};
@@ -654,18 +603,21 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
           matched: true,
           shipment: matchedShipment,
           live_status: liveStatus,
-          timeline
+          timeline,
+          external_preview: null
         });
       }
 
-      const preview = await tryPassiveExternalPreview(pool, lookup);
+      const externalPreview = await runExternalPreviewFromMultiSource(lookup);
 
       return res.json({
         success: true,
         lookup,
         matched: false,
         shipment: null,
-        external_preview: preview
+        live_status: null,
+        timeline: [],
+        external_preview: externalPreview
       });
     } catch (error) {
       return res.status(500).json({
@@ -675,52 +627,6 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
     }
   });
 
-  /**
-   * GET /api/customs-live/lookup/:mode/:number
-   * Same as POST lookup but browser-friendly.
-   */
-  app.get("/api/customs-live/lookup/:mode/:number", requireAuth, async (req, res) => {
-    try {
-      const lookup = normalizeLookupInput(req.params.mode, req.params.number);
-      const matchedShipment = await findInternalShipmentMatch(pool, lookup.mode, lookup.number);
-
-      if (matchedShipment) {
-        const [liveStatus, timeline] = await Promise.all([
-          buildLiveStatus(pool, matchedShipment),
-          getTrackingEventsByShipmentId(pool, matchedShipment.id)
-        ]);
-
-        return res.json({
-          success: true,
-          lookup,
-          matched: true,
-          shipment: matchedShipment,
-          live_status: liveStatus,
-          timeline
-        });
-      }
-
-      const preview = await tryPassiveExternalPreview(pool, lookup);
-
-      return res.json({
-        success: true,
-        lookup,
-        matched: false,
-        shipment: null,
-        external_preview: preview
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: error.message || "Customs Live lookup failed."
-      });
-    }
-  });
-
-  /**
-   * POST /api/shipments/:id/live-refresh
-   * On-demand refresh from provider after shipment has been registered.
-   */
   app.post("/api/shipments/:id/live-refresh", requireAuth, async (req, res) => {
     try {
       const shipmentId = Number(req.params.id);
@@ -733,7 +639,7 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
       }
 
       const shipmentResult = await pool.query(
-        `SELECT * FROM shipments WHERE id = $1 LIMIT 1`,
+        "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
         [shipmentId]
       );
 
@@ -765,10 +671,6 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
     }
   });
 
-  /**
-   * GET /api/shipments/:id/live-updates
-   * Read-only endpoint for UI polling.
-   */
   app.get("/api/shipments/:id/live-updates", requireAuth, async (req, res) => {
     try {
       const shipmentId = Number(req.params.id);
@@ -781,7 +683,7 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
       }
 
       const shipmentResult = await pool.query(
-        `SELECT * FROM shipments WHERE id = $1 LIMIT 1`,
+        "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
         [shipmentId]
       );
 
@@ -824,10 +726,6 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
     }
   });
 
-  /**
-   * POST /api/shipments/:id/enable-live-tracking
-   * Ensures the provider reference exists immediately after a file is registered.
-   */
   app.post("/api/shipments/:id/enable-live-tracking", requireAuth, async (req, res) => {
     try {
       const shipmentId = Number(req.params.id);
@@ -840,7 +738,7 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
       }
 
       const shipmentResult = await pool.query(
-        `SELECT * FROM shipments WHERE id = $1 LIMIT 1`,
+        "SELECT * FROM shipments WHERE id = $1 LIMIT 1",
         [shipmentId]
       );
 
@@ -871,9 +769,5 @@ function attachCustomsLiveRoutes({ app, pool, requireAuth }) {
 }
 
 module.exports = {
-  attachCustomsLiveRoutes,
-  normalizeLookupInput,
-  findInternalShipmentMatch,
-  buildLiveStatus,
-  syncShipmentFromProvider
+  attachCustomsLiveRoutes
 };

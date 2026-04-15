@@ -22,6 +22,7 @@
         <a href="/shipment-registry" class="btn-outline">Shipment Registry</a>
         <a href="/tracking" class="btn-outline">Customs Live</a>
         <a href="/accounting" class="btn-outline">Accounting</a>
+        <a href="/system-health" class="btn-outline">System Health</a>
         <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
@@ -33,6 +34,7 @@
           <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
           <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
+
         <div class="info-card">
           <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
           <p><strong>Session:</strong> Active</p>
@@ -142,6 +144,7 @@
             Monitoring alerts based on shipment visibility gaps and finance exposure.
           </p>
         </div>
+
         <button id="refresh-dashboard-btn" class="btn-outline" type="button">Refresh</button>
       </div>
 
@@ -220,31 +223,6 @@
       <h2 class="section-title">Recent Payments</h2>
       <div id="recent-payments">
         <p class="empty-state">Loading recent payments...</p>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2 class="section-title">Quick Links</h2>
-      <div class="info-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
-        <a href="/shipment-registry" class="card" style="text-decoration:none;color:inherit;">
-          <h3 style="margin-bottom:8px;">Shipment Registry</h3>
-          <p style="margin:0;">Create shipment files and prepare tracking identity.</p>
-        </a>
-
-        <a href="/tracking" class="card" style="text-decoration:none;color:inherit;">
-          <h3 style="margin-bottom:8px;">Customs Live</h3>
-          <p style="margin:0;">Start from tracking reference and transfer unmatched files to Front Desk.</p>
-        </a>
-
-        <a href="/accounting" class="card" style="text-decoration:none;color:inherit;">
-          <h3 style="margin-bottom:8px;">Accounting</h3>
-          <p style="margin:0;">Manage invoices, payments, and outstanding balances.</p>
-        </a>
-
-        <a href="/system-health" class="card" style="text-decoration:none;color:inherit;">
-          <h3 style="margin-bottom:8px;">System Health</h3>
-          <p style="margin:0;">Check backend, database, and integration readiness.</p>
-        </a>
       </div>
     </section>
   </div>
@@ -405,6 +383,7 @@
         if (!response.ok) return null;
 
         const data = await response.json();
+
         if (!data.success) return null;
 
         renderSummaryCards(data.summary || {});
@@ -421,18 +400,14 @@
     async function loadShipments() {
       try {
         const response = await fetch("/api/shipments");
+
         if (!response.ok) {
           shipmentsCache = [];
           return;
         }
 
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.shipments)) {
-          shipmentsCache = [];
-          return;
-        }
-
-        shipmentsCache = data.shipments || [];
+        shipmentsCache = data.success && Array.isArray(data.shipments) ? data.shipments : [];
       } catch (_error) {
         shipmentsCache = [];
       }
@@ -441,18 +416,14 @@
     async function loadInvoices() {
       try {
         const response = await fetch("/api/invoices");
+
         if (!response.ok) {
           invoicesCache = [];
           return;
         }
 
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.invoices)) {
-          invoicesCache = [];
-          return;
-        }
-
-        invoicesCache = data.invoices || [];
+        invoicesCache = data.success && Array.isArray(data.invoices) ? data.invoices : [];
       } catch (_error) {
         invoicesCache = [];
       }
@@ -479,19 +450,22 @@
       setText("card-ready-for-sync", String(readyForSync.length));
 
       setText("alert-missing-tracking", String(missing.length));
-
-      const configuredNoLive = configured.filter((s) =>
-        !s.current_tracking_status && !s.current_tracking_time
+      setText(
+        "alert-no-live-events",
+        String(configured.filter((s) => !s.current_tracking_status && !s.current_tracking_time).length)
       );
-      setText("alert-no-live-events", String(configuredNoLive.length));
-
-      const outstandingFinance = invoicesCache.filter((i) => Number(i.balance || 0) > 0);
-      setText("alert-outstanding-finance", String(outstandingFinance.length));
-
-      const closedCompleted = shipmentsCache.filter((s) =>
-        ["closed", "completed", "delivered"].includes(String(s.status || "").toLowerCase())
+      setText(
+        "alert-outstanding-finance",
+        String(invoicesCache.filter((i) => Number(i.balance || 0) > 0).length)
       );
-      setText("alert-closed-completed", String(closedCompleted.length));
+      setText(
+        "alert-closed-completed",
+        String(
+          shipmentsCache.filter((s) =>
+            ["closed", "completed", "delivered"].includes(String(s.status || "").toLowerCase())
+          ).length
+        )
+      );
     }
 
     function renderShipmentsMissingTracking() {
@@ -555,6 +529,7 @@
               <p><strong>Reference:</strong> ${escapeHtml(invoice.reference_number || "-")}</p>
               <p><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
+
             <div>
               <p><strong>Amount:</strong> ${formatMoney(invoice.amount)}</p>
               <p><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
@@ -578,9 +553,7 @@
       renderOutstandingFinance();
     }
 
-    document.getElementById("refresh-dashboard-btn").addEventListener("click", async function () {
-      await refreshAllDashboardData();
-    });
+    document.getElementById("refresh-dashboard-btn").addEventListener("click", refreshAllDashboardData);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {

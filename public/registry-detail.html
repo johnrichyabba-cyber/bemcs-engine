@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">Shipment Registry Detail</h1>
         <p class="page-subtitle">
-          Integrated shipment workspace for tracking, provider sync, finance, and document control.
+          Integrated shipment command center for tracking, provider sync, finance, documents, and operational control.
         </p>
       </div>
 
@@ -21,6 +21,7 @@
         <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
         <a href="/shipment-registry" class="btn-outline">Back to Shipment Registry</a>
         <a id="tracking-page-link" href="/tracking" class="btn-outline">Open Tracking</a>
+        <a href="/accounting" class="btn-outline">Accounting</a>
         <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
@@ -43,13 +44,14 @@
     <section class="panel">
       <div class="section-head">
         <div>
-          <h2 class="section-title">Live Controls</h2>
+          <h2 class="section-title">Tracking Command Center</h2>
           <p class="section-subtitle">
-            Refresh shipment visibility and run provider synchronization when operational updates are needed.
+            Control live tracking enablement, provider sync, and latest shipment visibility from one place.
           </p>
         </div>
 
         <div class="topbar-actions">
+          <button id="enable-live-btn" class="btn-outline" type="button">Enable Live Tracking</button>
           <button id="refresh-live-btn" class="btn-outline" type="button">Refresh Live Data</button>
           <button id="sync-now-btn" class="btn-primary" type="button">Sync Now</button>
         </div>
@@ -73,6 +75,16 @@
         </div>
       </section>
     </div>
+
+    <section class="panel">
+      <h2 class="section-title">Multi-Source Preview Summary</h2>
+      <p class="section-subtitle">
+        Best available external truth based on the shipment tracking identity currently stored in the registry.
+      </p>
+      <div id="multi-source-summary-box">
+        <p class="empty-state">No multi-source preview loaded yet.</p>
+      </div>
+    </section>
 
     <section class="panel">
       <h2 class="section-title">Shipment Information</h2>
@@ -170,6 +182,8 @@
   <script>
     let currentShipmentId = null;
     let currentUser = null;
+    let currentShipment = null;
+    let currentTrackingSource = null;
 
     function getShipmentIdFromQuery() {
       const params = new URLSearchParams(window.location.search);
@@ -260,6 +274,27 @@
         window.location.href = "/login";
         return false;
       }
+    }
+
+    function inferTrackingModeFromShipment(shipment) {
+      if (!shipment) return "";
+      if (shipment.container_number) return "container";
+      if (shipment.bill_of_lading) return "bill_of_lading";
+      if (shipment.tracking_provider === "air_cargo") return "air_cargo";
+      if (shipment.tracking_provider === "post_ems") return "post_ems";
+      if (shipment.tracking_provider === "express") return "express";
+      return "";
+    }
+
+    function inferTrackingNumberFromShipment(shipment) {
+      if (!shipment) return "";
+      return (
+        shipment.container_number ||
+        shipment.bill_of_lading ||
+        shipment.booking_number ||
+        shipment.reference_number ||
+        ""
+      );
     }
 
     function renderShipmentInfo(shipment) {
@@ -369,6 +404,8 @@
         target.innerHTML = '<p class="empty-state">No tracking source configured for this shipment yet.</p>';
         return;
       }
+
+      currentTrackingSource = source;
 
       target.innerHTML = `
         <div class="info-grid">
@@ -491,7 +528,7 @@
           <p><strong>Category:</strong> ${escapeHtml(doc.document_category)}</p>
           <p><strong>URL:</strong> <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener noreferrer">Open Document</a></p>
           <p><strong>Notes:</strong> ${escapeHtml(doc.notes || "-")}</p>
-          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || doc.uploaded_by || "-")}</p>
+          <p><strong>Uploaded By:</strong> ${escapeHtml(doc.uploaded_by || "-")}</p>
           <p><strong>Time:</strong> ${formatDateTime(doc.created_at)}</p>
           ${
             canDelete
@@ -527,6 +564,59 @@
           <p><strong>Message:</strong> ${escapeHtml(log.message || "-")}</p>
         </div>
       `).join("");
+    }
+
+    function renderMultiSourceSummary(payload) {
+      const target = document.getElementById("multi-source-summary-box");
+      const result = payload?.result || payload?.external_truth || payload || null;
+
+      if (!result || !result.best_source) {
+        target.innerHTML = '<p class="empty-state">No multi-source preview available for this shipment yet.</p>';
+        return;
+      }
+
+      const checkedSources = Array.isArray(result.checked_sources) ? result.checked_sources : [];
+      const events = Array.isArray(result.events) ? result.events : [];
+
+      target.innerHTML = `
+        <div class="info-grid" style="margin-bottom:14px;">
+          <div class="data-card">
+            <p><strong>Best Source:</strong> ${escapeHtml(result.best_source.source_name || "-")}</p>
+            <p><strong>Status:</strong> ${escapeHtml(result.best_source.preview_status || "-")}</p>
+            <p><strong>Provider Ref:</strong> ${escapeHtml(result.best_source.provider_reference_id || "-")}</p>
+          </div>
+
+          <div class="data-card">
+            <p><strong>Requested Mode:</strong> ${escapeHtml(result.requested_mode || "-")}</p>
+            <p><strong>Tracking Number:</strong> ${escapeHtml(result.tracking_number || "-")}</p>
+            <p><strong>Total Events:</strong> ${events.length}</p>
+          </div>
+
+          <div class="data-card">
+            <p><strong>Message:</strong> ${escapeHtml(result.best_source.message || "-")}</p>
+          </div>
+        </div>
+
+        ${
+          checkedSources.length
+            ? checkedSources.map((source) => `
+                <div class="timeline-card" style="margin-bottom:12px;">
+                  <div class="timeline-row">
+                    <div>
+                      <p><strong>Source:</strong> ${escapeHtml(source.source_name || "-")}</p>
+                      <p><strong>Supported:</strong> ${source.supported ? "Yes" : "No"}</p>
+                    </div>
+                    <div>
+                      <p><strong>Status:</strong> ${escapeHtml(source.preview_status || "-")}</p>
+                      <p><strong>Events:</strong> ${escapeHtml(String(source.events_count || 0))}</p>
+                    </div>
+                  </div>
+                  <p><strong>Message:</strong> ${escapeHtml(source.message || "-")}</p>
+                </div>
+              `).join("")
+            : '<p class="empty-state">No checked sources were returned.</p>'
+        }
+      `;
     }
 
     async function loadShipmentDocuments() {
@@ -617,6 +707,41 @@
 
     window.deleteDocument = deleteDocument;
 
+    async function loadMultiSourceSummary() {
+      if (!currentShipment) return;
+
+      const mode = inferTrackingModeFromShipment(currentShipment);
+      const trackingNumber = inferTrackingNumberFromShipment(currentShipment);
+
+      if (!mode || !trackingNumber) {
+        renderMultiSourceSummary(null);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/tracking-sources/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            mode,
+            tracking_number: trackingNumber
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not load multi-source preview.");
+        }
+
+        renderMultiSourceSummary(data);
+      } catch (_error) {
+        renderMultiSourceSummary(null);
+      }
+    }
+
     async function loadAllContext() {
       document.getElementById("tracking-page-link").href = `/tracking?shipment_id=${currentShipmentId}`;
 
@@ -637,6 +762,8 @@
         const sourceData = sourceRes.ok ? await sourceRes.json() : { tracking_source: null };
         const syncData = syncRes.ok ? await syncRes.json() : { sync_logs: [] };
 
+        currentShipment = detailData.shipment || null;
+
         renderShipmentInfo(detailData.shipment);
         renderFinancialSummary(detailData.financial_summary);
         renderTrackingEvents(detailData.tracking_events || []);
@@ -645,6 +772,8 @@
         renderLiveStatus(detailData.live_status || null);
         renderTrackingSource(sourceData.tracking_source || detailData.tracking_source || null);
         renderSyncLogs(syncData.sync_logs || detailData.sync_logs || []);
+
+        await loadMultiSourceSummary();
       } catch (_error) {
         document.getElementById("shipment-info").innerHTML =
           '<p class="empty-state">Could not load shipment detail.</p>';
@@ -687,9 +816,32 @@
       showBoxMessage("sync-message", "Live shipment data refreshed.", "success");
     }
 
+    async function enableLiveTracking() {
+      clearBoxMessage("sync-message");
+      showBoxMessage("sync-message", "Enabling live tracking...", "info");
+
+      try {
+        const response = await fetch(`/api/shipments/${currentShipmentId}/enable-live-tracking`, {
+          method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not enable live tracking.");
+        }
+
+        showBoxMessage("sync-message", data.message || "Live tracking enabled successfully.", "success");
+        await loadAllContext();
+      } catch (error) {
+        showBoxMessage("sync-message", error.message || "Could not enable live tracking.", "error");
+      }
+    }
+
     document.getElementById("save-document-btn").addEventListener("click", saveDocument);
     document.getElementById("sync-now-btn").addEventListener("click", runSyncNow);
     document.getElementById("refresh-live-btn").addEventListener("click", refreshLiveData);
+    document.getElementById("enable-live-btn").addEventListener("click", enableLiveTracking);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {

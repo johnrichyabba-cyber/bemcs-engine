@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">Customs Live</h1>
         <p class="page-subtitle">
-          Operational intake workspace for shipment lookup, customs visibility, and Front Desk transfer.
+          External shipment visibility before registry, with internal matching, live provider updates, and transfer to Front Desk.
         </p>
       </div>
 
@@ -44,7 +44,7 @@
         <div>
           <h2 class="section-title">Tracking Channels</h2>
           <p class="section-subtitle">
-            Select the shipment type first, then enter the available tracking number or reference.
+            Select shipment type, enter tracking number, and retrieve external shipment visibility before recording the file.
           </p>
         </div>
       </div>
@@ -57,7 +57,7 @@
         <div>
           <h2 class="section-title">Lookup Panel</h2>
           <p class="section-subtitle">
-            Start with the tracking number, identify the shipment type, review internal visibility, and transfer unmatched cases to Registry for formal file opening.
+            Search external and internal shipment visibility using the available tracking reference.
           </p>
         </div>
       </div>
@@ -96,7 +96,7 @@
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Existing Shipment Match</h2>
+        <h2 class="section-title">Internal Shipment Match</h2>
         <div id="existing-match-result">
           <p class="empty-state">No internal shipment match checked yet.</p>
         </div>
@@ -106,15 +106,30 @@
     <section class="panel">
       <div class="section-head">
         <div>
-          <h2 class="section-title">Live Status</h2>
+          <h2 class="section-title">External Source Preview</h2>
           <p class="section-subtitle">
-            Current shipment visibility from the internal file and synchronized tracking workflow.
+            Shipment status preview from available external source before the shipment is recorded in the registry.
+          </p>
+        </div>
+      </div>
+
+      <div id="external-preview-box">
+        <p class="empty-state">No external source preview available yet.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Current Live Status</h2>
+          <p class="section-subtitle">
+            Internal live status for already registered shipment files and provider-synced tracking.
           </p>
         </div>
 
         <div class="topbar-actions">
           <button id="refresh-live-btn" class="btn-outline" type="button" style="display:none;">Refresh Live</button>
-          <button id="transfer-btn" class="btn-primary" type="button" style="display:none;">Transfer to Registry (Front Desk)</button>
+          <button id="transfer-btn" class="btn-primary" type="button" style="display:none;">Transfer to Registry</button>
           <a id="open-detail-btn" href="/shipment-registry" class="btn-outline" style="display:none;">Open Shipment Detail</a>
         </div>
       </div>
@@ -127,7 +142,7 @@
     <section class="panel">
       <h2 class="section-title">Shipment Timeline</h2>
       <p class="section-subtitle">
-        Operational movement history, customs-relevant milestones, and shipment progress updates.
+        Unified view of available shipment events and milestones from internal and external sources.
       </p>
       <div id="timeline-box">
         <p class="empty-state">No timeline loaded yet.</p>
@@ -140,6 +155,7 @@
     let selectedMode = "container";
     let lastLookup = null;
     let matchedShipment = null;
+    let externalPreviewCache = null;
 
     const modes = [
       {
@@ -279,9 +295,9 @@
 
         target.innerHTML = `
           <div class="data-card">
-            <p><strong>Match Status:</strong> No existing internal shipment file found.</p>
-            <p><strong>Next Step:</strong> Transfer this case to Front Desk Registry for formal file opening.</p>
-            <p><strong>Operational Note:</strong> No internal shipment file was found for this tracking reference. Transfer this case to Front Desk Registry to open and record a new shipment file.</p>
+            <p><strong>Match Status:</strong> No internal shipment file found.</p>
+            <p><strong>Next Step:</strong> Review external preview, then transfer to Front Desk Registry if shipment is relevant.</p>
+            <p><strong>Operational Note:</strong> The shipment is not yet registered internally. External preview can still provide movement visibility before recording.</p>
           </div>
         `;
         return;
@@ -300,8 +316,63 @@
           <p><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
           <p><strong>Current Status:</strong> ${escapeHtml(shipment.current_tracking_status || shipment.status || "-")}</p>
           <p><strong>Provider:</strong> ${escapeHtml(shipment.tracking_provider || "-")}</p>
-          <p><strong>Operational Note:</strong> This tracking number is already linked to an internal shipment file. Review live status and continue from the shipment detail workspace.</p>
+          <p><strong>Operational Note:</strong> This shipment is already registered internally. Open detail or refresh live tracking for the latest synchronized updates.</p>
         </div>
+      `;
+    }
+
+    function renderExternalPreview(preview) {
+      const target = document.getElementById("external-preview-box");
+      externalPreviewCache = preview || null;
+
+      if (!preview) {
+        target.innerHTML = '<p class="empty-state">No external source preview available yet.</p>';
+        return;
+      }
+
+      const events = Array.isArray(preview.events) ? preview.events : [];
+      const latestEvent = events.length ? events[0] : null;
+
+      target.innerHTML = `
+        <div class="info-grid" style="margin-bottom: 14px;">
+          <div class="data-card">
+            <p><strong>Supported:</strong> ${preview.supported ? "Yes" : "No"}</p>
+            <p><strong>Preview Status:</strong> ${escapeHtml(preview.preview_status || "-")}</p>
+            <p><strong>Provider Reference:</strong> ${escapeHtml(preview.provider_reference_id || "-")}</p>
+          </div>
+
+          <div class="data-card">
+            <p><strong>Message:</strong> ${escapeHtml(preview.message || "-")}</p>
+            <p><strong>Events Found:</strong> ${events.length}</p>
+            <p><strong>Latest Status:</strong> ${latestEvent ? escapeHtml(latestEvent.event_status || "-") : "-"}</p>
+          </div>
+
+          <div class="data-card">
+            <p><strong>Latest Location:</strong> ${latestEvent ? escapeHtml(latestEvent.location_name || "-") : "-"}</p>
+            <p><strong>Latest Time:</strong> ${latestEvent ? formatDateTime(latestEvent.event_time) : "-"}</p>
+            <p><strong>Source:</strong> ${latestEvent ? escapeHtml(latestEvent.source_name || "-") : "-"}</p>
+          </div>
+        </div>
+
+        ${
+          events.length
+            ? events.map((event) => `
+                <div class="timeline-card" style="margin-bottom:12px;">
+                  <div class="timeline-row">
+                    <div>
+                      <p><strong>Status:</strong> ${escapeHtml(event.event_status || "-")}</p>
+                      <p><strong>Location:</strong> ${escapeHtml(event.location_name || "-")}</p>
+                    </div>
+                    <div>
+                      <p><strong>Time:</strong> ${formatDateTime(event.event_time)}</p>
+                      <p><strong>Source:</strong> ${escapeHtml(event.source_name || "-")}</p>
+                    </div>
+                  </div>
+                  <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
+                </div>
+              `).join("")
+            : '<p class="empty-state">No external events returned yet for this reference.</p>'
+        }
       `;
     }
 
@@ -336,15 +407,27 @@
       `;
     }
 
-    function renderTimeline(events) {
+    function renderTimeline(events, externalPreview) {
       const target = document.getElementById("timeline-box");
 
-      if (!events || !events.length) {
+      const internalEvents = Array.isArray(events) ? events : [];
+      const externalEvents = Array.isArray(externalPreview?.events) ? externalPreview.events : [];
+
+      const combined = [
+        ...internalEvents.map((e) => ({ ...e, __origin: "internal" })),
+        ...externalEvents.map((e) => ({ ...e, __origin: "external" }))
+      ].sort((a, b) => {
+        const ta = new Date(a.event_time || 0).getTime();
+        const tb = new Date(b.event_time || 0).getTime();
+        return tb - ta;
+      });
+
+      if (!combined.length) {
         target.innerHTML = '<p class="empty-state">No timeline loaded yet.</p>';
         return;
       }
 
-      target.innerHTML = events.map((event) => `
+      target.innerHTML = combined.map((event) => `
         <div class="timeline-card" style="margin-bottom:12px;">
           <div class="timeline-row">
             <div>
@@ -358,6 +441,7 @@
             </div>
           </div>
 
+          <p><strong>Origin:</strong> ${event.__origin === "external" ? "External Preview" : "Internal Registry"}</p>
           <p><strong>Remarks:</strong> ${escapeHtml(event.remarks || "-")}</p>
         </div>
       `).join("");
@@ -424,19 +508,21 @@
 
         if (data.matched && data.shipment) {
           renderExistingShipmentMatch(data.shipment);
+          renderExternalPreview(data.external_preview || null);
           renderLiveStatus(data.live_status || null);
-          renderTimeline(data.timeline || []);
-          showMessage("Existing shipment found. Live tracking context loaded.", "success");
+          renderTimeline(data.timeline || [], data.external_preview || null);
+          showMessage("Internal shipment found. Live status loaded successfully.", "success");
         } else {
           renderExistingShipmentMatch(null);
+          renderExternalPreview(data.external_preview || null);
           renderLiveStatus(null);
-          renderTimeline([]);
-          showMessage(
-            data.lookup?.valid
-              ? "No internal shipment found. Ready to transfer to Front Desk Registry."
-              : "Format needs review, but you can still transfer to Front Desk Registry.",
-            data.lookup?.valid ? "info" : "error"
-          );
+          renderTimeline([], data.external_preview || null);
+
+          const previewMessage = data.external_preview?.events?.length
+            ? "External source returned shipment status before registry record."
+            : "No internal shipment found. Review external preview and transfer if relevant.";
+
+          showMessage(previewMessage, data.lookup?.valid ? "info" : "error");
         }
       } catch (error) {
         showMessage(error.message || "Lookup failed.", "error");
@@ -464,7 +550,7 @@
         const updatesRes = await fetch(`/api/shipments/${matchedShipment.id}/live-updates`);
         const updatesData = await updatesRes.json();
 
-        renderTimeline(updatesData.timeline || []);
+        renderTimeline(updatesData.timeline || [], externalPreviewCache);
         showMessage("Live shipment data refreshed successfully.", "success");
       } catch (error) {
         showMessage(error.message || "Could not refresh live shipment data.", "error");

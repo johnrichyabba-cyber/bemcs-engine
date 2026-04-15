@@ -317,12 +317,15 @@
         info: "msg-info"
       };
 
-      document.getElementById(targetId).innerHTML =
-        `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      }
     }
 
     function clearMessage(targetId) {
-      document.getElementById(targetId).innerHTML = "";
+      const target = document.getElementById(targetId);
+      if (target) target.innerHTML = "";
     }
 
     function setText(id, value) {
@@ -333,6 +336,7 @@
     function applyTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
       localStorage.setItem("bemcs-theme", theme);
+
       const btn = document.getElementById("theme-toggle-btn");
       if (btn) {
         btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
@@ -417,6 +421,7 @@
         renderSummaryCards([]);
         renderOutstandingAlerts([]);
         renderCurrencyInvoiceLists([]);
+        populateInvoiceDropdown([]);
       }
     }
 
@@ -829,13 +834,15 @@
     }
 
     function resetInvoiceForm() {
-      document.getElementById("invoice-form").reset();
+      const form = document.getElementById("invoice-form");
+      if (form) form.reset();
       document.getElementById("invoice_currency").value = "TZS";
       clearMessage("invoice-message");
     }
 
     function resetPaymentForm() {
-      document.getElementById("payment-form").reset();
+      const form = document.getElementById("payment-form");
+      if (form) form.reset();
       document.getElementById("payment_currency_display").value = "-";
       clearMessage("payment-message");
     }
@@ -954,6 +961,8 @@
     document.getElementById("refresh-finance-btn").addEventListener("click", async function () {
       await Promise.all([loadShipments(), loadInvoices()]);
       populateShipmentDropdown(shipmentsCache);
+      populateInvoiceDropdown(invoicesCache);
+      updatePaymentCurrencyDisplay();
     });
 
     document.getElementById("logout-btn").addEventListener("click", async function () {

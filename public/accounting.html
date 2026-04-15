@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">Operational Finance</h1>
         <p class="page-subtitle">
-          Manage shipment billing, confirm received payments, monitor outstanding balances, and separate financial records by currency.
+          Manage shipment billing, confirm received payments, monitor balances, and separate records by invoice currency.
         </p>
       </div>
 
@@ -333,7 +333,6 @@
     function applyTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
       localStorage.setItem("bemcs-theme", theme);
-
       const btn = document.getElementById("theme-toggle-btn");
       if (btn) {
         btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
@@ -391,6 +390,7 @@
       try {
         const response = await fetch("/api/shipments");
         const data = await response.json();
+
         shipmentsCache = response.ok && data.success && Array.isArray(data.shipments)
           ? data.shipments
           : [];
@@ -444,8 +444,8 @@
         const option = document.createElement("option");
         option.value = invoice.id;
         option.dataset.currency = invoice.currency || "TZS";
-        option.textContent =
-          `${invoice.invoice_number} - ${invoice.reference_number} - ${invoice.currency || "TZS"} ${formatMoney(invoice.balance)}`;
+        option.dataset.balance = invoice.balance || 0;
+        option.textContent = `${invoice.invoice_number} - ${invoice.reference_number} - ${invoice.currency || "TZS"} ${formatMoney(invoice.balance)}`;
         select.appendChild(option);
       });
     }
@@ -453,14 +453,22 @@
     function updatePaymentCurrencyDisplay() {
       const select = document.getElementById("payment_invoice_id");
       const display = document.getElementById("payment_currency_display");
+      const amountInput = document.getElementById("payment_amount");
 
       const option = select.options[select.selectedIndex];
+
       if (!option || !option.value) {
         display.value = "-";
+        amountInput.value = "";
         return;
       }
 
       display.value = option.dataset.currency || "-";
+
+      const balance = Number(option.dataset.balance || 0);
+      if (!amountInput.value) {
+        amountInput.value = balance > 0 ? balance : "";
+      }
     }
 
     function renderSummaryCards(invoices) {
@@ -524,6 +532,209 @@
       `).join("");
     }
 
+    async function printInvoicePdf(invoiceId) {
+      try {
+        const response = await fetch(`/api/invoices/${invoiceId}/print-data`);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not load invoice print data.");
+        }
+
+        const invoice = data.invoice;
+        const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
+
+        const html = `
+          <html>
+          <head>
+            <title>Invoice ${invoice.invoice_number}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+              h1, h2, h3, p { margin: 0 0 10px 0; }
+              .head { margin-bottom: 24px; }
+              .box { border: 1px solid #ccc; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+              .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+              th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+              .right { text-align: right; }
+            </style>
+          </head>
+          <body>
+            <div class="head">
+              <h1>INVOICE</h1>
+              <p><strong>BE-MCs</strong></p>
+              <p>MarineTraffic Group Limited</p>
+            </div>
+
+            <div class="grid">
+              <div class="box">
+                <h3>Invoice Information</h3>
+                <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoice_number)}</p>
+                <p><strong>Currency:</strong> ${escapeHtml(invoice.currency)}</p>
+                <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type)}</p>
+                <p><strong>Date:</strong> ${escapeHtml(new Date(invoice.created_at).toLocaleString())}</p>
+              </div>
+
+              <div class="box">
+                <h3>Client / Shipment</h3>
+                <p><strong>Client:</strong> ${escapeHtml(invoice.client_name)}</p>
+                <p><strong>Shipment Ref:</strong> ${escapeHtml(invoice.reference_number)}</p>
+                <p><strong>Shipping Line:</strong> ${escapeHtml(invoice.shipping_line || "-")}</p>
+                <p><strong>Cargo:</strong> ${escapeHtml(invoice.cargo_description || "-")}</p>
+              </div>
+            </div>
+
+            <div class="box">
+              <h3>Amount Summary</h3>
+              <table>
+                <tr>
+                  <th>Description</th>
+                  <th class="right">Amount</th>
+                </tr>
+                <tr>
+                  <td>${escapeHtml(invoice.charge_type)}</td>
+                  <td class="right">${escapeHtml(invoice.currency)} ${formatMoney(invoice.amount)}</td>
+                </tr>
+                <tr>
+                  <td><strong>Paid</strong></td>
+                  <td class="right"><strong>${escapeHtml(invoice.currency)} ${formatMoney(invoice.paid_amount)}</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Outstanding</strong></td>
+                  <td class="right"><strong>${escapeHtml(invoice.currency)} ${formatMoney(invoice.balance)}</strong></td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="box">
+              <h3>Notes</h3>
+              <p>${escapeHtml(invoice.notes || "-")}</p>
+            </div>
+
+            <div class="box">
+              <h3>Payment Records</h3>
+              ${
+                payments.length
+                  ? `
+                    <table>
+                      <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th class="right">Amount</th>
+                      </tr>
+                      ${payments.map((payment) => `
+                        <tr>
+                          <td>${escapeHtml(new Date(payment.created_at).toLocaleString())}</td>
+                          <td>${escapeHtml(payment.payment_method || "-")}</td>
+                          <td>${escapeHtml(payment.reference_text || "-")}</td>
+                          <td class="right">${escapeHtml(invoice.currency)} ${formatMoney(payment.amount)}</td>
+                        </tr>
+                      `).join("")}
+                    </table>
+                  `
+                  : "<p>No payments recorded.</p>"
+              }
+            </div>
+
+            <script>
+              window.onload = function () {
+                window.print();
+              };
+            </script>
+          </body>
+          </html>
+        `;
+
+        const win = window.open("", "_blank");
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      } catch (error) {
+        alert(error.message || "Could not print invoice.");
+      }
+    }
+
+    async function printReceiptPdf(paymentId) {
+      try {
+        const response = await fetch(`/api/payments/${paymentId}/receipt-data`);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not load receipt print data.");
+        }
+
+        const payment = data.payment;
+
+        const html = `
+          <html>
+          <head>
+            <title>Receipt ${payment.id}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+              h1, h2, h3, p { margin: 0 0 10px 0; }
+              .head { margin-bottom: 24px; }
+              .box { border: 1px solid #ccc; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+              .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+            </style>
+          </head>
+          <body>
+            <div class="head">
+              <h1>PAYMENT RECEIPT</h1>
+              <p><strong>BE-MCs</strong></p>
+              <p>MarineTraffic Group Limited</p>
+            </div>
+
+            <div class="grid">
+              <div class="box">
+                <h3>Receipt Information</h3>
+                <p><strong>Receipt ID:</strong> ${escapeHtml(String(payment.id))}</p>
+                <p><strong>Date:</strong> ${escapeHtml(new Date(payment.created_at).toLocaleString())}</p>
+                <p><strong>Invoice Number:</strong> ${escapeHtml(payment.invoice_number)}</p>
+                <p><strong>Currency:</strong> ${escapeHtml(payment.currency)}</p>
+              </div>
+
+              <div class="box">
+                <h3>Client / Shipment</h3>
+                <p><strong>Client:</strong> ${escapeHtml(payment.client_name)}</p>
+                <p><strong>Shipment Ref:</strong> ${escapeHtml(payment.reference_number)}</p>
+                <p><strong>Shipping Line:</strong> ${escapeHtml(payment.shipping_line || "-")}</p>
+              </div>
+            </div>
+
+            <div class="box">
+              <h3>Payment Details</h3>
+              <p><strong>Amount Received:</strong> ${escapeHtml(payment.currency)} ${formatMoney(payment.amount)}</p>
+              <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+              <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+              <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+            </div>
+
+            <div class="box">
+              <p><strong>Recorded By:</strong> ${escapeHtml(payment.created_by || "-")}</p>
+            </div>
+
+            <script>
+              window.onload = function () {
+                window.print();
+              };
+            </script>
+          </body>
+          </html>
+        `;
+
+        const win = window.open("", "_blank");
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      } catch (error) {
+        alert(error.message || "Could not print receipt.");
+      }
+    }
+
+    window.printInvoicePdf = printInvoicePdf;
+    window.printReceiptPdf = printReceiptPdf;
+
     function renderInvoiceBlock(invoice) {
       const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
 
@@ -563,6 +774,10 @@
           <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
           <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
 
+          <div class="topbar-actions" style="margin-top:12px;margin-bottom:12px;">
+            <button class="btn-outline" type="button" onclick="printInvoicePdf(${invoice.id})">Print Invoice PDF</button>
+          </div>
+
           <div style="padding-top:10px;border-top:1px solid var(--line);margin-top:10px;">
             <h3 style="margin-bottom:10px;">Payments</h3>
             ${
@@ -574,6 +789,9 @@
                       <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
                       <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
                       <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
+                      <div class="topbar-actions" style="margin-top:10px;">
+                        <button class="btn-outline" type="button" onclick="printReceiptPdf(${payment.id})">Print Receipt PDF</button>
+                      </div>
                     </div>
                   `).join("")
                 : "<p class='empty-state'>No confirmed payments recorded.</p>"
@@ -679,10 +897,7 @@
         return;
       }
 
-      const proceed = confirm(
-        `Confirm that ${currency} payment has already been received and should now be recorded?`
-      );
-
+      const proceed = confirm(`Confirm that ${currency} payment has already been received and should now be recorded?`);
       if (!proceed) return;
 
       try {

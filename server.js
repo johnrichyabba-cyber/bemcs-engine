@@ -579,6 +579,232 @@ app.post("/api/change-password", requireAuth, async (req, res) => {
   }
 });
 
+/* USER MANAGEMENT */
+app.get("/api/users", apiAllowRoles("admin"), async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT id, username, role, created_at
+      FROM users
+      ORDER BY created_at DESC, id DESC
+      `
+    );
+
+    return res.json({
+      success: true,
+      users: result.rows
+    });
+  } catch (error) {
+    console.error("List users error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not fetch users."
+    });
+  }
+});
+
+app.post("/api/users", apiAllowRoles("admin"), async (req, res) => {
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "").trim();
+  const role = String(req.body.role || "").trim();
+
+  const allowedRoles = ["admin", "operations", "accounts", "customs"];
+
+  if (!username || !password || !role) {
+    return res.status(400).json({
+      success: false,
+      error: "Username, password, and role are required."
+    });
+  }
+
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid role selected."
+    });
+  }
+
+  if (password.length < 4) {
+    return res.status(400).json({
+      success: false,
+      error: "Password must have at least 4 characters."
+    });
+  }
+
+  try {
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE username = $1 LIMIT 1",
+      [username]
+    );
+
+    if (existing.rows.length) {
+      return res.status(409).json({
+        success: false,
+        error: "Username already exists."
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `
+      INSERT INTO users (username, password, role)
+      VALUES ($1, $2, $3)
+      RETURNING id, username, role, created_at
+      `,
+      [username, hashedPassword, role]
+    );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "CREATE_USER",
+      entityType: "USER",
+      entityId: result.rows[0].id,
+      details: `Created user ${username} with role ${role}.`
+    });
+
+    return res.status(201).json({
+      success: true,
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Create user error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not create user."
+    });
+  }
+});
+
+app.patch("/api/users/:id/role", apiAllowRoles("admin"), async (req, res) => {
+  const userId = Number(req.params.id);
+  const role = String(req.body.role || "").trim();
+  const allowedRoles = ["admin", "operations", "accounts", "customs"];
+
+  if (!userId || !role) {
+    return res.status(400).json({
+      success: false,
+      error: "Valid user ID and role are required."
+    });
+  }
+
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid role selected."
+    });
+  }
+
+  try {
+    const existing = await pool.query(
+      "SELECT id, username, role FROM users WHERE id = $1 LIMIT 1",
+      [userId]
+    );
+
+    if (!existing.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET role = $1
+      WHERE id = $2
+      RETURNING id, username, role, created_at
+      `,
+      [role, userId]
+    );
+
+    await pool.query(
+      `
+      UPDATE sessions
+      SET role = $1
+      WHERE user_id = $2
+      `,
+      [role, userId]
+    );
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "UPDATE_USER_ROLE",
+      entityType: "USER",
+      entityId: userId,
+      details: `Updated user ${result.rows[0].username} role to ${role}.`
+    });
+
+    return res.json({
+      success: true,
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Update user role error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not update user role."
+    });
+  }
+});
+
+app.delete("/api/users/:id", apiAllowRoles("admin"), async (req, res) => {
+  const userId = Number(req.params.id);
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      error: "Valid user ID is required."
+    });
+  }
+
+  if (userId === req.user.id) {
+    return res.status(400).json({
+      success: false,
+      error: "You cannot delete your own account while logged in."
+    });
+  }
+
+  try {
+    const existing = await pool.query(
+      "SELECT id, username FROM users WHERE id = $1 LIMIT 1",
+      [userId]
+    );
+
+    if (!existing.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found."
+      });
+    }
+
+    await pool.query("DELETE FROM sessions WHERE user_id = $1", [userId]);
+    await pool.query("DELETE FROM users WHERE id = $1", [userId]);
+
+    await writeAuditLog({
+      actorUsername: req.user.username,
+      actorRole: req.user.role,
+      actionType: "DELETE_USER",
+      entityType: "USER",
+      entityId: userId,
+      details: `Deleted user ${existing.rows[0].username}.`
+    });
+
+    return res.json({
+      success: true,
+      deleted_id: userId
+    });
+  } catch (error) {
+    console.error("Delete user error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Could not delete user."
+    });
+  }
+});
+
 app.get("/api/dashboard-summary", requireAuth, async (_req, res) => {
   try {
     const shipmentsResult = await pool.query(`
@@ -1571,6 +1797,7 @@ app.delete("/api/documents/:id", apiAllowRoles("admin", "operations"), async (re
   }
 });
 
+/* PAGE ROUTES */
 app.get("/dashboard", requireAuth, (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
@@ -1597,6 +1824,10 @@ app.get("/accounting", allowRoles("admin", "accounts", "operations"), (_req, res
 
 app.get("/system-health", allowRoles("admin", "customs", "operations", "accounts"), (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "system-health.html"));
+});
+
+app.get("/users", allowRoles("admin"), (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "users.html"));
 });
 
 app.get("/health", async (_req, res) => {

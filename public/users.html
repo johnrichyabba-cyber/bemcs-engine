@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BE-MCs User Management</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body style="padding: 24px;">
+  <div class="page-shell">
+    <div class="topbar">
+      <div>
+        <div class="brand-kicker">MarineTraffic Group Limited</div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">
+          Create users, assign roles, and manage BE-MCs access securely.
+        </p>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="theme-toggle-btn" class="btn-outline" type="button">Switch to Light</button>
+        <a href="/dashboard" class="btn-outline">Dashboard</a>
+        <a href="/system-health" class="btn-outline">System Health</a>
+        <button id="logout-btn" class="btn-primary" type="button">Logout</button>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2 class="section-title">Current User</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
+          <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
+        </div>
+
+        <div class="info-card">
+          <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
+          <p><strong>Access:</strong> Admin Only</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="two-col-grid">
+      <section class="panel">
+        <h2 class="section-title">Create New User</h2>
+        <p class="section-subtitle">
+          Create a new system user and assign a role. The user can later change their own password from the dashboard.
+        </p>
+
+        <form id="create-user-form" class="info-grid" style="grid-template-columns: 1fr;">
+          <div>
+            <label for="new_username">Username</label>
+            <input id="new_username" type="text" required />
+          </div>
+
+          <div>
+            <label for="new_password">Temporary Password</label>
+            <input id="new_password" type="password" required />
+          </div>
+
+          <div>
+            <label for="new_role">Role</label>
+            <select id="new_role" required>
+              <option value="operations">operations</option>
+              <option value="accounts">accounts</option>
+              <option value="customs">customs</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn-primary">Create User</button>
+            <button type="button" id="reset-user-form-btn" class="btn-outline">Reset</button>
+          </div>
+        </form>
+
+        <div id="create-user-message" class="message-box" style="margin-top:14px;"></div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Admin Notes</h2>
+        <div class="timeline-card">
+          <p><strong>Recommended workflow:</strong></p>
+          <p>1. Create user with a temporary password.</p>
+          <p>2. Share username and temporary password securely.</p>
+          <p>3. Tell the user to login and immediately change password from Dashboard.</p>
+        </div>
+
+        <div class="timeline-card" style="margin-top:12px;">
+          <p><strong>Roles:</strong></p>
+          <p><strong>admin</strong> - full access</p>
+          <p><strong>operations</strong> - shipment and registry operations</p>
+          <p><strong>accounts</strong> - invoices, payments, accounting</p>
+          <p><strong>customs</strong> - tracking and customs workflow</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Existing Users</h2>
+          <p class="section-subtitle">
+            Review users, update roles, and remove access where necessary.
+          </p>
+        </div>
+
+        <button id="refresh-users-btn" class="btn-outline" type="button">Refresh</button>
+      </div>
+
+      <div id="users-list">
+        <p class="empty-state">Loading users...</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let usersCache = [];
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "-";
+      return d.toLocaleString();
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function showMessage(targetId, message, type = "info") {
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
+      };
+
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      }
+    }
+
+    function clearMessage(targetId) {
+      const target = document.getElementById(targetId);
+      if (target) target.innerHTML = "";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("bemcs-theme", theme);
+
+      const btn = document.getElementById("theme-toggle-btn");
+      if (btn) {
+        btn.textContent = theme === "light" ? "Switch to Dark" : "Switch to Light";
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("bemcs-theme") || "dark";
+      applyTheme(savedTheme);
+
+      document.getElementById("theme-toggle-btn").addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/me");
+        if (!response.ok) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return false;
+        }
+
+        currentUser = data.user;
+        setText("user-username", currentUser.username || "-");
+        setText("user-role", currentUser.role || "-");
+        setText("user-status", "Authenticated");
+
+        if (currentUser.role !== "admin") {
+          window.location.href = "/403";
+          return false;
+        }
+
+        return true;
+      } catch (_error) {
+        window.location.href = "/login";
+        return false;
+      }
+    }
+
+    function renderUsers(users) {
+      const target = document.getElementById("users-list");
+
+      if (!users || !users.length) {
+        target.innerHTML = '<p class="empty-state">No users found.</p>';
+        return;
+      }
+
+      target.innerHTML = users.map((user) => `
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
+            <div>
+              <p><strong>Username:</strong> ${escapeHtml(user.username || "-")}</p>
+              <p><strong>Role:</strong> ${escapeHtml(user.role || "-")}</p>
+              <p><strong>Created:</strong> ${formatDateTime(user.created_at)}</p>
+            </div>
+
+            <div>
+              <label for="role-${user.id}">Change Role</label>
+              <select id="role-${user.id}">
+                <option value="operations" ${user.role === "operations" ? "selected" : ""}>operations</option>
+                <option value="accounts" ${user.role === "accounts" ? "selected" : ""}>accounts</option>
+                <option value="customs" ${user.role === "customs" ? "selected" : ""}>customs</option>
+                <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
+              </select>
+
+              <div class="topbar-actions" style="margin-top:10px;">
+                <button class="btn-outline" type="button" onclick="updateUserRole(${user.id})">Update Role</button>
+                ${
+                  currentUser && currentUser.id === user.id
+                    ? ""
+                    : `<button class="btn-outline" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">Delete User</button>`
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function loadUsers() {
+      try {
+        const response = await fetch("/api/users");
+        const data = await response.json();
+
+        usersCache = response.ok && data.success && Array.isArray(data.users)
+          ? data.users
+          : [];
+
+        renderUsers(usersCache);
+      } catch (_error) {
+        usersCache = [];
+        renderUsers([]);
+      }
+    }
+
+    function resetCreateUserForm() {
+      document.getElementById("create-user-form").reset();
+      document.getElementById("new_role").value = "operations";
+      clearMessage("create-user-message");
+    }
+
+    async function createUser(event) {
+      event.preventDefault();
+      clearMessage("create-user-message");
+
+      const username = document.getElementById("new_username").value.trim();
+      const password = document.getElementById("new_password").value.trim();
+      const role = document.getElementById("new_role").value.trim();
+
+      if (!username || !password || !role) {
+        showMessage("create-user-message", "Username, password, and role are required.", "error");
+        return;
+      }
+
+      if (password.length < 4) {
+        showMessage("create-user-message", "Temporary password must have at least 4 characters.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username,
+            password,
+            role
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not create user.");
+        }
+
+        showMessage("create-user-message", `User ${data.user.username} created successfully.`, "success");
+        resetCreateUserForm();
+        await loadUsers();
+      } catch (error) {
+        showMessage("create-user-message", error.message || "Could not create user.", "error");
+      }
+    }
+
+    async function updateUserRole(userId) {
+      const roleSelect = document.getElementById(`role-${userId}`);
+      const newRole = roleSelect ? roleSelect.value : "";
+
+      if (!newRole) return;
+
+      try {
+        const response = await fetch(`/api/users/${userId}/role`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            role: newRole
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not update role.");
+        }
+
+        await loadUsers();
+      } catch (error) {
+        alert(error.message || "Could not update role.");
+      }
+    }
+
+    async function deleteUser(userId, username) {
+      const ok = confirm(`Delete user ${username}?`);
+      if (!ok) return;
+
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          method: "DELETE"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not delete user.");
+        }
+
+        await loadUsers();
+      } catch (error) {
+        alert(error.message || "Could not delete user.");
+      }
+    }
+
+    window.updateUserRole = updateUserRole;
+    window.deleteUser = deleteUser;
+
+    document.getElementById("create-user-form").addEventListener("submit", createUser);
+    document.getElementById("reset-user-form-btn").addEventListener("click", resetCreateUserForm);
+    document.getElementById("refresh-users-btn").addEventListener("click", loadUsers);
+
+    document.getElementById("logout-btn").addEventListener("click", async function () {
+      try {
+        const response = await fetch("/logout", { method: "POST" });
+        const data = await response.json();
+        window.location.href = data.redirect || "/login";
+      } catch (_error) {
+        window.location.href = "/login";
+      }
+    });
+
+    async function initPage() {
+      initTheme();
+
+      const ok = await loadCurrentUser();
+      if (!ok) return;
+
+      await loadUsers();
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">BE-MCs Control Center</h1>
         <p class="page-subtitle">
-          Real-time operational view of shipment visibility, tracking readiness, and finance health.
+          Real-time operational view of shipment visibility, tracking readiness, finance health, and user account controls.
         </p>
       </div>
 
@@ -173,6 +173,76 @@
 
     <div class="two-col-grid">
       <section class="panel">
+        <h2 class="section-title">Quick Access</h2>
+        <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+          <a href="/tracking" class="mode-card" style="text-decoration:none;">
+            <div class="mode-card-top">
+              <div class="mode-badge">Customs Live</div>
+            </div>
+            <h3>Track Before Registry</h3>
+            <p>Find shipment status from external sources before opening a file.</p>
+          </a>
+
+          <a href="/shipment-registry" class="mode-card" style="text-decoration:none;">
+            <div class="mode-card-top">
+              <div class="mode-badge">Front Desk</div>
+            </div>
+            <h3>Open Shipment Files</h3>
+            <p>Create and manage shipment records with tracking identity and documents.</p>
+          </a>
+
+          <a href="/accounting" class="mode-card" style="text-decoration:none;">
+            <div class="mode-card-top">
+              <div class="mode-badge">Finance</div>
+            </div>
+            <h3>Invoices & Payments</h3>
+            <p>Manage invoices, receipts, balances, and currency-separated finance records.</p>
+          </a>
+
+          <a href="/system-health" class="mode-card" style="text-decoration:none;">
+            <div class="mode-card-top">
+              <div class="mode-badge">Health</div>
+            </div>
+            <h3>System Monitoring</h3>
+            <p>Review database, API, tracking readiness, and sync health.</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Change Password</h2>
+        <p class="section-subtitle">
+          After receiving access, each user can change their own password here.
+        </p>
+
+        <form id="change-password-form" class="info-grid" style="grid-template-columns: 1fr;">
+          <div>
+            <label for="current_password">Current Password</label>
+            <input id="current_password" type="password" required />
+          </div>
+
+          <div>
+            <label for="new_password">New Password</label>
+            <input id="new_password" type="password" required />
+          </div>
+
+          <div>
+            <label for="confirm_new_password">Confirm New Password</label>
+            <input id="confirm_new_password" type="password" required />
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn-primary">Change Password</button>
+            <button type="button" id="reset-password-form-btn" class="btn-outline">Reset</button>
+          </div>
+        </form>
+
+        <div id="change-password-message" class="message-box" style="margin-top:14px;"></div>
+      </section>
+    </div>
+
+    <div class="two-col-grid">
+      <section class="panel">
         <h2 class="section-title">Shipments Missing Tracking Identity</h2>
         <p class="section-subtitle">
           These files still require BL, container number, booking number, or provider setup.
@@ -259,6 +329,24 @@
     function setText(id, value) {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
+    }
+
+    function showMessage(targetId, message, type = "info") {
+      const classMap = {
+        success: "msg-success",
+        error: "msg-error",
+        info: "msg-info"
+      };
+
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      }
+    }
+
+    function clearMessage(targetId) {
+      const target = document.getElementById(targetId);
+      if (target) target.innerHTML = "";
     }
 
     function applyTheme(theme) {
@@ -540,6 +628,59 @@
       `).join("");
     }
 
+    function resetPasswordForm() {
+      document.getElementById("change-password-form").reset();
+      clearMessage("change-password-message");
+    }
+
+    async function changePassword(event) {
+      event.preventDefault();
+      clearMessage("change-password-message");
+
+      const currentPassword = document.getElementById("current_password").value.trim();
+      const newPassword = document.getElementById("new_password").value.trim();
+      const confirmNewPassword = document.getElementById("confirm_new_password").value.trim();
+
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+        showMessage("change-password-message", "All password fields are required.", "error");
+        return;
+      }
+
+      if (newPassword.length < 4) {
+        showMessage("change-password-message", "New password must have at least 4 characters.", "error");
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        showMessage("change-password-message", "New password and confirmation do not match.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/change-password", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Could not change password.");
+        }
+
+        showMessage("change-password-message", "Password changed successfully.", "success");
+        resetPasswordForm();
+      } catch (error) {
+        showMessage("change-password-message", error.message || "Could not change password.", "error");
+      }
+    }
+
     async function refreshAllDashboardData() {
       await Promise.all([
         loadDashboardSummary(),
@@ -554,6 +695,8 @@
     }
 
     document.getElementById("refresh-dashboard-btn").addEventListener("click", refreshAllDashboardData);
+    document.getElementById("change-password-form").addEventListener("submit", changePassword);
+    document.getElementById("reset-password-form-btn").addEventListener("click", resetPasswordForm);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {

@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">Shipment Registry</h1>
         <p class="page-subtitle">
-          Register shipments, assign tracking identifiers, and prepare live provider sync.
+          Front Desk intake workspace for opening shipment files, linking tracking identity, and preparing operational follow-up.
         </p>
       </div>
 
@@ -32,119 +32,147 @@
           <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
           <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
+
         <div class="info-card">
           <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
-          <p><strong>Module:</strong> Front Desk Registry</p>
+          <p><strong>Workspace:</strong> Front Desk Registry</p>
         </div>
       </div>
     </section>
 
-    <section id="create-shipment-panel" class="panel" style="display:none;">
-      <h2 class="section-title">Create Shipment</h2>
-      <p class="section-subtitle">
-        Save shipment details together with provider-ready tracking identifiers.
-      </p>
+    <section class="panel" id="transfer-banner-panel" style="display:none;">
+      <h2 class="section-title">Transferred From Customs Live</h2>
+      <div id="transfer-banner-box"></div>
+    </section>
 
-      <form id="shipment-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Register New Shipment</h2>
+          <p class="section-subtitle">
+            Open a shipment file and capture enough tracking identity so the engine can continue monitoring after registration.
+          </p>
+        </div>
+      </div>
+
+      <form id="shipment-form" class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
         <div>
           <label for="client_name">Client Name</label>
-          <input id="client_name" type="text" placeholder="e.g. Test Client" required />
+          <input id="client_name" type="text" required />
         </div>
 
         <div>
           <label for="reference_number">Reference Number</label>
-          <input id="reference_number" type="text" placeholder="e.g. REF001" required />
+          <input id="reference_number" type="text" required />
         </div>
 
         <div>
-          <label for="shipping_line">Shipping Line</label>
-          <input id="shipping_line" type="text" placeholder="e.g. Maersk" required />
+          <label for="shipping_line">Shipping Line / Carrier</label>
+          <input id="shipping_line" type="text" required />
         </div>
 
         <div>
-          <label for="status">Initial Status</label>
-          <select id="status">
-            <option value="Registered">Registered</option>
-            <option value="Pending">Pending</option>
-            <option value="Booking Confirmed">Booking Confirmed</option>
-            <option value="Container Received">Container Received</option>
-            <option value="At Port of Loading">At Port of Loading</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="origin_port">Origin Port</label>
-          <input id="origin_port" type="text" placeholder="e.g. Shanghai" />
-        </div>
-
-        <div>
-          <label for="destination_port">Destination Port</label>
-          <input id="destination_port" type="text" placeholder="e.g. Dar es Salaam" />
-        </div>
-
-        <div style="grid-column:1 / -1;">
           <label for="cargo_description">Cargo Description</label>
-          <textarea id="cargo_description" placeholder="e.g. General cargo / containerized cargo / pharmaceuticals" required></textarea>
+          <input id="cargo_description" type="text" required />
         </div>
 
-        <div style="grid-column:1 / -1;">
-          <h3 style="margin-bottom:10px;">Tracking Provider Details</h3>
-          <p class="section-subtitle" style="margin-bottom:0;">
-            These fields prepare the shipment for Vizion-based live sync.
-          </p>
+        <div>
+          <label for="status">Shipment Status</label>
+          <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Registered">Registered</option>
+            <option value="At Origin">At Origin</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Arrived">Arrived</option>
+            <option value="Under Clearance">Under Clearance</option>
+            <option value="Released">Released</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Closed">Closed</option>
+          </select>
         </div>
 
         <div>
           <label for="tracking_provider">Tracking Provider</label>
           <select id="tracking_provider">
-            <option value="vizion" selected>Vizion</option>
-            <option value="demo">Demo Provider</option>
+            <option value="">Select provider</option>
+            <option value="vizion">Vizion</option>
+            <option value="express">Express</option>
+            <option value="air_cargo">Air Cargo</option>
+            <option value="post_ems">Post / EMS</option>
+            <option value="manual">Manual</option>
           </select>
         </div>
 
         <div>
-          <label for="carrier_code">Carrier Code</label>
-          <input id="carrier_code" type="text" placeholder="e.g. MSK" />
+          <label for="origin_port">Origin Port</label>
+          <input id="origin_port" type="text" />
         </div>
 
         <div>
-          <label for="bill_of_lading">Bill of Lading</label>
-          <input id="bill_of_lading" type="text" placeholder="e.g. BL123456789" />
-        </div>
-
-        <div>
-          <label for="container_number">Container Number</label>
-          <input id="container_number" type="text" placeholder="e.g. MSKU1234567" />
-        </div>
-
-        <div>
-          <label for="booking_number">Booking Number</label>
-          <input id="booking_number" type="text" placeholder="e.g. BK009977" />
+          <label for="destination_port">Destination Port</label>
+          <input id="destination_port" type="text" />
         </div>
 
         <div>
           <label for="port_of_loading">Port of Loading</label>
-          <input id="port_of_loading" type="text" placeholder="e.g. Shanghai" />
+          <input id="port_of_loading" type="text" />
         </div>
 
         <div>
           <label for="port_of_discharge">Port of Discharge</label>
-          <input id="port_of_discharge" type="text" placeholder="e.g. Dar es Salaam" />
+          <input id="port_of_discharge" type="text" />
         </div>
 
         <div>
           <label for="final_destination">Final Destination</label>
-          <input id="final_destination" type="text" placeholder="e.g. Dar / ICD / Inland destination" />
+          <input id="final_destination" type="text" />
         </div>
 
         <div>
-          <label for="auto_sync_hint">Sync Readiness</label>
-          <input id="auto_sync_hint" type="text" value="Provide BL / container / booking for live subscription" disabled />
+          <label for="carrier_code">Carrier Code</label>
+          <input id="carrier_code" type="text" placeholder="Optional carrier code" />
         </div>
 
-        <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="submit" class="btn-primary">Save Shipment</button>
-          <button type="button" id="reset-form-btn" class="btn-outline">Reset Form</button>
+        <div>
+          <label for="tracking_mode">Tracking Mode</label>
+          <select id="tracking_mode">
+            <option value="">Select tracking mode</option>
+            <option value="container">Container</option>
+            <option value="bill_of_lading">Bill of Lading</option>
+            <option value="air_cargo">Air Cargo</option>
+            <option value="post_ems">Post / EMS</option>
+            <option value="express">Express</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="tracking_number_transfer">Transferred Tracking Reference</label>
+          <input id="tracking_number_transfer" type="text" placeholder="Auto-filled from Customs Live if available" />
+        </div>
+
+        <div>
+          <label for="bill_of_lading">Bill of Lading</label>
+          <input id="bill_of_lading" type="text" />
+        </div>
+
+        <div>
+          <label for="container_number">Container Number</label>
+          <input id="container_number" type="text" />
+        </div>
+
+        <div>
+          <label for="booking_number">Booking Number</label>
+          <input id="booking_number" type="text" />
+        </div>
+
+        <div>
+          <label for="intake_notes">Intake Notes</label>
+          <input id="intake_notes" type="text" placeholder="Optional intake note" />
+        </div>
+
+        <div style="grid-column: 1 / -1; display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="submit" class="btn-primary">Save Shipment File</button>
+          <button type="button" id="reset-form-btn" class="btn-outline">Reset</button>
         </div>
       </form>
 
@@ -154,32 +182,17 @@
     <section class="panel">
       <div class="section-head">
         <div>
-          <h2 class="section-title">Shipment Register</h2>
-          <p class="section-subtitle">View shipment readiness, provider visibility, and live tracking setup.</p>
+          <h2 class="section-title">Recent Shipment Files</h2>
+          <p class="section-subtitle">
+            Latest shipment records created in the registry.
+          </p>
         </div>
-        <button id="refresh-btn" class="btn-outline" type="button">Refresh</button>
+
+        <button id="refresh-shipments-btn" class="btn-outline" type="button">Refresh</button>
       </div>
 
-      <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Reference</th>
-              <th>Client</th>
-              <th>Current Status</th>
-              <th>Provider</th>
-              <th>Tracking ID</th>
-              <th>Provider Ref</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="shipments-body">
-            <tr>
-              <td colspan="8">Loading shipments...</td>
-            </tr>
-          </tbody>
-        </table>
+      <div id="shipments-list">
+        <p class="empty-state">Loading shipments...</p>
       </div>
     </section>
   </div>
@@ -187,6 +200,7 @@
   <script>
     let currentUser = null;
     let shipmentsCache = [];
+    let transferPayload = null;
 
     function escapeHtml(value) {
       return String(value || "")
@@ -197,18 +211,26 @@
         .replace(/'/g, "&#39;");
     }
 
-    function showMessage(message, type = "info") {
-      const target = document.getElementById("shipment-message");
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      return date.toLocaleString();
+    }
+
+    function showMessage(targetId, message, type = "info") {
       const classMap = {
         success: "msg-success",
         error: "msg-error",
         info: "msg-info"
       };
-      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+
+      document.getElementById(targetId).innerHTML =
+        `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
-    function clearMessage() {
-      document.getElementById("shipment-message").innerHTML = "";
+    function clearMessage(targetId) {
+      document.getElementById(targetId).innerHTML = "";
     }
 
     function applyTheme(theme) {
@@ -231,33 +253,26 @@
       });
     }
 
-    function getTrackingReference(shipment) {
-      return shipment.container_number || shipment.bill_of_lading || shipment.booking_number || "-";
-    }
-
     async function loadCurrentUser() {
       try {
         const response = await fetch("/api/me");
+
         if (!response.ok) {
           window.location.href = "/login";
           return false;
         }
 
         const data = await response.json();
+
         if (!data.success || !data.user) {
           window.location.href = "/login";
           return false;
         }
 
         currentUser = data.user;
-        document.getElementById("user-username").textContent = data.user.username || "-";
-        document.getElementById("user-role").textContent = data.user.role || "-";
+        document.getElementById("user-username").textContent = currentUser.username || "-";
+        document.getElementById("user-role").textContent = currentUser.role || "-";
         document.getElementById("user-status").textContent = "Authenticated";
-
-        if (["admin", "operations"].includes(currentUser.role)) {
-          document.getElementById("create-shipment-panel").style.display = "block";
-        }
-
         return true;
       } catch (_error) {
         window.location.href = "/login";
@@ -265,186 +280,272 @@
       }
     }
 
-    async function fetchLiveStatusForShipment(shipmentId) {
-      try {
-        const response = await fetch(`/api/shipments/${shipmentId}/live-status`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data.live_status || null;
-      } catch (_error) {
-        return null;
-      }
+    function buildAutoReference(mode, number) {
+      const now = new Date();
+      const stamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+        String(now.getSeconds()).padStart(2, "0")
+      ].join("");
+
+      const cleanNumber = String(number || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase()
+        .slice(0, 10) || "AUTO";
+
+      const modeCode = {
+        container: "CTR",
+        bill_of_lading: "BL",
+        air_cargo: "AIR",
+        post_ems: "EMS",
+        express: "EXP"
+      }[mode] || "GEN";
+
+      return `BEMCS-${modeCode}-${cleanNumber}-${stamp}`;
     }
 
-    async function renderShipments(shipments) {
-      const body = document.getElementById("shipments-body");
-
-      if (!shipments || !shipments.length) {
-        body.innerHTML = '<tr><td colspan="8">No shipments found.</td></tr>';
-        return;
-      }
-
-      const rows = await Promise.all(
-        shipments.map(async (shipment) => {
-          const live = await fetchLiveStatusForShipment(shipment.id);
-          const providerRef = live?.tracking_source?.external_reference_id || "-";
-          const status = live?.current_status || shipment.current_tracking_status || shipment.status || "-";
-
-          return `
-            <tr>
-              <td>${shipment.id}</td>
-              <td>${escapeHtml(shipment.reference_number)}</td>
-              <td>${escapeHtml(shipment.client_name)}</td>
-              <td>${escapeHtml(status)}</td>
-              <td>${escapeHtml(shipment.tracking_provider || "-")}</td>
-              <td>${escapeHtml(getTrackingReference(shipment))}</td>
-              <td>${escapeHtml(providerRef)}</td>
-              <td>
-                <a href="/registry-detail?id=${shipment.id}">View</a>
-                &nbsp;|&nbsp;
-                <a href="/tracking?shipment_id=${shipment.id}">Track</a>
-              </td>
-            </tr>
-          `;
-        })
-      );
-
-      body.innerHTML = rows.join("");
+    function getProviderSuggestion(mode) {
+      if (mode === "container" || mode === "bill_of_lading") return "vizion";
+      if (mode === "air_cargo") return "air_cargo";
+      if (mode === "post_ems") return "post_ems";
+      if (mode === "express") return "express";
+      return "manual";
     }
 
-    async function loadShipments() {
-      const body = document.getElementById("shipments-body");
-      body.innerHTML = '<tr><td colspan="8">Loading shipments...</td></tr>';
-
-      try {
-        const response = await fetch("/api/shipments");
-        if (!response.ok) {
-          body.innerHTML = '<tr><td colspan="8">Could not load shipments.</td></tr>';
-          return;
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-          body.innerHTML = '<tr><td colspan="8">Could not load shipments.</td></tr>';
-          return;
-        }
-
-        shipmentsCache = data.shipments || [];
-        await renderShipments(shipmentsCache);
-      } catch (_error) {
-        body.innerHTML = '<tr><td colspan="8">Could not load shipments.</td></tr>';
-      }
-    }
-
-    function resetForm() {
-      document.getElementById("shipment-form").reset();
-      document.getElementById("tracking_provider").value = "vizion";
-      clearMessage();
-    }
-
-    function applyTransferPrefill() {
+    function parseTransferFromQuery() {
       const params = new URLSearchParams(window.location.search);
-      const mode = (params.get("transfer_mode") || "").trim();
-      const number = (params.get("transfer_number") || "").trim();
+      const transferMode = (params.get("transfer_mode") || "").trim();
+      const transferNumber = (params.get("transfer_number") || "").trim();
 
-      if (!mode || !number) return;
+      if (!transferMode || !transferNumber) return null;
 
-      document.getElementById("tracking_provider").value = "vizion";
+      return {
+        transfer_mode: transferMode,
+        transfer_number: transferNumber
+      };
+    }
+
+    function applyTransferPayload(payload) {
+      if (!payload) return;
+
+      transferPayload = payload;
+
+      const mode = payload.transfer_mode;
+      const number = payload.transfer_number;
+
+      document.getElementById("tracking_mode").value = mode;
+      document.getElementById("tracking_number_transfer").value = number;
+      document.getElementById("tracking_provider").value = getProviderSuggestion(mode);
 
       if (mode === "container") {
         document.getElementById("container_number").value = number;
-        document.getElementById("cargo_description").value = "Imported container shipment captured from Customs Live.";
       } else if (mode === "bill_of_lading") {
         document.getElementById("bill_of_lading").value = number;
-        document.getElementById("cargo_description").value = "Bill of Lading intake captured from Customs Live.";
-      } else if (mode === "air_cargo") {
-        document.getElementById("reference_number").value = number;
-        document.getElementById("cargo_description").value = "Air cargo intake captured from Customs Live.";
-      } else if (mode === "post_ems") {
-        document.getElementById("reference_number").value = number;
-        document.getElementById("cargo_description").value = "Post / EMS intake captured from Customs Live.";
-      } else {
-        document.getElementById("reference_number").value = number;
-        document.getElementById("cargo_description").value = "Express / general intake captured from Customs Live.";
+      } else if (mode === "express" || mode === "air_cargo" || mode === "post_ems") {
+        document.getElementById("booking_number").value = number;
       }
 
-      showMessage(`Transfer received from Customs Live. Prefilled using ${mode.replace(/_/g, " ")}: ${number}`, "info");
+      if (!document.getElementById("reference_number").value.trim()) {
+        document.getElementById("reference_number").value = buildAutoReference(mode, number);
+      }
+
+      if (!document.getElementById("status").value) {
+        document.getElementById("status").value = "Registered";
+      } else {
+        document.getElementById("status").value = "Registered";
+      }
+
+      const panel = document.getElementById("transfer-banner-panel");
+      const box = document.getElementById("transfer-banner-box");
+
+      panel.style.display = "block";
+      box.innerHTML = `
+        <div class="msg-info">
+          Shipment reference was transferred from Customs Live.
+          <br />
+          <strong>Tracking Mode:</strong> ${escapeHtml(mode)}
+          <br />
+          <strong>Tracking Number:</strong> ${escapeHtml(number)}
+          <br />
+          Continue by filling client, shipping line, cargo, and location details, then save the shipment file.
+        </div>
+      `;
     }
 
-    document.getElementById("reset-form-btn").addEventListener("click", resetForm);
+    function resetShipmentForm() {
+      document.getElementById("shipment-form").reset();
+      clearMessage("shipment-message");
+      transferPayload = null;
+      document.getElementById("transfer-banner-panel").style.display = "none";
+    }
 
-    document.getElementById("refresh-btn").addEventListener("click", async function () {
-      await loadShipments();
-    });
+    function buildShipmentPayload() {
+      const trackingMode = document.getElementById("tracking_mode").value.trim();
+      const transferredNumber = document.getElementById("tracking_number_transfer").value.trim();
 
-    document.getElementById("shipment-form").addEventListener("submit", async function (event) {
-      event.preventDefault();
-      clearMessage();
+      let billOfLading = document.getElementById("bill_of_lading").value.trim();
+      let containerNumber = document.getElementById("container_number").value.trim();
+      let bookingNumber = document.getElementById("booking_number").value.trim();
 
-      const payload = {
+      if (trackingMode === "container" && transferredNumber && !containerNumber) {
+        containerNumber = transferredNumber;
+      }
+
+      if (trackingMode === "bill_of_lading" && transferredNumber && !billOfLading) {
+        billOfLading = transferredNumber;
+      }
+
+      if (
+        ["express", "air_cargo", "post_ems"].includes(trackingMode) &&
+        transferredNumber &&
+        !bookingNumber
+      ) {
+        bookingNumber = transferredNumber;
+      }
+
+      return {
         client_name: document.getElementById("client_name").value.trim(),
         reference_number: document.getElementById("reference_number").value.trim(),
         shipping_line: document.getElementById("shipping_line").value.trim(),
         cargo_description: document.getElementById("cargo_description").value.trim(),
-        status: document.getElementById("status").value.trim(),
-        origin_port: document.getElementById("origin_port").value.trim(),
-        destination_port: document.getElementById("destination_port").value.trim(),
+        status: document.getElementById("status").value.trim() || "Registered",
         tracking_provider: document.getElementById("tracking_provider").value.trim(),
         carrier_code: document.getElementById("carrier_code").value.trim(),
-        bill_of_lading: document.getElementById("bill_of_lading").value.trim(),
-        container_number: document.getElementById("container_number").value.trim(),
-        booking_number: document.getElementById("booking_number").value.trim(),
+        origin_port: document.getElementById("origin_port").value.trim(),
+        destination_port: document.getElementById("destination_port").value.trim(),
         port_of_loading: document.getElementById("port_of_loading").value.trim(),
         port_of_discharge: document.getElementById("port_of_discharge").value.trim(),
-        final_destination: document.getElementById("final_destination").value.trim()
+        final_destination: document.getElementById("final_destination").value.trim(),
+        bill_of_lading: billOfLading,
+        container_number: containerNumber,
+        booking_number: bookingNumber,
+        tracking_mode: trackingMode,
+        transfer_tracking_number: transferredNumber,
+        intake_notes: document.getElementById("intake_notes").value.trim()
       };
+    }
+
+    async function saveShipment(event) {
+      event.preventDefault();
+      clearMessage("shipment-message");
+
+      const payload = buildShipmentPayload();
 
       if (!payload.client_name || !payload.reference_number || !payload.shipping_line || !payload.cargo_description) {
-        showMessage("Client, reference number, shipping line, and cargo description are required.", "error");
+        showMessage(
+          "shipment-message",
+          "Client name, reference number, shipping line, and cargo description are required.",
+          "error"
+        );
         return;
       }
 
       try {
-        const response = await fetch("/api/shipments", {
+        const createResponse = await fetch("/api/shipments", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify(payload)
         });
 
+        const createData = await createResponse.json();
+
+        if (!createResponse.ok || !createData.success) {
+          throw new Error(createData.error || "Could not create shipment.");
+        }
+
+        const shipment = createData.shipment;
+
+        if (payload.tracking_provider || payload.bill_of_lading || payload.container_number || payload.booking_number) {
+          await fetch(`/api/shipments/${shipment.id}/tracking-config`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              provider_name: payload.tracking_provider || "manual",
+              carrier_code: payload.carrier_code || "",
+              bill_of_lading: payload.bill_of_lading || "",
+              container_number: payload.container_number || "",
+              booking_number: payload.booking_number || "",
+              tracking_mode: payload.tracking_mode || "polling",
+              source_label: transferPayload
+                ? "Transferred from Customs Live"
+                : "Manual Front Desk Intake"
+            })
+          });
+        }
+
+        showMessage(
+          "shipment-message",
+          `Shipment file ${shipment.reference_number} created successfully.`,
+          "success"
+        );
+
+        await loadShipments();
+
+        setTimeout(() => {
+          window.location.href = `/registry-detail?id=${shipment.id}`;
+        }, 900);
+      } catch (error) {
+        showMessage(
+          "shipment-message",
+          error.message || "Could not create shipment.",
+          "error"
+        );
+      }
+    }
+
+    function renderShipments(shipments) {
+      const target = document.getElementById("shipments-list");
+
+      if (!shipments || !shipments.length) {
+        target.innerHTML = '<p class="empty-state">No shipment files found.</p>';
+        return;
+      }
+
+      target.innerHTML = shipments.slice(0, 20).map((shipment) => `
+        <div class="timeline-card" style="margin-bottom:12px;">
+          <div class="timeline-row">
+            <div>
+              <p><strong>Reference:</strong> <a href="/registry-detail?id=${shipment.id}">${escapeHtml(shipment.reference_number || "-")}</a></p>
+              <p><strong>Client:</strong> ${escapeHtml(shipment.client_name || "-")}</p>
+              <p><strong>Shipping Line:</strong> ${escapeHtml(shipment.shipping_line || "-")}</p>
+            </div>
+
+            <div>
+              <p><strong>Status:</strong> ${escapeHtml(shipment.status || "-")}</p>
+              <p><strong>Tracking Status:</strong> ${escapeHtml(shipment.current_tracking_status || "-")}</p>
+              <p><strong>Created:</strong> ${formatDateTime(shipment.created_at)}</p>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function loadShipments() {
+      try {
+        const response = await fetch("/api/shipments");
         const data = await response.json();
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Could not save shipment.");
-        }
+        shipmentsCache = response.ok && data.success && Array.isArray(data.shipments)
+          ? data.shipments
+          : [];
 
-        const shipment = data.shipment;
-        const hasTrackingIdentity = payload.bill_of_lading || payload.container_number || payload.booking_number;
-
-        if (shipment && hasTrackingIdentity) {
-          try {
-            await fetch(`/api/shipments/${shipment.id}/tracking-config`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                provider_name: payload.tracking_provider || "vizion",
-                carrier_code: payload.carrier_code || "",
-                bill_of_lading: payload.bill_of_lading || "",
-                container_number: payload.container_number || "",
-                booking_number: payload.booking_number || "",
-                tracking_mode: "polling",
-                source_label: "Primary Tracking Source"
-              })
-            });
-          } catch (_configError) {}
-        }
-
-        showMessage(`Shipment ${shipment.reference_number} saved successfully.`, "success");
-        resetForm();
-        await loadShipments();
-      } catch (error) {
-        showMessage(error.message || "Could not save shipment.", "error");
+        renderShipments(shipmentsCache);
+      } catch (_error) {
+        shipmentsCache = [];
+        renderShipments([]);
       }
-    });
+    }
+
+    document.getElementById("shipment-form").addEventListener("submit", saveShipment);
+    document.getElementById("reset-form-btn").addEventListener("click", resetShipmentForm);
+    document.getElementById("refresh-shipments-btn").addEventListener("click", loadShipments);
 
     document.getElementById("logout-btn").addEventListener("click", async function () {
       try {
@@ -462,8 +563,9 @@
       const ok = await loadCurrentUser();
       if (!ok) return;
 
-      document.getElementById("tracking_provider").value = "vizion";
-      applyTransferPrefill();
+      const payload = parseTransferFromQuery();
+      applyTransferPayload(payload);
+
       await loadShipments();
     }
 

@@ -13,7 +13,7 @@
         <div class="brand-kicker">MarineTraffic Group Limited</div>
         <h1 class="page-title">Operational Finance</h1>
         <p class="page-subtitle">
-          Manage shipment billing, record payments, monitor balances, and support clearance and release workflows.
+          Manage shipment billing, confirm received payments, monitor outstanding balances, and separate financial records by currency.
         </p>
       </div>
 
@@ -22,6 +22,7 @@
         <a href="/dashboard" class="btn-outline">Dashboard</a>
         <a href="/shipment-registry" class="btn-outline">Shipment Registry</a>
         <a href="/tracking" class="btn-outline">Customs Live</a>
+        <a href="/system-health" class="btn-outline">System Health</a>
         <button id="logout-btn" class="btn-primary" type="button">Logout</button>
       </div>
     </div>
@@ -33,6 +34,7 @@
           <p><strong>Username:</strong> <span id="user-username">Loading...</span></p>
           <p><strong>Role:</strong> <span id="user-role">Loading...</span></p>
         </div>
+
         <div class="info-card">
           <p><strong>Status:</strong> <span id="user-status">Checking...</span></p>
           <p><strong>Module:</strong> Operational Finance</p>
@@ -41,25 +43,78 @@
     </section>
 
     <section class="panel">
-      <div class="info-grid" style="grid-template-columns:repeat(4, minmax(0, 1fr));">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Currency-Based Finance Summary</h2>
+          <p class="section-subtitle">
+            Separate finance visibility for TZS and USD invoices, payments, and balances.
+          </p>
+        </div>
+      </div>
+
+      <div class="two-col-grid">
+        <div class="page-card">
+          <div class="brand-kicker">TZS Ledger</div>
+          <div class="info-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">TZS Billed</p>
+              <div id="tzs-billed" class="stat-value">0.00</div>
+            </div>
+
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">TZS Paid</p>
+              <div id="tzs-paid" class="stat-value">0.00</div>
+            </div>
+
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">TZS Outstanding</p>
+              <div id="tzs-outstanding" class="stat-value">0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="brand-kicker">USD Ledger</div>
+          <div class="info-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">USD Billed</p>
+              <div id="usd-billed" class="stat-value">0.00</div>
+            </div>
+
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">USD Paid</p>
+              <div id="usd-paid" class="stat-value">0.00</div>
+            </div>
+
+            <div class="stat-card">
+              <p class="login-subtitle" style="margin-bottom:6px;">USD Outstanding</p>
+              <div id="usd-outstanding" class="stat-value">0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="info-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
         <div class="stat-card">
           <p class="login-subtitle" style="margin-bottom:6px;">Total Invoices</p>
           <div id="card-total-invoices" class="stat-value">0</div>
         </div>
 
         <div class="stat-card">
-          <p class="login-subtitle" style="margin-bottom:6px;">Total Billed</p>
-          <div id="card-total-billed" class="stat-value">0.00</div>
+          <p class="login-subtitle" style="margin-bottom:6px;">TZS Invoices</p>
+          <div id="card-tzs-invoices" class="stat-value">0</div>
         </div>
 
         <div class="stat-card">
-          <p class="login-subtitle" style="margin-bottom:6px;">Total Paid</p>
-          <div id="card-total-paid" class="stat-value">0.00</div>
+          <p class="login-subtitle" style="margin-bottom:6px;">USD Invoices</p>
+          <div id="card-usd-invoices" class="stat-value">0</div>
         </div>
 
         <div class="stat-card">
-          <p class="login-subtitle" style="margin-bottom:6px;">Outstanding</p>
-          <div id="card-total-outstanding" class="stat-value">0.00</div>
+          <p class="login-subtitle" style="margin-bottom:6px;">Confirmed Payments</p>
+          <div id="card-confirmed-payments" class="stat-value">0</div>
         </div>
       </div>
     </section>
@@ -67,7 +122,9 @@
     <div class="two-col-grid">
       <section id="invoice-panel" class="panel" style="display:none;">
         <h2 class="section-title">Create Invoice</h2>
-        <p class="section-subtitle">Link a financial charge directly to a shipment file.</p>
+        <p class="section-subtitle">
+          Link a financial charge directly to a shipment file with the correct invoice currency.
+        </p>
 
         <form id="invoice-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
           <div>
@@ -79,7 +136,7 @@
 
           <div>
             <label for="invoice_number">Invoice Number</label>
-            <input id="invoice_number" type="text" placeholder="e.g. INV-2026-001" required />
+            <input id="invoice_number" type="text" required />
           </div>
 
           <div>
@@ -101,11 +158,11 @@
 
           <div>
             <label for="invoice_amount">Amount</label>
-            <input id="invoice_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+            <input id="invoice_amount" type="number" step="0.01" min="0" required />
           </div>
 
           <div>
-            <label for="invoice_currency">Currency</label>
+            <label for="invoice_currency">Invoice Currency</label>
             <select id="invoice_currency">
               <option value="TZS">TZS</option>
               <option value="USD">USD</option>
@@ -114,7 +171,7 @@
 
           <div>
             <label for="invoice_notes">Notes</label>
-            <input id="invoice_notes" type="text" placeholder="Optional finance note" />
+            <input id="invoice_notes" type="text" placeholder="Optional notes" />
           </div>
 
           <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
@@ -127,8 +184,10 @@
       </section>
 
       <section id="payment-panel" class="panel" style="display:none;">
-        <h2 class="section-title">Record Payment</h2>
-        <p class="section-subtitle">Apply payment to an invoice and reduce shipment outstanding balance.</p>
+        <h2 class="section-title">Confirm Received Payment</h2>
+        <p class="section-subtitle">
+          Payment record enters automatically immediately after the user confirms the payment has been received.
+        </p>
 
         <form id="payment-form" class="info-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
           <div>
@@ -139,8 +198,13 @@
           </div>
 
           <div>
-            <label for="payment_amount">Amount</label>
-            <input id="payment_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+            <label for="payment_currency_display">Invoice Currency</label>
+            <input id="payment_currency_display" type="text" value="-" disabled />
+          </div>
+
+          <div>
+            <label for="payment_amount">Amount Received</label>
+            <input id="payment_amount" type="number" step="0.01" min="0" required />
           </div>
 
           <div>
@@ -158,16 +222,23 @@
 
           <div>
             <label for="payment_reference">Reference</label>
-            <input id="payment_reference" type="text" placeholder="Transaction / bank reference" />
+            <input id="payment_reference" type="text" placeholder="Receipt / transfer reference" />
+          </div>
+
+          <div>
+            <label for="payment_notes">Notes</label>
+            <input id="payment_notes" type="text" placeholder="Optional notes" />
           </div>
 
           <div style="grid-column:1 / -1;">
-            <label for="payment_notes">Notes</label>
-            <input id="payment_notes" type="text" placeholder="Optional payment note" />
+            <label style="display:flex;align-items:center;gap:10px;">
+              <input id="payment_confirm_received" type="checkbox" style="width:auto;" />
+              <span>I confirm that payment has already been received.</span>
+            </label>
           </div>
 
           <div style="grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap;">
-            <button type="submit" class="btn-primary">Save Payment</button>
+            <button type="submit" class="btn-primary">Confirm & Record Payment</button>
             <button type="button" id="reset-payment-btn" class="btn-outline">Reset</button>
           </div>
         </form>
@@ -180,8 +251,11 @@
       <div class="section-head">
         <div>
           <h2 class="section-title">Outstanding Balance Alerts</h2>
-          <p class="section-subtitle">Shipment-linked invoices that still require settlement.</p>
+          <p class="section-subtitle">
+            Shipment-linked invoices that still require settlement, shown in their own invoice currency.
+          </p>
         </div>
+
         <button id="refresh-finance-btn" class="btn-outline" type="button">Refresh</button>
       </div>
 
@@ -190,12 +264,21 @@
       </div>
     </section>
 
-    <section class="panel">
-      <h2 class="section-title">Invoices and Payments</h2>
-      <div id="invoice-list">
-        <p class="empty-state">Loading invoices...</p>
-      </div>
-    </section>
+    <div class="two-col-grid">
+      <section class="panel">
+        <h2 class="section-title">TZS Invoices</h2>
+        <div id="tzs-invoice-list">
+          <p class="empty-state">Loading TZS invoices...</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">USD Invoices</h2>
+        <div id="usd-invoice-list">
+          <p class="empty-state">Loading USD invoices...</p>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script>
@@ -228,14 +311,14 @@
     }
 
     function showMessage(targetId, message, type = "info") {
-      const target = document.getElementById(targetId);
       const classMap = {
         success: "msg-success",
         error: "msg-error",
         info: "msg-info"
       };
 
-      target.innerHTML = `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
+      document.getElementById(targetId).innerHTML =
+        `<div class="${classMap[type] || "msg-info"}">${escapeHtml(message)}</div>`;
     }
 
     function clearMessage(targetId) {
@@ -270,18 +353,21 @@
     async function loadCurrentUser() {
       try {
         const response = await fetch("/api/me");
+
         if (!response.ok) {
           window.location.href = "/login";
           return false;
         }
 
         const data = await response.json();
+
         if (!data.success || !data.user) {
           window.location.href = "/login";
           return false;
         }
 
         currentUser = data.user;
+
         setText("user-username", currentUser.username || "-");
         setText("user-role", currentUser.role || "-");
         setText("user-status", "Authenticated");
@@ -304,18 +390,10 @@
     async function loadShipments() {
       try {
         const response = await fetch("/api/shipments");
-        if (!response.ok) {
-          shipmentsCache = [];
-          return;
-        }
-
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.shipments)) {
-          shipmentsCache = [];
-          return;
-        }
-
-        shipmentsCache = data.shipments || [];
+        shipmentsCache = response.ok && data.success && Array.isArray(data.shipments)
+          ? data.shipments
+          : [];
       } catch (_error) {
         shipmentsCache = [];
       }
@@ -324,33 +402,21 @@
     async function loadInvoices() {
       try {
         const response = await fetch("/api/invoices");
-        if (!response.ok) {
-          invoicesCache = [];
-          renderInvoiceList([]);
-          renderOutstandingAlerts([]);
-          renderSummaryCards([]);
-          return;
-        }
-
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.invoices)) {
-          invoicesCache = [];
-          renderInvoiceList([]);
-          renderOutstandingAlerts([]);
-          renderSummaryCards([]);
-          return;
-        }
 
-        invoicesCache = data.invoices || [];
-        renderInvoiceList(invoicesCache);
-        renderOutstandingAlerts(invoicesCache);
+        invoicesCache = response.ok && data.success && Array.isArray(data.invoices)
+          ? data.invoices
+          : [];
+
         renderSummaryCards(invoicesCache);
+        renderOutstandingAlerts(invoicesCache);
+        renderCurrencyInvoiceLists(invoicesCache);
         populateInvoiceDropdown(invoicesCache);
       } catch (_error) {
         invoicesCache = [];
-        renderInvoiceList([]);
-        renderOutstandingAlerts([]);
         renderSummaryCards([]);
+        renderOutstandingAlerts([]);
+        renderCurrencyInvoiceLists([]);
       }
     }
 
@@ -359,6 +425,7 @@
       if (!select) return;
 
       select.innerHTML = '<option value="">Select shipment</option>';
+
       shipments.forEach((shipment) => {
         const option = document.createElement("option");
         option.value = shipment.id;
@@ -372,24 +439,60 @@
       if (!select) return;
 
       select.innerHTML = '<option value="">Select invoice</option>';
+
       invoices.forEach((invoice) => {
         const option = document.createElement("option");
         option.value = invoice.id;
-        option.textContent = `${invoice.invoice_number} - ${invoice.reference_number} - Balance ${formatMoney(invoice.balance)}`;
+        option.dataset.currency = invoice.currency || "TZS";
+        option.textContent =
+          `${invoice.invoice_number} - ${invoice.reference_number} - ${invoice.currency || "TZS"} ${formatMoney(invoice.balance)}`;
         select.appendChild(option);
       });
     }
 
-    function renderSummaryCards(invoices) {
-      const totalInvoices = invoices.length;
-      const totalBilled = invoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const totalPaid = invoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
-      const totalOutstanding = invoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+    function updatePaymentCurrencyDisplay() {
+      const select = document.getElementById("payment_invoice_id");
+      const display = document.getElementById("payment_currency_display");
 
-      setText("card-total-invoices", String(totalInvoices));
-      setText("card-total-billed", formatMoney(totalBilled));
-      setText("card-total-paid", formatMoney(totalPaid));
-      setText("card-total-outstanding", formatMoney(totalOutstanding));
+      const option = select.options[select.selectedIndex];
+      if (!option || !option.value) {
+        display.value = "-";
+        return;
+      }
+
+      display.value = option.dataset.currency || "-";
+    }
+
+    function renderSummaryCards(invoices) {
+      const tzsInvoices = invoices.filter((i) => String(i.currency || "").toUpperCase() === "TZS");
+      const usdInvoices = invoices.filter((i) => String(i.currency || "").toUpperCase() === "USD");
+
+      const tzsBilled = tzsInvoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const tzsPaid = tzsInvoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
+      const tzsOutstanding = tzsInvoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+
+      const usdBilled = usdInvoices.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const usdPaid = usdInvoices.reduce((sum, item) => sum + Number(item.paid_amount || 0), 0);
+      const usdOutstanding = usdInvoices.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+
+      setText("tzs-billed", formatMoney(tzsBilled));
+      setText("tzs-paid", formatMoney(tzsPaid));
+      setText("tzs-outstanding", formatMoney(tzsOutstanding));
+
+      setText("usd-billed", formatMoney(usdBilled));
+      setText("usd-paid", formatMoney(usdPaid));
+      setText("usd-outstanding", formatMoney(usdOutstanding));
+
+      setText("card-total-invoices", String(invoices.length));
+      setText("card-tzs-invoices", String(tzsInvoices.length));
+      setText("card-usd-invoices", String(usdInvoices.length));
+
+      const confirmedPaymentsCount = invoices.reduce((sum, item) => {
+        const paymentCount = Array.isArray(item.payments) ? item.payments.length : 0;
+        return sum + paymentCount;
+      }, 0);
+
+      setText("card-confirmed-payments", String(confirmedPaymentsCount));
     }
 
     function renderOutstandingAlerts(invoices) {
@@ -409,7 +512,9 @@
               <p><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
               <p><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
+
             <div>
+              <p><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
               <p><strong>Billed:</strong> ${formatMoney(invoice.amount)}</p>
               <p><strong>Paid:</strong> ${formatMoney(invoice.paid_amount)}</p>
               <p><strong>Balance:</strong> ${formatMoney(invoice.balance)}</p>
@@ -419,15 +524,10 @@
       `).join("");
     }
 
-    function renderInvoiceList(invoices) {
-      const target = document.getElementById("invoice-list");
+    function renderInvoiceBlock(invoice) {
+      const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
 
-      if (!invoices.length) {
-        target.innerHTML = '<p class="empty-state">No invoices found.</p>';
-        return;
-      }
-
-      target.innerHTML = invoices.map((invoice) => `
+      return `
         <div class="card" style="margin-bottom:14px;">
           <div class="timeline-row" style="margin-bottom:10px;">
             <div>
@@ -435,6 +535,7 @@
               <p><strong>Shipment:</strong> <a href="/registry-detail?id=${invoice.shipment_id}">${escapeHtml(invoice.reference_number || "-")}</a></p>
               <p><strong>Client:</strong> ${escapeHtml(invoice.client_name || "-")}</p>
             </div>
+
             <div>
               <p><strong>Charge Type:</strong> ${escapeHtml(invoice.charge_type || "-")}</p>
               <p><strong>Currency:</strong> ${escapeHtml(invoice.currency || "-")}</p>
@@ -461,17 +562,52 @@
 
           <p><strong>Notes:</strong> ${escapeHtml(invoice.notes || "-")}</p>
           <p><strong>Created By:</strong> ${escapeHtml(invoice.created_by || "-")}</p>
+
+          <div style="padding-top:10px;border-top:1px solid var(--line);margin-top:10px;">
+            <h3 style="margin-bottom:10px;">Payments</h3>
+            ${
+              payments.length
+                ? payments.map((payment) => `
+                    <div class="timeline-card" style="margin-bottom:10px;">
+                      <p><strong>Amount:</strong> ${formatMoney(payment.amount)}</p>
+                      <p><strong>Method:</strong> ${escapeHtml(payment.payment_method || "-")}</p>
+                      <p><strong>Reference:</strong> ${escapeHtml(payment.reference_text || "-")}</p>
+                      <p><strong>Notes:</strong> ${escapeHtml(payment.notes || "-")}</p>
+                      <p><strong>Created At:</strong> ${formatDateTime(payment.created_at)}</p>
+                    </div>
+                  `).join("")
+                : "<p class='empty-state'>No confirmed payments recorded.</p>"
+            }
+          </div>
         </div>
-      `).join("");
+      `;
+    }
+
+    function renderCurrencyInvoiceLists(invoices) {
+      const tzsTarget = document.getElementById("tzs-invoice-list");
+      const usdTarget = document.getElementById("usd-invoice-list");
+
+      const tzsInvoices = invoices.filter((i) => String(i.currency || "").toUpperCase() === "TZS");
+      const usdInvoices = invoices.filter((i) => String(i.currency || "").toUpperCase() === "USD");
+
+      tzsTarget.innerHTML = tzsInvoices.length
+        ? tzsInvoices.map(renderInvoiceBlock).join("")
+        : '<p class="empty-state">No TZS invoices found.</p>';
+
+      usdTarget.innerHTML = usdInvoices.length
+        ? usdInvoices.map(renderInvoiceBlock).join("")
+        : '<p class="empty-state">No USD invoices found.</p>';
     }
 
     function resetInvoiceForm() {
       document.getElementById("invoice-form").reset();
+      document.getElementById("invoice_currency").value = "TZS";
       clearMessage("invoice-message");
     }
 
     function resetPaymentForm() {
       document.getElementById("payment-form").reset();
+      document.getElementById("payment_currency_display").value = "-";
       clearMessage("payment-message");
     }
 
@@ -496,7 +632,9 @@
       try {
         const response = await fetch("/api/invoices", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify(payload)
         });
 
@@ -506,7 +644,12 @@
           throw new Error(data.error || "Could not save invoice.");
         }
 
-        showMessage("invoice-message", `Invoice ${data.invoice.invoice_number} saved successfully.`, "success");
+        showMessage(
+          "invoice-message",
+          `Invoice ${data.invoice.invoice_number} saved successfully under ${payload.currency}.`,
+          "success"
+        );
+
         resetInvoiceForm();
         await loadInvoices();
       } catch (error) {
@@ -518,45 +661,69 @@
       event.preventDefault();
       clearMessage("payment-message");
 
-      const payload = {
-        invoice_id: Number(document.getElementById("payment_invoice_id").value),
-        amount: Number(document.getElementById("payment_amount").value),
-        payment_method: document.getElementById("payment_method").value.trim(),
-        reference_text: document.getElementById("payment_reference").value.trim(),
-        notes: document.getElementById("payment_notes").value.trim()
-      };
+      const invoiceId = Number(document.getElementById("payment_invoice_id").value);
+      const amount = Number(document.getElementById("payment_amount").value);
+      const paymentMethod = document.getElementById("payment_method").value.trim();
+      const referenceText = document.getElementById("payment_reference").value.trim();
+      const notes = document.getElementById("payment_notes").value.trim();
+      const confirmed = document.getElementById("payment_confirm_received").checked;
+      const currency = document.getElementById("payment_currency_display").value.trim();
 
-      if (!payload.invoice_id || !payload.amount || !payload.payment_method) {
+      if (!invoiceId || !amount || !paymentMethod) {
         showMessage("payment-message", "Invoice, amount, and payment method are required.", "error");
         return;
       }
 
+      if (!confirmed) {
+        showMessage("payment-message", "Tick the confirmation box before recording payment.", "error");
+        return;
+      }
+
+      const proceed = confirm(
+        `Confirm that ${currency} payment has already been received and should now be recorded?`
+      );
+
+      if (!proceed) return;
+
       try {
         const response = await fetch("/api/payments", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            invoice_id: invoiceId,
+            amount,
+            payment_method: paymentMethod,
+            reference_text: referenceText,
+            notes
+          })
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "Could not save payment.");
+          throw new Error(data.error || "Could not record payment.");
         }
 
-        showMessage("payment-message", "Payment recorded successfully.", "success");
+        showMessage(
+          "payment-message",
+          `${currency} payment recorded successfully after confirmation of receipt.`,
+          "success"
+        );
+
         resetPaymentForm();
         await loadInvoices();
       } catch (error) {
-        showMessage("payment-message", error.message || "Could not save payment.", "error");
+        showMessage("payment-message", error.message || "Could not record payment.", "error");
       }
     }
 
     document.getElementById("invoice-form").addEventListener("submit", saveInvoice);
     document.getElementById("payment-form").addEventListener("submit", savePayment);
-
     document.getElementById("reset-invoice-btn").addEventListener("click", resetInvoiceForm);
     document.getElementById("reset-payment-btn").addEventListener("click", resetPaymentForm);
+    document.getElementById("payment_invoice_id").addEventListener("change", updatePaymentCurrencyDisplay);
 
     document.getElementById("refresh-finance-btn").addEventListener("click", async function () {
       await Promise.all([loadShipments(), loadInvoices()]);
@@ -582,6 +749,7 @@
       await Promise.all([loadShipments(), loadInvoices()]);
       populateShipmentDropdown(shipmentsCache);
       populateInvoiceDropdown(invoicesCache);
+      updatePaymentCurrencyDisplay();
     }
 
     initPage();
